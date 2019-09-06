@@ -32,9 +32,6 @@ public class FileFetcher extends ClassroomDataFetcher {
 		ClassroomData assignment = (ClassroomData)ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);		
 		if (course != null && assignment != null) {
 			ListenerCoordinator.fire(AddProgressBarListener.class, PROGRESS_BAR_NAME);
-			String assignmentFilesDBName = (String)ListenerCoordinator.runQuery(GetDBNameQuery.class, GetDBNameQuery.DBType.ASSIGNMENT_FILES_DB);
-//			String dataBaseTable = FileData.dbTableName(assignment);
-//			readDataBase(assignmentFilesDBName, dataBaseTable, FileData.fieldNames.class);
 			authorize.getStudentWork(course, assignment, this);
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
 		}

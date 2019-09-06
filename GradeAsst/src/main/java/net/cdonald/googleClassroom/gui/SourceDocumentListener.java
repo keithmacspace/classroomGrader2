@@ -11,7 +11,6 @@ import net.cdonald.googleClassroom.model.FileData;
 public class SourceDocumentListener implements DocumentListener {
 
 	private FileData fileData;
-	private String fileName;
 	public SourceDocumentListener(FileData fileData, JTextArea textArea) {
 		super();
 		this.fileData = fileData;

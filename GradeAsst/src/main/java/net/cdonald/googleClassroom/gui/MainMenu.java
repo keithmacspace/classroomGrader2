@@ -1,7 +1,5 @@
 package net.cdonald.googleClassroom.gui;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,17 +12,12 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
@@ -57,7 +50,7 @@ public class MainMenu extends JMenuBar {
 	private JMenu file;
 	private JMenu rubric;
 	private JMenu help;
-	private JMenu edit;
+	//private JMenu edit;
 	private JMenu run;
 	private JMenu jplag;
 	private JMenu openClassroom;
@@ -80,7 +73,7 @@ public class MainMenu extends JMenuBar {
 		file = new JMenu("File");
 		rubric = new JMenu("Rubrics");
 		jplag = new JMenu("JPLAG");
-		edit = new JMenu("Edit");
+		//edit = new JMenu("Edit");
 		run = new JMenu("Run");
 		help = new JMenu("Help");
 		

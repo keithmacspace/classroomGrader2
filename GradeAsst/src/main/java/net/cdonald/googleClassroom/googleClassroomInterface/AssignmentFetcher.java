@@ -3,8 +3,6 @@ package net.cdonald.googleClassroom.googleClassroomInterface;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.swing.JProgressBar;
-
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;

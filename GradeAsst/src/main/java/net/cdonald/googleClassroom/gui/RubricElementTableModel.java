@@ -1,7 +1,5 @@
 package net.cdonald.googleClassroom.gui;
 
-import java.util.Arrays;
-
 import javax.swing.table.DefaultTableModel;
 
 import net.cdonald.googleClassroom.model.Rubric;

@@ -7,11 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
 import net.cdonald.googleClassroom.model.GoogleSheetData;
 import net.cdonald.googleClassroom.model.Rubric;
-import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.StudentData;
 
 public abstract class GradeSheetAccessor implements SheetAccessorInterface {
@@ -209,8 +207,7 @@ public abstract class GradeSheetAccessor implements SheetAccessorInterface {
 			columns.put(columnName.toUpperCase(), score);
 		}
 		public List<Object> generateRow(List<String> columnNames) {
-			List<Object> row = new ArrayList<Object>(columnNames.size());
-			int index = 0;
+			List<Object> row = new ArrayList<Object>(columnNames.size());			
 			for (String column : columnNames) {
 				String key = column.toUpperCase();
 				if (columns.containsKey(key)) {
@@ -219,7 +216,6 @@ public abstract class GradeSheetAccessor implements SheetAccessorInterface {
 				else {
 					row.add(null);
 				}
-				index++;
 			}
 			return row;
 		}

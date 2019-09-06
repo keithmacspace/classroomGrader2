@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.swing.Action;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -17,7 +16,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.text.DefaultEditorKit;
-
 import net.cdonald.googleClassroom.googleClassroomInterface.AssignmentFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.CourseFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.FileFetcher;
@@ -27,7 +25,6 @@ import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetGrades;
 import net.cdonald.googleClassroom.googleClassroomInterface.SheetFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.StudentFetcher;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.MainGoogleClassroomFrame;
 import net.cdonald.googleClassroom.gui.SetRubricListener;
 import net.cdonald.googleClassroom.gui.SetRubricListener.RubricType;

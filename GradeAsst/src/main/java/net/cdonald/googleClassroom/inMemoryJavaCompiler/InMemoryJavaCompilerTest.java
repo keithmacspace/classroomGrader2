@@ -45,8 +45,7 @@ public class InMemoryJavaCompilerTest {
 		System.out.println(method.invoke(obj, paramValues));
 		
 		Class<?>[] params = {String[].class};
-		Method main = helloClass.getDeclaredMethod("main", params);
-		String[] empty = {};
+		Method main = helloClass.getDeclaredMethod("main", params);		
 		Object[] args = {null };
 		main.invoke(null, args);
 		
@@ -64,8 +63,8 @@ public class InMemoryJavaCompilerTest {
 		//Assert.//AssertNotNull(compiled.get("A"));
 		//Assert.//AssertNotNull(compiled.get("B"));
 
-		Class<?> aClass = compiled.get("A");
-		Object a = aClass.newInstance();
+		//Class<?> aClass = compiled.get("A");
+		//Object a = aClass.newInstance();
 		//Assert.//AssertEquals("B!", aClass.getMethod("b").invoke(a).toString());
 	}
 
@@ -79,7 +78,7 @@ public class InMemoryJavaCompilerTest {
 		sourceCode.append("   public String hello() { return \"hello\"; }");
 		sourceCode.append("}");
 
-		Class<?> helloClass = InMemoryJavaCompiler.newInstance().compile("org.mdkt.HelloClass", sourceCode.toString());
+		//Class<?> helloClass = InMemoryJavaCompiler.newInstance().compile("org.mdkt.HelloClass", sourceCode.toString());
 		//Assert.//AssertNotNull(helloClass);
 		//Assert.//AssertEquals(1, helloClass.getDeclaredMethods().length);
 	}
@@ -111,14 +110,14 @@ public class InMemoryJavaCompilerTest {
 
 	
 	public void compile_WhenIgnoreWarnings() throws Exception {
-		StringBuffer sourceCode = new StringBuffer();
-
-		sourceCode.append("package org.mdkt;\n");
-		sourceCode.append("public class HelloClass {\n");
-		sourceCode.append("   public java.util.List<String> hello() { return new java.util.ArrayList(); }");
-		sourceCode.append("}");
-		Class<?> helloClass = InMemoryJavaCompiler.newInstance().ignoreWarnings().compile("org.mdkt.HelloClass", sourceCode.toString());
-		List<?> res = (List<?>) helloClass.getMethod("hello").invoke(helloClass.newInstance());
+//		StringBuffer sourceCode = new StringBuffer();
+//
+//		sourceCode.append("package org.mdkt;\n");
+//		sourceCode.append("public class HelloClass {\n");
+//		sourceCode.append("   public java.util.List<String> hello() { return new java.util.ArrayList(); }");
+//		sourceCode.append("}");
+//		Class<?> helloClass = InMemoryJavaCompiler.newInstance().ignoreWarnings().compile("org.mdkt.HelloClass", sourceCode.toString());
+//		List<?> res = (List<?>) helloClass.getMethod("hello").invoke(helloClass.newInstance());
 		//Assert.//AssertEquals(0, res.size());
 	}
 

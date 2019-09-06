@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-
 import net.cdonald.googleClassroom.utils.FileUtils;
 
 

@@ -146,12 +146,10 @@ public class StudentWorkCompiler {
 		compilerWorker = new SwingWorker<Void, CompilerMessage>() {
 
 			@Override
-			protected void process(List<CompilerMessage> chunks) {
-				for (CompilerMessage message : chunks) {					
+			protected void process(List<CompilerMessage> chunks) {									
 					if (listener != null) {
 						listener.dataUpdated();
-					}
-				}
+					}				
 			}
 
 			@Override

@@ -6,15 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.MethodReferenceExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -246,8 +241,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 			Rubric.showLoadError("Missing data for entry: \"" + entryName + "\"");
 			return;
 		}
-		else {
-			List<String> files = null;
+		else {			
 			stringsToFind.clear();
 
 			List<Object> labelRow = columns.get(0);

@@ -87,6 +87,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 				sourceTabbedPane.removeAll();
 				currentID = idToDisplay;
 				if (idToDisplay != null) {
+					@SuppressWarnings("unchecked")
 					List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, idToDisplay);
 					CompilerMessage compilerMessage = (CompilerMessage)ListenerCoordinator.runQuery(GetCompilerMessageQuery.class, idToDisplay);					
 					if (fileDataList != null) {

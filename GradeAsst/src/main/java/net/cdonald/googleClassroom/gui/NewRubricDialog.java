@@ -18,9 +18,7 @@ import javax.swing.JTextField;
 
 
 import net.cdonald.googleClassroom.listenerCoordinator.GetRubricNamesQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricEditorDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.RubricFileValidListener;
 
 public class NewRubricDialog extends JDialog {
 	private JTextField rubricNameField;
@@ -53,6 +51,7 @@ public class NewRubricDialog extends JDialog {
 		okButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				@SuppressWarnings("unchecked")
 				List<String> rubricNames = (List<String>)ListenerCoordinator.runQuery(GetRubricNamesQuery.class);
 				String newName = rubricNameField.getText();
 				boolean valid = true;

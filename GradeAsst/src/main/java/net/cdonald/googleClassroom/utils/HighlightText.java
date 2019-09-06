@@ -3,16 +3,12 @@ package net.cdonald.googleClassroom.utils;
 import java.awt.Color;
 import java.lang.reflect.Method;
 
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 import javax.swing.text.Highlighter.HighlightPainter;
-
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 
 public class HighlightText {
 	public static void highlightMethod(JTextArea textArea, Method method) {
@@ -64,7 +60,7 @@ public class HighlightText {
 					e.printStackTrace();
 				}
 				textArea.setCaretPosition(position * 2);
-				double ratio = (double)position/textArea.getLineCount();			
+				//double ratio = (double)position/textArea.getLineCount();			
 			}
 		});
 	}
