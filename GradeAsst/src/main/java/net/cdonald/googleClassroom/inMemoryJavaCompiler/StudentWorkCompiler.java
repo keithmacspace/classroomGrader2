@@ -181,21 +181,23 @@ public class StudentWorkCompiler {
 	
 	public CompilerMessage compile(String studentID) {
 		CompilerMessage message = null;
-		StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(studentID);
+		StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(studentID);		
 		if (studentBuildInfo != null) {
 	 		studentBuildInfo.setStudentCompilerMap(null);
 			List<FileData> studentFiles = studentBuildInfo.getStudentFileData();
-			InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance();
+			InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance();			
 			try {
-				for (FileData file : studentFiles) {
+				for (FileData file : studentFiles) {					
 					compiler.addSource(file.getClassName(), file.getFileContents());
 				}
-				Map<String, Class<?>> compiled = compiler.compileAll();
+				Map<String, Class<?>> compiled = compiler.compileAll();				
 				studentBuildInfo.setStudentCompilerMap(compiled);			
 				message = new CompilerMessage(studentID, true);
 			} catch (CompilationException e) {
+				DebugLogDialog.appendln("error " + e.getMessage());
 				message = new CompilerMessage(studentID, false, e.getLocalizedMessage());
 			} catch (Exception e2) {
+				DebugLogDialog.appendln("error 2 " + e2.getMessage());
 				message = new CompilerMessage(studentID, false, e2.getMessage());
 			} 
 			studentBuildInfo.setCompilerMessage(message);			

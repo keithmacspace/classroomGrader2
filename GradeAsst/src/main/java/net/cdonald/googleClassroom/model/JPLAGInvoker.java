@@ -1,12 +1,9 @@
 package net.cdonald.googleClassroom.model;
 
 import java.awt.Desktop;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,9 +11,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+
 import net.cdonald.googleClassroom.utils.FileUtils;
 
 
@@ -57,12 +55,12 @@ public class JPLAGInvoker {
 		try {
 			Process process = pb.start();
 			process.waitFor();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
+		} catch (Exception e1) {
+			String message = "JPLAG invocation failed: Open Help/Debug Log for more details";
+			JOptionPane.showMessageDialog(null, message,  "JPLAG Failed",
+					JOptionPane.INFORMATION_MESSAGE);
 			e1.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return null;
 		}
 		jplagOut += File.separator + "index.html";
 		
@@ -108,23 +106,6 @@ public class JPLAGInvoker {
 			}
 		}
 		return assignmentPath;
-	}
-	
-	public static void main(String [] args) {
-		final String test = "c:\\Users\\kdmacdon\\AppData\\Roaming\\Google Classroom Grader\\14911700941\\JPLAG\\jplagOut\\index.html";
-		
-		File htmlFile = new File(test);
-
-		if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-			try {
-
-				Desktop.getDesktop().browse(htmlFile.toURI());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-		}
-
 	}
 
 }

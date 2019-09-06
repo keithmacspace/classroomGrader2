@@ -1,7 +1,17 @@
 package org.mdkt.compiler;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
 
-import javax.tools.*;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 
 /**
  * Compile Java sources in-memory
@@ -67,6 +77,7 @@ public class InMemoryJavaCompiler {
 		if (sourceCodes.size() == 0) {
 			throw new CompilationException("No source code to compile");
 		}
+		
 		Collection<SourceCode> compilationUnits = sourceCodes.values();
 		CompiledCode[] code;
 
@@ -76,7 +87,7 @@ public class InMemoryJavaCompiler {
 			code[i] = new CompiledCode(iter.next().getClassName());
 		}
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
-		ExtendedStandardJavaFileManager fileManager = new ExtendedStandardJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader);
+		ExtendedStandardJavaFileManager fileManager = new ExtendedStandardJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader);		
 		JavaCompiler.CompilationTask task = javac.getTask(null, fileManager, collector, options, null, compilationUnits);
 		boolean result = task.call();
 		if (!result || collector.getDiagnostics().size() > 0) {

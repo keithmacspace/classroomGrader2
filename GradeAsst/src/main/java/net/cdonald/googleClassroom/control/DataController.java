@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.swing.Action;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -49,7 +50,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.LoadGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryListener;
-import net.cdonald.googleClassroom.listenerCoordinator.PublishGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricFileSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricSelected;
@@ -552,8 +552,7 @@ public class DataController implements StudentListInfo {
 					}					
 				}
 				@Override
-				public void remove(Set<String> removeList) {
-					DebugLogDialog.appendln("Remove" + removeList);
+				public void remove(Set<String> removeList) {					
 					for (String id : removeList) {
 						if (studentMap.containsKey(id)) {
 							studentMap.remove(id);
@@ -842,12 +841,17 @@ public class DataController implements StudentListInfo {
 			}
 		}		
 		String outputFile = JPLAGInvoker.invokeJPLAG(fileMap, studentData, prefs.getClassroomDir());
+		if (outputFile == null) {
+			return;
+		}
 		JTextArea message = new JTextArea(3,100);
 		message.setText("Attempting to open browser with results.\nIf it does not open, manually copy this path into your browser:\n" + outputFile);
 		message.setWrapStyleWord(true);
 		message.setLineWrap(true);
 		message.setCaretPosition(0);
 		message.setEditable(false);
+		JLabel background = new JLabel();
+		message.setBackground(background.getBackground());
 		JPopupMenu popupSource = new JPopupMenu();
 		Action copy = new DefaultEditorKit.CopyAction();
 		copy.putValue(Action.NAME, "Copy");
