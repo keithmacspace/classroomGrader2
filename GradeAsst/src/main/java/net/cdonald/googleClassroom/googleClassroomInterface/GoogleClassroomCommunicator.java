@@ -27,6 +27,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.classroom.Classroom;
+import com.google.api.services.classroom.Classroom.Builder;
 import com.google.api.services.classroom.ClassroomScopes;
 import com.google.api.services.classroom.model.AssignmentSubmission;
 import com.google.api.services.classroom.model.Attachment;
@@ -61,6 +62,7 @@ import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.GoogleSheetData;
@@ -125,8 +127,9 @@ public class GoogleClassroomCommunicator {
 
 
 	private void initServices() throws IOException {
+		DebugLogDialog.startMethod();
 		try {
-			getCredentialsSemaphore.acquire();
+			DebugLogDialog.aquireSemaphore(getCredentialsSemaphore, 1);
 		} catch (InterruptedException e) {
 			getCredentialsSemaphore.release();
 		}
@@ -135,24 +138,38 @@ public class GoogleClassroomCommunicator {
 
 		if (classroomService == null || driveService == null || sheetsService == null) {
 			Credential credentials = getCredentials();
-			if (classroomService == null) {
-				classroomService = new Classroom.Builder(httpTransport, JSON_FACTORY, credentials)
-						.setApplicationName(applicationName).build();
-			}
+			DebugLogDialog.appendCheckPoint("Pre drive", 1);
 			if (driveService == null) {
+				
 				driveService = new Drive.Builder(httpTransport, JSON_FACTORY, credentials)
 						.setApplicationName(applicationName).build();
 			}
+
+			DebugLogDialog.appendCheckPoint("Pre sheet", 1);
 			if (sheetsService == null) {
 				sheetsService = new Sheets.Builder(httpTransport, JSON_FACTORY, credentials)
 						.setApplicationName(applicationName).build();
 			}
+			
+			DebugLogDialog.appendCheckPoint(httpTransport.toString() + " " + JSON_FACTORY.toString() + " " + this.applicationName + " " + this.credentialsFilePath + " " + this.tokensDirectoryPath, 1);
+			if (classroomService == null) {
+				DebugLogDialog.appendCheckPoint("Pre builder", 1);
+				Builder classRoom = new Classroom.Builder(httpTransport, JSON_FACTORY, credentials);
+				DebugLogDialog.appendCheckPoint("Post builder", 1);
+				classRoom.setApplicationName(applicationName);
+				DebugLogDialog.appendCheckPoint("post application Name", 1);
+				classroomService = classRoom.build();
+				DebugLogDialog.appendCheckPoint("post build", 1);
+			}
+
+
 		}
 		getCredentialsSemaphore.release();
+		DebugLogDialog.endMethod();
 	}
 
 	public Credential getCredentials() throws IOException {
-
+		DebugLogDialog.startMethod();
 		InputStream in = new FileInputStream(credentialsFilePath);
 		GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
@@ -163,14 +180,15 @@ public class GoogleClassroomCommunicator {
 						.setAccessType("offline").build();
 		LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
 		Credential cred = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-
+		DebugLogDialog.appendCheckPoint("" + cred.toString(), 2);
+		DebugLogDialog.endMethod();
 		return cred;
 	}
 
 	private boolean acquireReadAssignmentSemaphore() {
 		boolean worked = true;
 		try {
-			readAssignmentsSemaphore.acquire();
+			DebugLogDialog.aquireSemaphore(readAssignmentsSemaphore, 1);
 		} catch (InterruptedException e) {
 			worked = false;
 			readAssignmentsSemaphore.release();
@@ -182,19 +200,19 @@ public class GoogleClassroomCommunicator {
 	private boolean acquireReadStudentsSemaphore() {
 		boolean worked = true;
 		try {
-			readStudentsSemaphore.acquire();
+			DebugLogDialog.aquireSemaphore(readStudentsSemaphore, 1);
 		} catch (InterruptedException e) {
 			readStudentsSemaphore.release();
 			worked = false;
 		}
-		cancelCurrentStudentRead = false;
+		cancelCurrentStudentRead = false;		
 		return worked;
 	}
 
 	private boolean acquireReadStudentsWorkSemaphore() {
 		boolean worked = true;
 		try {
-			readStudentsWorkSemaphore.acquire();
+			DebugLogDialog.aquireSemaphore(readStudentsWorkSemaphore, 1);
 		} catch (InterruptedException e) {
 			worked = false;
 			readStudentsWorkSemaphore.release();
@@ -205,6 +223,7 @@ public class GoogleClassroomCommunicator {
 	}
 
 	public void getClasses(DataFetchListener fetchListener) throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		try {
 			ListCoursesResponse response = classroomService.courses().list().execute();
@@ -217,7 +236,7 @@ public class GoogleClassroomCommunicator {
 		} catch (IOException e) {
 			throw e;
 		}
-
+		DebugLogDialog.endMethod();
 	}
 
 	public void getStudents(ClassroomData course, DataFetchListener fetchListener) throws IOException {
@@ -225,9 +244,11 @@ public class GoogleClassroomCommunicator {
 			return;
 		}
 		try {
+			DebugLogDialog.startMethod();
 			cancelCurrentStudentWorkRead = true;
 			acquireReadStudentsSemaphore();
 			initServices();
+
 			ListStudentsResponse studentListResponse = classroomService.courses().students().list(course.getId())
 					.execute();
 			for (Student student : studentListResponse.getStudents()) {
@@ -246,15 +267,16 @@ public class GoogleClassroomCommunicator {
 		} catch (IOException e) {
 			readStudentsSemaphore.release();
 			throw e;
-		}
-
+		}		
 		readStudentsSemaphore.release();
+		DebugLogDialog.endMethod();
 	}
 
 	public void getAssignments(ClassroomData course, DataFetchListener fetchListener) throws IOException {
 		if (course.isEmpty()) {
 			return;
 		}
+		DebugLogDialog.startMethod();
 		cancelCurrentAssignmentRead = true;
 		acquireReadAssignmentSemaphore();
 		acquireReadStudentsWorkSemaphore();
@@ -296,6 +318,7 @@ public class GoogleClassroomCommunicator {
 
 		readStudentsWorkSemaphore.release();
 		readAssignmentsSemaphore.release();
+		DebugLogDialog.endMethod();
 	}
 
 	public void getStudentWork(ClassroomData course, ClassroomData assignment, DataFetchListener fetchListener)
@@ -303,7 +326,7 @@ public class GoogleClassroomCommunicator {
 		if (course.isEmpty() || assignment.isEmpty()) {
 			return;
 		}
-
+		DebugLogDialog.startMethod();
 		try {
 
 			acquireReadStudentsWorkSemaphore();
@@ -344,13 +367,14 @@ public class GoogleClassroomCommunicator {
 			throw e;
 		}
 		readStudentsWorkSemaphore.release();
+		DebugLogDialog.endMethod();
 	}
 	
 	public void publishStudentGrades(ClassroomData course, ClassroomData assignment, Map<String, Double> grades) throws IOException {
 		if (course.isEmpty() || assignment.isEmpty()) {
 			return;
 		}
-
+		DebugLogDialog.startMethod();
 		try {
 			acquireReadStudentsWorkSemaphore();
 			initServices();
@@ -369,7 +393,7 @@ public class GoogleClassroomCommunicator {
 			throw e;
 		}
 		readStudentsWorkSemaphore.release();
-		
+		DebugLogDialog.endMethod();
 	}
 
 	public String googleSheetID(String sheetURL) {
@@ -389,11 +413,12 @@ public class GoogleClassroomCommunicator {
 			if (slashIndex != -1) {
 				id = id.substring(slashIndex + 1);
 			}
-		}
+		}		
 		return id;
 	}
 	
 	public Spreadsheet getValidSheet(String url) {
+		DebugLogDialog.startMethod();
 		try {
 			initServices();
 		} catch (IOException e) {
@@ -402,35 +427,42 @@ public class GoogleClassroomCommunicator {
 		}
 		String id = googleSheetID(url);
 		if (id.length() < 25) {
+			DebugLogDialog.endMethod();
 			return null;
 		}		
 		Spreadsheet spreadSheet = null;
 		try {
 			spreadSheet = sheetsService.spreadsheets().get(id).execute();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			DebugLogDialog.endMethod();
 			return null;
 		}
 		if (spreadSheet == null) {
+			DebugLogDialog.endMethod();
 			return null;
 		}
+		DebugLogDialog.endMethod();
 		return spreadSheet;
 	}
 
 	public List<Sheet> getSheetNames(String sheetURL, DataFetchListener fetchListener) throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		Spreadsheet spreadSheet = getValidSheet(sheetURL);
-		if (spreadSheet == null) {			
+		if (spreadSheet == null) {
+			DebugLogDialog.endMethod();
 			return null;
 		}
 		String id = googleSheetID(sheetURL);
 		GoogleSheetData fileName = new GoogleSheetData(spreadSheet.getProperties().getTitle(), id, sheetURL);
 		fileName.setEmpty(true);
 		fetchListener.retrievedInfo(fileName);
+		DebugLogDialog.endMethod();
 		return getSheetNames(fileName, fetchListener);
 	}
 	
 	public List<Sheet> getSheetNames(GoogleSheetData sheetData, DataFetchListener fetchListener) throws IOException {
+		DebugLogDialog.startMethod();
 		Spreadsheet spreadSheet = sheetsService.spreadsheets().get(sheetData.getSpreadsheetId()).execute();
 		List<Sheet> innerSheets = spreadSheet.getSheets();
 		for (Sheet sheet : innerSheets) {
@@ -442,10 +474,12 @@ public class GoogleClassroomCommunicator {
 				fetchListener.retrievedInfo(data);
 			}
 		}
+		DebugLogDialog.endMethod();
 		return innerSheets;
 		
 	}
 	public void fillRubric(Rubric rubric) throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		rubric.loadFromSheet(readSheet(rubric));
 	}
@@ -453,6 +487,7 @@ public class GoogleClassroomCommunicator {
 	
 
 	public LoadSheetData readSheet(SheetAccessorInterface sheetReader) throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		String id = sheetReader.getSheetInfo().getSpreadsheetId();
 		String sheetName = sheetReader.getSheetInfo().getName();		
@@ -463,12 +498,15 @@ public class GoogleClassroomCommunicator {
 			String range = sheetName + "!A1:" + getColumnName(numCols) + numRows;
 			ValueRange response = sheetsService.spreadsheets().values().get(id, range).execute();
 			List<List<Object>> values = response.getValues();
+			DebugLogDialog.endMethod();
 			return new LoadSheetData(values);
 		}
+		DebugLogDialog.endMethod();
 		return null;
 	}
 	
 	Sheet getSheet(GoogleSheetData sheetData, String sheetName) throws IOException  {
+		DebugLogDialog.startMethod();
 		Sheet current = null;
 		List<Sheet> existing = getSheetNames(sheetData, null);
 		for (Sheet sheet : existing) {
@@ -479,11 +517,13 @@ public class GoogleClassroomCommunicator {
 
 			}
 		}
+		DebugLogDialog.endMethod();
 		return current;
 
 	}
 	
 	private Sheet createIfNeeded(GoogleSheetData sheetInfo) throws IOException {
+		DebugLogDialog.startMethod();
 		String id = sheetInfo.getSpreadsheetId();
 		String sheetName = sheetInfo.getName();
 		
@@ -512,10 +552,12 @@ public class GoogleClassroomCommunicator {
 			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
 			current = getSheet(sheetInfo, sheetName);
 		}
+		DebugLogDialog.endMethod();
 		return current;		
 	}
 	
 	private void expandIfNeeded(String id, Sheet current, int maxColumn, int maxRow) throws IOException {
+		DebugLogDialog.startMethod();
 		int currentColumns = current.getProperties().getGridProperties().getColumnCount();
 		int currentRows = current.getProperties().getGridProperties().getRowCount();
 
@@ -545,10 +587,11 @@ public class GoogleClassroomCommunicator {
 			batchUpdateSpreadsheetRequest.setRequests(requestsList);
 			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
 		}
-		
+		DebugLogDialog.endMethod();
 	}
 
 	public String writeSheet(SheetAccessorInterface sheetWriter) throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		String id = sheetWriter.getSheetInfo().getSpreadsheetId();
 
@@ -559,10 +602,12 @@ public class GoogleClassroomCommunicator {
 		
 		BatchUpdateValuesRequest body = new BatchUpdateValuesRequest().setValueInputOption(saveData.getValueType()).setData(saveData.getSaveState());
 		BatchUpdateValuesResponse result = sheetsService.spreadsheets().values().batchUpdate(id, body).execute();
+		DebugLogDialog.endMethod();
 		return result.toString();
 	}
 
 	public void listFoldersInRoot() throws IOException {
+		DebugLogDialog.startMethod();
 		initServices();
 		FileList result = driveService.files().list()
 				.setQ("'root' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false")
@@ -571,11 +616,12 @@ public class GoogleClassroomCommunicator {
 		for (com.google.api.services.drive.model.File folder : folders) {
 			System.out.println(folder);
 		}
-
+		DebugLogDialog.endMethod();
 	}
 
 	public Map<File, List<File>> listChildItemsOfFolder(String searchParentFolderName) throws IOException {
 		Map<File, List<File>> results = new HashMap<File, List<File>>();
+		DebugLogDialog.startMethod();
 		initServices();
 		FileList result = driveService.files().list()
 				.setQ(String.format(
@@ -598,7 +644,7 @@ public class GoogleClassroomCommunicator {
 				}
 			}
 		}
-
+		DebugLogDialog.endMethod();
 		return results;
 	}
 	

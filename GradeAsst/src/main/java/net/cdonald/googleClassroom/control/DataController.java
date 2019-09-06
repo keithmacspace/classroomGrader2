@@ -25,6 +25,7 @@ import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetGrades;
 import net.cdonald.googleClassroom.googleClassroomInterface.SheetFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.StudentFetcher;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.MainGoogleClassroomFrame;
 import net.cdonald.googleClassroom.gui.SetRubricListener;
 import net.cdonald.googleClassroom.gui.SetRubricListener.RubricType;
@@ -132,7 +133,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	public void performFirstInit() {
-
+		DebugLogDialog.startMethod();
 		if (prefs.getClassroom() != null) {
 			currentCourse = prefs.getClassroom();
 			ListenerCoordinator.fire(ClassSelectedListener.class, currentCourse);
@@ -149,7 +150,8 @@ public class DataController implements StudentListInfo {
 		String gradeFileName = prefs.getGradeFile();
 		if (gradeURL != null) {
 			ListenerCoordinator.fire(GradeFileSelectedListener.class, gradeURL, gradeFileName);			
-		}				
+		}
+		DebugLogDialog.endMethod();
 	}
 	
 	private void registerListeners() {

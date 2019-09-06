@@ -30,6 +30,9 @@ public class JPLAGInvoker {
 		args.add("-jar");	
 		try {
 			String jarDir = new File(JPLAGInvoker.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+			if (jarDir.lastIndexOf(File.separator) != -1) {
+				jarDir = jarDir.substring(0, jarDir.lastIndexOf(File.separator));
+			}
 			jarDir += File.separator + "jplag-2.12.1.jar";
 			args.add(jarDir);
 		} catch (URISyntaxException e) {
