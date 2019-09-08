@@ -116,13 +116,15 @@ public class LoadSheetGrades extends GradeSheetAccessor{
 			int foundCount = foundCountMap.get(key);
 			foundCountMap.put(key, foundCount+1);
 			StudentRow studentRow = getStudentRow(lastName, firstName, foundCount);
-			String studentID = studentRow.getStudent().getId();
-			for (int col = 0; col < row.size(); col++) {
-				if (col != firstNameColumn && col != lastNameColumn) {
-					String columnName = getColumnName(col);
-					studentRow.addColumn(columnName, row.get(col));
-					addDataToStudent(studentID, columnName, row.get(col), rubricEntryMap, keepCurrentRubricValues);
-				}				
+			if (studentRow != null) {
+				String studentID = studentRow.getStudent().getId();
+				for (int col = 0; col < row.size(); col++) {
+					if (col != firstNameColumn && col != lastNameColumn) {
+						String columnName = getColumnName(col);
+						studentRow.addColumn(columnName, row.get(col));
+						addDataToStudent(studentID, columnName, row.get(col), rubricEntryMap, keepCurrentRubricValues);
+					}				
+				}
 			}
 		}
 	}

@@ -338,9 +338,16 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 	}
 	
 	private void saveGrades() {
-		ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Grades");				
+		ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Grades");
 		ClassroomData assignment = mainToolBar.getAssignmentSelected();
 		SaveSheetGrades grades = dataController.newSaveGrades(assignment.getName());
+		if (grades == null) {
+			JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, "Both a grade file and rubric must be specified before you can save grades.", "Error while running",
+					JOptionPane.ERROR_MESSAGE);
+			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Grades");
+			return;
+		}
+		
 		studentPanel.addStudentGrades(grades, dataController.getRubric());
 		dataController.saveGrades(grades);
 		dataUpdated();

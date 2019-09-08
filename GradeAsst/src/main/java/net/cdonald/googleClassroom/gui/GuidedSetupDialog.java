@@ -161,7 +161,7 @@ public class GuidedSetupDialog extends JDialog {
 		chooseName.setLayout(new BorderLayout());
 		final int SPACE = 5;
 		chooseName.setBorder(BorderFactory.createEmptyBorder(SPACE, SPACE, SPACE, SPACE));
-		JLabel prompt = new JLabel("Choose the name that will appear in the gradebook: ");
+		JLabel prompt = new JLabel("Choose the name that will appear in the gradebook (students will not see this name): ");
 		userNameField = new JTextField(20);
 		String name = prefs.getUserName();
 		userNameField.setText(name);
@@ -349,7 +349,7 @@ public class GuidedSetupDialog extends JDialog {
 		    //if we are on a Mac, we are not done, we look for "Application Support"
 		    workingDirectory += File.separator + "Library" + File.separator + "Application Support";
 		}
-		workingDirectory += File.separator + "Google Classroom Grader";
+		workingDirectory += File.separator + "Grading Assistant";
 		return workingDirectory;
 	}
 	

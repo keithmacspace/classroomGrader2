@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -77,6 +79,7 @@ public class GoogleClassroomCommunicator {
 	 * scopes, delete your previously saved tokens/ folder.
 	 */
 	private static final List<String> SCOPES = new ImmutableList.Builder<String>()
+			.add(ClassroomScopes.CLASSROOM_COURSEWORK_STUDENTS)
 			.add(ClassroomScopes.CLASSROOM_COURSES_READONLY).add(ClassroomScopes.CLASSROOM_ROSTERS_READONLY)
 			.add(ClassroomScopes.CLASSROOM_COURSEWORK_STUDENTS_READONLY).add(DriveScopes.DRIVE)
 			.add(DriveScopes.DRIVE_FILE).add(DriveScopes.DRIVE_APPDATA).add(DriveScopes.DRIVE_METADATA)
@@ -248,7 +251,7 @@ public class GoogleClassroomCommunicator {
 			cancelCurrentStudentWorkRead = true;
 			acquireReadStudentsSemaphore();
 			initServices();
-
+			Set<String> studentNames = new HashSet<String>();
 			ListStudentsResponse studentListResponse = classroomService.courses().students().list(course.getId())
 					.execute();
 			for (Student student : studentListResponse.getStudents()) {
@@ -256,9 +259,20 @@ public class GoogleClassroomCommunicator {
 				if (cancelCurrentStudentRead) {
 					break;
 				}
+				
 
 				Name name = studentProfile.getName();
-				StudentData data = new StudentData(name.getGivenName(), name.getFamilyName(), studentProfile.getId(),
+				String firstName = name.getGivenName();
+				String lastName = name.getFamilyName();
+				String searchName = lastName + firstName;
+				int matchCount = 1;
+				while (studentNames.contains(searchName)) {
+					firstName =  name.getGivenName() + "(" + matchCount + ")";
+					searchName = lastName + firstName;
+					matchCount++;
+				}
+				studentNames.add(searchName);
+				StudentData data = new StudentData(firstName, lastName, studentProfile.getId(),
 						course.getDate());
 
 				data.setRetrievedFromGoogle(true);

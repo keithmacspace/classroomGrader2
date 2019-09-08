@@ -17,7 +17,11 @@
   !define MUI_BRANDINGTEXT "Classroom Grader Ver. ${MUI_VERSION}"
   !define SOURCE_PATH "..\GradeAsst\build\libs"
   !define JAVA_PATH "$PROGRAMFILES64\java"
+  ;!define JAVA_PATH "c:\temp\java"
   !define JAVA_DEST "${JAVA_PATH}\jdk-12.0.2"
+  !define ZIP_NAME "openjdk-12.0.2_windows-x64_bin.zip"
+  !define ZIP_SOURCE "https://download.java.net/java/GA/jdk12.0.2/e482c34c86bd4bf8b56c0b35558996b9/10/GPL/openjdk-12.0.2_windows-x64_bin.zip"
+  !define ZIP_DEST "$PLUGINSDIR\${ZIP_NAME}"
   CRCCheck On
  
  
@@ -50,7 +54,7 @@
   
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
- 
+
 ;--------------------------------
 ;Languages
  
@@ -60,17 +64,19 @@
 ;-------------------------------- 
 ;Installer Sections     
 ;
-;Section "Java JDK 12.02" InstallJDK
+Section "Install Java JDK 12.0.2 From OpenJDK" InstallJDK
+  IfFileExists "${JAVA_DEST}" done 0
+  MessageBox MB_OK "Grading Assistant needs JDK version 12.0.2 or higher to work.  Installing jdk12.0.2 from openjdk"
+  SetOutPath ${JAVA_PATH}
+  inetc::get /NOCANCEL "${ZIP_SOURCE}" "${ZIP_DEST}" /end
+  nsisunz::Unzip "${ZIP_DEST}" "${JAVA_PATH}"
+  goto done
+done:
+SectionEnd
 
-;SectionEnd
 Section "Grading Assistant" InstallGrader
  
 ;Add files
-  IfFileExists "${JAVA_DEST}" skipJava 0
-  SetOutPath "$PLUGINSDIR"
-  File "openjdk-12.0.2_windows-x64_bin.zip"
-  nsisunz::Unzip "$PLUGINSDIR\openjdk-12.0.2_windows-x64_bin.zip" "${JAVA_PATH}"
-skipJava:
   SetOutPath "$INSTDIR"
  
   File "${SOURCE_PATH}\${MUI_FILE}"
@@ -122,11 +128,10 @@ FunctionEnd
  
 ;Function that calls a messagebox when installation finished correctly
 Function .onInstSuccess
-  MessageBox MB_OK "You have successfully installed ${MUI_PRODUCT}. Use the desktop icon to start the program."
+  MessageBox MB_OK "You have successfully installed ${MUI_PRODUCT}. Use the desktop icon to start the program.  On the first launch, a guided setup will run."
 FunctionEnd
  
 Function un.onUninstSuccess
-  MessageBox MB_OK "You have successfully uninstalled ${MUI_PRODUCT}."
 FunctionEnd
  
  

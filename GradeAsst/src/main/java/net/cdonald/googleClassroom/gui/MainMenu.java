@@ -337,7 +337,7 @@ public class MainMenu extends JMenuBar {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JTextArea message = new JTextArea(3,100);
-				message.setText("Grading Assistant Version 1.0\n\nSend bugs/enhancements requests to keithm@cdonald.net\n\nGit Repro: https://github.com/keithmacspace/classroomGrader2.git");
+				message.setText("Grading Assistant Version 1.0\n\nSend bugs/enhancement requests to keithm@cdonald.net\n\nGit Repro: https://github.com/keithmacspace/classroomGrader2.git");
 				message.setWrapStyleWord(true);
 				message.setLineWrap(true);
 				message.setCaretPosition(0);

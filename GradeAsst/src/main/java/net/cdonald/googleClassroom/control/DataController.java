@@ -795,7 +795,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	public SaveSheetGrades newSaveGrades(String assignmentName) {
-		if (currentRubric != null && currentRubric != rubricBeingEdited) {
+		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null) {
 			ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 			SaveSheetGrades grades = new SaveSheetGrades(googleClassroom, new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName()), assignment, currentRubric, studentData, prefs.getUserName(), notesCommentsMap);
 			return grades;

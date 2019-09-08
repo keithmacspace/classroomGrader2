@@ -11,6 +11,8 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+
 /**
  * Compile Java sources in-memory
  */

@@ -30,11 +30,25 @@ public class JPLAGInvoker {
 		args.add("-jar");	
 		try {
 			String jarDir = new File(JPLAGInvoker.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-			if (jarDir.lastIndexOf(File.separator) != -1) {
-				jarDir = jarDir.substring(0, jarDir.lastIndexOf(File.separator));
-			}
-			jarDir += File.separator + "jplag-2.12.1.jar";
-			args.add(jarDir);
+			String originalJarDir = jarDir;
+			String fullJPLAGPath = null;
+			File test = null;
+			int separator = -1;
+			do {
+				fullJPLAGPath = jarDir + File.separator + "jplag-2.12.1.jar";
+				test = new File(fullJPLAGPath);
+				separator = jarDir.lastIndexOf(File.separator); 
+				if (separator != -1) {
+					jarDir = jarDir.substring(0, separator);
+				}				
+			}while (test.exists() == false && separator != -1);
+			if (test.exists() == false) {
+				String message = "Could not find jplag-2.12.1.jar anywhere in this path: " + originalJarDir;
+				JOptionPane.showMessageDialog(null, message,  "JPLAG Failed",
+						JOptionPane.INFORMATION_MESSAGE);
+				return null;				
+			}			
+			args.add(fullJPLAGPath);
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
