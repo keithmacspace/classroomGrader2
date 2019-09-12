@@ -17,15 +17,26 @@ public class RubricEntry {
 	public static enum AutomationTypes {
 		NONE, TURN_IN_SOMETHING, POINT_LOSS_FOR_LATE, COMPILES, RUN_CODE, CODE_CONTAINS_METHOD
 	}
+	
+	public class StudentScore {
+		public Double getScore() {
+			return score;
+		}
+		public boolean isModifiedByUser() {
+			return modifiedByUser;
+		}
+		Double score;
+		boolean modifiedByUser;
+	}
 
 	String id;
 	String name;
 	String description;
 	int rubricValue;
 	AutomationTypes automationType;
-	Map<String, Double> studentScores;
+	Map<String, StudentScore> studentScores;
 	RubricAutomation automation;
-
+	
 
 
 	public RubricEntry(List<String> headings, List<Object> entries) {
@@ -43,14 +54,16 @@ public class RubricEntry {
 				}
 			}
 		}
-		studentScores = new HashMap<String, Double>();
+		studentScores = new HashMap<String, StudentScore>();
+
 	}
 	
 	
 	// This is the form used when we create it via the dialog box in addRubricEntry
 	public RubricEntry() {
 		automationType = AutomationTypes.NONE;
-		studentScores = new HashMap<String, Double>();
+		studentScores = new HashMap<String, StudentScore>();
+
 	}
 	
 	public RubricEntry(RubricEntry other) {
@@ -59,7 +72,7 @@ public class RubricEntry {
 		description = other.description;
 		rubricValue = other.rubricValue;
 		automationType = other.automationType;
-		studentScores = new HashMap<String, Double>();
+		studentScores = new HashMap<String, StudentScore>();
 		for (String key : other.studentScores.keySet()) {
 			studentScores.put(key, other.studentScores.get(key));
 		}
@@ -68,39 +81,44 @@ public class RubricEntry {
 		}
 	}
 
-	public String setStudentValue(String studentID, String stringValue) {
-		Double newValue = studentScores.get(studentID);
+	public void setStudentValue(String studentID, String stringValue) {
+		if (studentScores.containsKey(studentID) == false) {
+			studentScores.put(studentID, new StudentScore());
+		}
+		StudentScore score = studentScores.get(studentID);
+		if (Rubric.getModifiableState() == Rubric.ModifiableState.TRACK_MODIFICATIONS) {
+			score.modifiedByUser = true;
+		}
 
 		try {
 			if (stringValue == null) {
-				newValue = null;
+				score.score = null;
 			}
 			else if ( stringValue.length() > 0) {
 				Double test = Double.parseDouble(stringValue);
 				if (test <= rubricValue || rubricValue == 0.0) {
-					newValue = test;
+					score.score = test;
 				}
 			}
 		} catch (NumberFormatException e) {
 
 		}
-		studentScores.put(studentID, newValue);
-		return getStudentValue(studentID); 
 	}
+
 	
-	public Double getStudentDoubleValue(String studentID) {
-		Double studentValue = null;
+	public StudentScore getStudentScore(String studentID) {
+		
 		if (studentScores.containsKey(studentID)) {			
-			studentValue = studentScores.get(studentID);
+			return studentScores.get(studentID);
 		}
-		return studentValue;
+		return null;
 	}
 	
 	public String getStudentValue(String studentID) {
 		String displayValue = "";
 		
 		if (studentScores.containsKey(studentID)) {			
-			Double doubleValue = studentScores.get(studentID);
+			Double doubleValue = studentScores.get(studentID).score;
 			if (doubleValue != null) {				
 				double test = doubleValue;
 				if ((int) test == test) {
@@ -213,6 +231,7 @@ public class RubricEntry {
 	public AutomationTypes getAutomationType() {
 		return automationType;
 	}
+	
 
 	@Override
 	public String toString() {
@@ -222,6 +241,17 @@ public class RubricEntry {
 	}
 
 	void runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
+		// Don't change the value of already graded rubrics
+		StudentScore studentScore = studentScores.get(message.getStudentId());
+		if (studentScore != null && studentScore.score != null) {
+			return;
+		}
+		if (studentScore == null) {
+			studentScores.put(studentId, new StudentScore());
+		}
+		
+		// No need to check the Rubric.ModifiableState, if we're running automation, we're changing the value
+		studentScore.modifiedByUser = true;
 		if (automation != null) {			
 			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, consoleData);
 			// Leave the old score if the result is null.
@@ -231,8 +261,8 @@ public class RubricEntry {
 				// Just truncate below two digits of precision
 				score *= 100.0;
 				score = (int)score;
-				score /= 100.0;						
-				studentScores.put(message.getStudentId(),  score);
+				score /= 100.0;
+				studentScore.score = score;
 			}
 		}
 		
@@ -240,19 +270,21 @@ public class RubricEntry {
 			switch (automationType) {
 			case COMPILES:
 				if (message.isSuccessful()) {
-					studentScores.put(message.getStudentId(), (double)rubricValue);
+					studentScore.score = (double)rubricValue;
 				}
 				else {
-					studentScores.put(message.getStudentId(), 0.0);
+					studentScore.score = 0.0;
 				}
 				break;
 			case TURN_IN_SOMETHING:
 				List<FileData> files = compiler.getSourceCode(studentId);
 				if (files != null) {
-					studentScores.put(studentId, (double)rubricValue);
+					studentScore.score = (double)rubricValue;
 					return;
 				}
-				studentScores.put(studentId, 0.0);				
+				else {
+					studentScore.score = 0.0;				
+				}
 				break;
 				
 			default:
@@ -350,5 +382,25 @@ public class RubricEntry {
 			return true;
 		}
 		return false;
+	}
+
+
+	public boolean anyGradesModified() {
+		for (StudentScore studentScore : studentScores.values()) {
+			if (studentScore != null && studentScore.isModifiedByUser() == true) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	public void clearModifiedFlag() {
+		for (StudentScore score : studentScores.values()) {
+			if (score != null) {
+				score.modifiedByUser = false;
+			}
+		}
+		
 	}
 }

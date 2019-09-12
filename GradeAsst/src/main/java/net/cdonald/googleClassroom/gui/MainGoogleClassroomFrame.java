@@ -17,7 +17,6 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 
 import net.cdonald.googleClassroom.control.DataController;
-import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetGrades;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ChooseGradeFileListener;
@@ -156,7 +155,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent ev) {
-				if (dataController.isGradesModified()) {
+				if (dataController.areGradesModified()) {
 					int option = JOptionPane.showConfirmDialog(MainGoogleClassroomFrame.this,  "Save Grades Before Exiting?", "Unsaved Changes", JOptionPane.YES_NO_CANCEL_OPTION);
 					if (option == JOptionPane.CANCEL_OPTION) {
 						return;
@@ -338,20 +337,21 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 	}
 	
 	private void saveGrades() {
-		ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Grades");
-		ClassroomData assignment = mainToolBar.getAssignmentSelected();
-		SaveSheetGrades grades = dataController.newSaveGrades(assignment.getName());
-		if (grades == null) {
-			JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, "Both a grade file and rubric must be specified before you can save grades.", "Error while running",
-					JOptionPane.ERROR_MESSAGE);
-			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Grades");
-			return;
-		}
+		SwingWorker<Void, Void> syncWorker = new SwingWorker<Void, Void>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				ListenerCoordinator.fire(AddProgressBarListener.class, "Syncing Grades");
+				studentPanel.stopEditing();				
+				dataController.syncGrades();
+				ListenerCoordinator.fire(RemoveProgressBarListener.class, "Syncing Grades");	
+				return null;
+			}
+			
+		};
+		syncWorker.execute();
+
 		
-		studentPanel.addStudentGrades(grades, dataController.getRubric());
-		dataController.saveGrades(grades);
-		dataUpdated();
-		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Grades");
 
 	}
 	

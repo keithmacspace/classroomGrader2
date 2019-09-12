@@ -3,6 +3,8 @@ package net.cdonald.googleClassroom.gui;
 import java.awt.BorderLayout;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -36,7 +38,6 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetGrades;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -47,7 +48,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
-import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.StudentData;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
@@ -70,6 +70,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 	private JSplitPane splitPane;
 	private int defaultValueWidth;
 
+
 	private int lastKeyboardCol;
 	private boolean keyPressed;
 	private static final int OTHER_COL_BASE_SIZE = 15;
@@ -77,6 +78,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 		this.otherComments = studentListInfo.getNotesCommentsMap();
 		this.currentGrader = studentListInfo.getUserName();
 		this.notesAndCommentsMap = studentListInfo.getNotesCommentsMap().get(currentGrader);
+
 		lastKeyboardCol = -1;
 		keyPressed = false;
 		defaultValueWidth = OTHER_COL_BASE_SIZE;
@@ -186,7 +188,6 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 			public void componentHidden(ComponentEvent e) {
 			}
 	    });
-	    
 
 		studentTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 
@@ -198,6 +199,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
 						ListSelectionModel lsm = (ListSelectionModel)e.getSource();
+						int lastNotesFocus = commentTabs.getSelectedIndex();
 						if (lsm.isSelectionEmpty() == false) {
 							int selectedRow = lsm.getMinSelectionIndex();
 
@@ -229,7 +231,12 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 							currentStudent = null;
 							addCommentAreas(null);
 						}
+						
+						DebugLogDialog.appendln("Notes focus: " + lastNotesFocus);
 						commentPane.repaint();
+						if (lastNotesFocus >= 0 && lastNotesFocus < commentTabs.getTabCount()) {
+							commentTabs.setSelectedIndex(lastNotesFocus);
+						}
 						ListenerCoordinator.fire(StudentSelectedListener.class, currentStudent);
 					}
 				});
@@ -585,35 +592,10 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener{
 		});		
 	}
 	
-	public void addStudentGrades(SaveSheetGrades saveGrades, Rubric rubric) {
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-
-				for (int i = 0; i < studentModel.getRowCount(); i++) {
-					if (studentTable.getCellEditor() != null) {
-						studentTable.getCellEditor().stopCellEditing();
-					}
-					StudentData studentInfo = (StudentData)studentModel.getValueAt(i, StudentListInfo.LAST_NAME_COLUMN);
-					saveGrades.addStudentColumn(studentInfo, StudentListInfo.defaultColumnNames[StudentListInfo.LAST_NAME_COLUMN], studentInfo.getName());
-					saveGrades.addStudentColumn(studentInfo, StudentListInfo.defaultColumnNames[StudentListInfo.FIRST_NAME_COLUMN], studentInfo.getFirstName());
-					Date date = (Date)studentModel.getValueAt(i, StudentListInfo.DATE_COLUMN);
-					String dateString = SimpleUtils.formatDate(date);
-					saveGrades.addStudentColumn(studentInfo, StudentListInfo.defaultColumnNames[StudentListInfo.DATE_COLUMN], dateString);
-					for (int entryNum = 0; entryNum < rubric.getEntryCount(); entryNum++) {
-						RubricEntry entry = rubric.getEntry(entryNum);
-						Double grade = entry.getStudentDoubleValue(studentInfo.getId());
-						if (grade != null) {
-							saveGrades.addStudentColumn(studentInfo, entry.getName(), grade);
-						}
-					}
-					if (notesAndCommentsMap.containsKey(studentInfo.getId())) {
-						saveGrades.addStudentNotes(studentInfo, notesAndCommentsMap.get(studentInfo.getId()));
-					}
-				}
-			}
-		});
-
+	public void stopEditing() {
+		if (studentTable.getCellEditor() != null) {
+			studentTable.getCellEditor().stopCellEditing();
+		}
 	}
 	public boolean isAnyStudentSelected() {
 		return currentStudent != null;

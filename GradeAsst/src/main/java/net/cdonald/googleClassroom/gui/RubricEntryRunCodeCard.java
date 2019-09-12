@@ -158,8 +158,8 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 		fileToUseModel.init();
 
 		Map<String, FileData> allFiles = dialogOwner.getRubricToModify().getFileDataMap();
-		for (String key : allFiles.keySet()) {
-			fileToUseModel.addFile(allFiles.get(key));
+		for (FileData file : allFiles.values()) {
+			fileToUseModel.addFile(file);
 		}			
 		fillMethodCombo();
 

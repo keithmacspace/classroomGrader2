@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
-
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
@@ -401,10 +401,9 @@ public class ConsoleAndSourcePanel extends JPanel {
 		else {
 			outputWrapperPanel.clearPanels();
 			currentInputHistory = null;
-			clearPanel(inputHistorWrapperPanel);
-			Set<String> rubricKeys = rubricPanels.keySet();
-			for (String rubricName : rubricKeys) {
-				rubricPanels.get(rubricName).clearPanels();
+			clearPanel(inputHistorWrapperPanel);			
+			for (SplitOutErrPanel rubricPanel : rubricPanels.values()) {
+				rubricPanel.clearPanels();
 			}
 		}
 	}

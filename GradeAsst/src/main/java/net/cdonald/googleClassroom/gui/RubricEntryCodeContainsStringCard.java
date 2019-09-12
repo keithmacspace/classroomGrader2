@@ -255,8 +255,7 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 		List<String> sortedNames = new ArrayList<String>();
 		List<Method> sortedMethods = new ArrayList<Method>();
 		if (classMap != null) {
-			for (String className : classMap.keySet()) {
-				Class<?> classContainer = classMap.get(className);
+			for (Class<?> classContainer : classMap.values()) {				
 				for (Method method : classContainer.getMethods()) {
 					String methodName = method.getName();
 					for (FileData file : goldenSource) {

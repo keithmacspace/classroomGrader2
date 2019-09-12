@@ -17,7 +17,14 @@ public class LoadSheetData {
 	
 	
 	public int getNumRows() {
-		return sheetInfo.size();
+		if (sheetInfo != null) {
+			return sheetInfo.size();
+		}
+		return 0;
+	}
+	
+	public void rowInserted(int rowIndex) {
+		sheetInfo.add(rowIndex, null);
 	}
 	
 	public List<Object> readRow(int rowIndex) {

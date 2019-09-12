@@ -1,5 +1,6 @@
 package net.cdonald.googleClassroom.googleClassroomInterface;
 
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,10 +58,19 @@ import com.google.api.services.sheets.v4.model.AppendDimensionRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
+import com.google.api.services.sheets.v4.model.Border;
+import com.google.api.services.sheets.v4.model.CellData;
+import com.google.api.services.sheets.v4.model.CellFormat;
+import com.google.api.services.sheets.v4.model.DimensionRange;
+import com.google.api.services.sheets.v4.model.GridRange;
+import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
+import com.google.api.services.sheets.v4.model.RepeatCellRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
+import com.google.api.services.sheets.v4.model.TextFormat;
+import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -129,7 +139,7 @@ public class GoogleClassroomCommunicator {
 	
 
 
-	private void initServices() throws IOException {
+	public void initServices() throws IOException {
 		DebugLogDialog.startMethod();
 		try {
 			DebugLogDialog.aquireSemaphore(getCredentialsSemaphore, 1);
@@ -570,6 +580,166 @@ public class GoogleClassroomCommunicator {
 		return current;		
 	}
 	
+	public void insertRow(GoogleSheetData targetFile, int column) {
+		insertRowOrColumn(targetFile, column, "ROWS");
+	}
+	public void insertColumn(GoogleSheetData targetFile, int row) {
+		insertRowOrColumn(targetFile, row, "COLUMNS");
+	}
+	
+	private void insertRowOrColumn(GoogleSheetData targetFile, int row, String dimensionType) {
+		DebugLogDialog.startMethod();
+		Sheet current = null;
+		String id = null;
+		String sheetName = null;
+		try {
+			initServices();
+			id = targetFile.getSpreadsheetId();
+			sheetName = targetFile.getName();		
+
+			current = getSheet(targetFile, sheetName);
+
+			if (current != null) {
+				List<Request> requestsList = new ArrayList<Request>();
+				InsertDimensionRequest insertRequest = new InsertDimensionRequest();
+				DimensionRange range = new DimensionRange();
+				range.setSheetId(current.getProperties().getSheetId());
+				range.setDimension(dimensionType);
+				range.setStartIndex(row);
+				range.setEndIndex(row + 1);
+				insertRequest.setRange(range);
+				insertRequest.setInheritFromBefore(false);
+				Request request = new Request();
+				request.setInsertDimension(insertRequest);
+				requestsList.add(request);
+				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+				batchUpdateSpreadsheetRequest.setRequests(requestsList);
+				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		DebugLogDialog.endMethod();
+	}
+	
+	public void setHeaderRows(GoogleSheetData targetFile, int lastHeaderRow, int lastHeaderCol, int lastToggleRow) {		
+		DebugLogDialog.startMethod();
+		Sheet current = null;
+		String id = null;
+		String sheetName = null;
+		try {
+			initServices();
+			id = targetFile.getSpreadsheetId();
+			sheetName = targetFile.getName();		
+
+			current = getSheet(targetFile, sheetName);
+
+			if (current != null) {
+				List<Request> requestsList = new ArrayList<Request>();
+				// Change the color of the rows in the header
+				RepeatCellRequest repeatCellRequest = new RepeatCellRequest();
+				GridRange rangeToModify = new GridRange();
+				rangeToModify.setSheetId(current.getProperties().getSheetId());
+				rangeToModify.setStartRowIndex(0);
+				rangeToModify.setEndRowIndex(lastHeaderRow);
+				com.google.api.services.sheets.v4.model.Color backgroundColor = new com.google.api.services.sheets.v4.model.Color();
+				Float grayLevel = (float)Color.LIGHT_GRAY.getRed() / (float)255.0;
+				backgroundColor.setRed(grayLevel);
+				backgroundColor.setGreen(grayLevel);
+				backgroundColor.setBlue(grayLevel);
+				
+				TextFormat textFormat = new TextFormat();
+				textFormat.setBold(true);
+				CellFormat cellFormat = new CellFormat();
+				cellFormat.setBackgroundColor(backgroundColor);
+				cellFormat.setTextFormat(textFormat);
+				CellData cellData = new CellData();
+				cellData.setUserEnteredFormat(cellFormat);				
+				
+				repeatCellRequest.setRange(rangeToModify);
+				repeatCellRequest.setCell(cellData);
+				repeatCellRequest.setFields("userEnteredFormat(backgroundColor,textFormat)");
+				Request request = new Request();
+				request.setRepeatCell(repeatCellRequest);
+				requestsList.add(request);
+				
+				UpdateBordersRequest updateBorders = new UpdateBordersRequest();
+				updateBorders.setRange(rangeToModify);
+				
+				// Change the border on the bottom row
+				Border border = new Border();
+				com.google.api.services.sheets.v4.model.Color borderColor = new com.google.api.services.sheets.v4.model.Color();
+				borderColor.setRed((float)0.0);
+				borderColor.setGreen((float)0.0);
+				borderColor.setBlue((float)0.0);
+				border.setColor(borderColor);
+				border.setStyle("SOLID_MEDIUM");
+				updateBorders.setBottom(border);
+				Request borderRequest = new Request();
+				borderRequest.setUpdateBorders(updateBorders);
+				requestsList.add(borderRequest);
+
+				// Change the border on the column
+				GridRange colRangeToModify = new GridRange();
+				colRangeToModify.setSheetId(current.getProperties().getSheetId());
+				colRangeToModify.setStartColumnIndex(0);
+				colRangeToModify.setEndColumnIndex(lastHeaderCol);
+				colRangeToModify.setStartRowIndex(lastHeaderRow);
+				//colRangeToModify.setEndRowIndex(endRowIndex);
+				UpdateBordersRequest updateColBorders = new UpdateBordersRequest();
+				updateColBorders.setRange(colRangeToModify);
+				Border colBorder = new Border();
+				
+				colBorder.setColor(borderColor);
+				colBorder.setStyle("SOLID");
+				updateColBorders.setRight(colBorder);
+				Request colBorderRequest = new Request();
+				colBorderRequest.setUpdateBorders(updateColBorders);
+				requestsList.add(colBorderRequest);
+
+
+				addToggleColors(current, requestsList, lastHeaderRow + 1, lastToggleRow);
+				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+				batchUpdateSpreadsheetRequest.setRequests(requestsList);
+				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		DebugLogDialog.endMethod();
+	}
+	
+	private void addToggleColors(Sheet current, List<Request> requestsList, int start, int end) {
+		for (int i = start; i <= end; i+=2) {
+			// Change the color of the rows in the header
+			RepeatCellRequest repeatCellRequest = new RepeatCellRequest();
+			GridRange rangeToModify = new GridRange();
+			rangeToModify.setSheetId(current.getProperties().getSheetId());
+			rangeToModify.setStartRowIndex(i);
+			rangeToModify.setEndRowIndex(i+1);
+			com.google.api.services.sheets.v4.model.Color backgroundColor = new com.google.api.services.sheets.v4.model.Color();
+			
+			backgroundColor.setRed((float)0.99);
+			backgroundColor.setGreen((float)0.99);
+			backgroundColor.setBlue((float)0.99);
+			
+			CellFormat cellFormat = new CellFormat();
+			cellFormat.setBackgroundColor(backgroundColor);
+			CellData cellData = new CellData();
+			cellData.setUserEnteredFormat(cellFormat);							
+			repeatCellRequest.setRange(rangeToModify);
+			repeatCellRequest.setCell(cellData);
+			repeatCellRequest.setFields("userEnteredFormat(backgroundColor)");
+			Request request = new Request();
+			request.setRepeatCell(repeatCellRequest);
+			requestsList.add(request);			
+		}		
+	}
+	
 	private void expandIfNeeded(String id, Sheet current, int maxColumn, int maxRow) throws IOException {
 		DebugLogDialog.startMethod();
 		int currentColumns = current.getProperties().getGridProperties().getColumnCount();
@@ -777,24 +947,26 @@ public class GoogleClassroomCommunicator {
 		
 	}
 
-//	public static void main(String[] args) throws IOException, GeneralSecurityException {
-//		for (int i = 0; i < 70; i++) {
-//			System.out.println(getColumnName(i));
-//		}
-//		GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
-//      communicator.writeSheet( communicator.new TestReader());
-		//communicator.testWrite();
+	public static void main(String[] args) throws IOException, GeneralSecurityException {
+
+		GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
+		//communicator.insertRow(communicator.new TestReader(), 0);
+//      communicator.writeSheet( );
+//		communicator.testWrite();
 //		LoadSheetData sheetData = communicator.readSheet(communicator.new TestReader());
 //		for (int row = 0; row < sheetData.getNumRows(); row++) {
 //			System.err.println(sheetData.readRow(row));
 //		}
-		//System.err.println("done");
-		
+//		System.err.println("done");
+		communicator.setHeaderRows(communicator.new TestReader().getSheetInfo(), 3, 2, 30);
+	
 		
 		//GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
 //		communicator.listFoldersInRoot();
 		//System.out.println();
+		
+		System.err.println("done");
 
-//	}
+	}
 
 }

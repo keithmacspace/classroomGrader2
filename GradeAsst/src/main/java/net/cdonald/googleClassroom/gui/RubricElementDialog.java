@@ -73,9 +73,9 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		ListenerCoordinator.fire(SetRubricListener.class, this.rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
 		entriesModel.setRubricToModify(rubricToModify);
 		rubricToModify.setInModifiedState(true);
-		for (RubricEntry.AutomationTypes key : cardInterfaces.keySet()) {
-			if(cardInterfaces.get(key).isActive()) {
-				cardInterfaces.get(key).removeItems();
+		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+			if (card.isActive()) {
+				card.removeItems();
 			}
 		}
 		possiblyLoadGoldenSource();
@@ -374,13 +374,12 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 				if (priorSelectedIndex != entriesTable.getSelectedRow()) {
 
 					priorSelectedIndex = entriesTable.getSelectedRow();
-					for (RubricEntry.AutomationTypes key : cardInterfaces.keySet()) {
-						if(cardInterfaces.get(key).isActive()) {
-							cardInterfaces.get(key).removeItems();
+					for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+						if (card.isActive()) {
+							card.removeItems();
 						}
 					}
 					if (cardInterfaces.get(automationType) != null) {
-
 						cardInterfaces.get(automationType).addItems();
 						c1.show(automationPanel, automationType.toString());
 					}
@@ -478,8 +477,8 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		}
 		if (enable) {
 			ListenerCoordinator.fire(SetRubricListener.class, rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
-			for (RubricEntry.AutomationTypes key : cardInterfaces.keySet()) {
-				cardInterfaces.get(key).goldenSourceEnabled(enable);				
+			for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+				card.goldenSourceEnabled(enable);
 			}
 		}
 	}

@@ -16,20 +16,32 @@ import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 
 public class Rubric implements SheetAccessorInterface {
+	public enum ModifiableState {TRACK_MODIFICATIONS, LOCK_USER_MODIFICATIONS}
+	private static ModifiableState modifiableState = ModifiableState.TRACK_MODIFICATIONS;
 	private GoogleSheetData sheetData;
 	private List<RubricEntry> entries;
 	private boolean inModifiedState;
 	private Map<String, FileData> fileDataMap;
 	private List<FileData> goldenSource;
 	private static final String GOLDEN_SOURCE_LABEL = "Golden Source Files";
+
 	
+
+	public static ModifiableState getModifiableState() {
+		return modifiableState;
+	}
+
+	public static void setModifiableState(ModifiableState modifiableState) {
+		Rubric.modifiableState = modifiableState;
+	}
 
 	public Rubric(GoogleSheetData sheetData) {
 		super();
-		this.sheetData = sheetData;
+		this.sheetData = sheetData;		
 		entries = new ArrayList<RubricEntry>();
 		fileDataMap = new HashMap<String, FileData>();
 		goldenSource = new ArrayList<FileData>();
+ 
 	}
 	
 	public Rubric(Rubric other) {		
@@ -90,9 +102,9 @@ public class Rubric implements SheetAccessorInterface {
 	public double getTotalValue(String id) {
 		double value = 0.0;
 		for (RubricEntry entry : entries) {
-			Double studentValue = entry.getStudentDoubleValue(id);
+			RubricEntry.StudentScore studentValue = entry.getStudentScore(id);
 			if (studentValue != null) {
-				value += studentValue;
+				value += studentValue.getScore();
 			}
 		}
 		value *= 100;
@@ -128,6 +140,16 @@ public class Rubric implements SheetAccessorInterface {
 	public void addNewEntry() {
 		entries.add(new RubricEntry());
 	}
+	
+	public boolean areGradesModified() {
+		for (RubricEntry entry : entries) {
+			if (entry.anyGradesModified() ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	
 	public void addNewEntry(int index) {
 		entries.add(index, new RubricEntry());
@@ -417,11 +439,17 @@ public class Rubric implements SheetAccessorInterface {
 
 	public boolean isGradingComplete(String id) {
 		for (RubricEntry entry : entries) {
-			if (entry.getStudentDoubleValue(id) == null) {
+			if (entry.getStudentScore(id) == null) {
 				return false;
 			}
 		}
 		return true;
+	}
+	
+	public void clearModifiedFlag() {
+		for (RubricEntry entry : entries) {
+			entry.clearModifiedFlag();
+		}
 	}
 
 }

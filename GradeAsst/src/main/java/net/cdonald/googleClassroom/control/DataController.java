@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.swing.Action;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -16,12 +18,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.text.DefaultEditorKit;
+
 import net.cdonald.googleClassroom.googleClassroomInterface.AssignmentFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.CourseFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.FileFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.GoogleClassroomCommunicator;
-import net.cdonald.googleClassroom.googleClassroomInterface.LoadSheetGrades;
-import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetGrades;
+import net.cdonald.googleClassroom.googleClassroomInterface.GradeSyncer;
 import net.cdonald.googleClassroom.googleClassroomInterface.SheetFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.StudentFetcher;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
@@ -89,10 +91,6 @@ public class DataController implements StudentListInfo {
 	private Map<String, Map<String, String> > notesCommentsMap;
 	private Rubric rubricBeingEdited;
 	private StudentData rubricBeingEditedStudent;
-	private boolean gradesModified;
-
-	
-	
 
 	public DataController(MainGoogleClassroomFrame mainFrame) {
 		prefs = new MyPreferences();
@@ -129,7 +127,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	public void testCredentials() throws IOException {
-		googleClassroom.getCredentials();
+		googleClassroom.initServices();
 	}
 	
 	public void performFirstInit() {
@@ -403,14 +401,6 @@ public class DataController implements StudentListInfo {
 		return prefs;
 	}
 
-	/**
-	 * @return the gradesModified
-	 */
-	public boolean isGradesModified() {
-		return gradesModified;
-	}
-
-
 
 	public StudentWorkCompiler getStudentWorkCompiler() {
 		return studentWorkCompiler;
@@ -500,6 +490,12 @@ public class DataController implements StudentListInfo {
 		return studentWorkCompiler.getSourceCode(id);
 	}
 	
+	public boolean areGradesModified() {
+		if (currentRubric != null && currentRubric.areGradesModified()) {
+			return true;
+		}
+		return false;
+	}
 	
 	
 	public void run(String id) {
@@ -659,7 +655,10 @@ public class DataController implements StudentListInfo {
 	
 	@Override
 	public void setValueAt(Object value, int rowIndex, int columnIndex) {
-		gradesModified = true;
+		// If we are in the middle of save/load do not allow modifications
+		if (Rubric.getModifiableState() == Rubric.ModifiableState.LOCK_USER_MODIFICATIONS) {
+			return;
+		}
 		int index = getRubricIndex(columnIndex);		
 		if (index >= 0 && currentRubric != null) {
 			currentRubric.getEntry(index).setStudentValue(getStudentId(rowIndex), (String)value);
@@ -794,39 +793,51 @@ public class DataController implements StudentListInfo {
 		return null;
 	}
 	
-	public SaveSheetGrades newSaveGrades(String assignmentName) {
+	public void syncGrades() {
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null) {
-			ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
-			SaveSheetGrades grades = new SaveSheetGrades(googleClassroom, new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName()), assignment, currentRubric, studentData, prefs.getUserName(), notesCommentsMap);
-			return grades;
+			try {
+				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
+				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
+				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
+				if (currentRubric.areGradesModified()) {
+					for (StudentData student : studentData) {
+						String studentID = student.getId();
+						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);
+						Date date = null;
+						if (fileData != null && fileData.size() > 0) {
+							date = fileData.get(0).getDate();
+						}					
+						grades.setDate(studentID, date);
+					}
+					grades.saveData(assignment);
+				}
+				updateListener.dataUpdated();				
+			} catch (Exception e) {
+				JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
+						JOptionPane.ERROR_MESSAGE);
+			}
+			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
+			
 		}
-		return null;
 	}
 	
 	public void loadGrades() {
 		if (currentRubric != null && gradeURL != null && currentRubric != rubricBeingEdited) {
-			LoadSheetGrades grades = new LoadSheetGrades(new GoogleSheetData(currentRubric.getName(), gradeURL.getId(), currentRubric.getName()), currentRubric, studentData, prefs.getUserName(), notesCommentsMap);
-
+			ListenerCoordinator.fire(AddProgressBarListener.class, "Loading Grades");
+			Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 			try {
-				ListenerCoordinator.fire(AddProgressBarListener.class, "Loading Grades");
-				grades.loadData(googleClassroom, false);
+				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
 				updateListener.dataUpdated();
-			} catch (IOException e) {
-
+			} catch (Exception e) {
+				JOptionPane.showMessageDialog(null, "Error loading grades from google sheet " + e.getMessage(),  "Save problem",
+						JOptionPane.ERROR_MESSAGE);
 			}
+			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Loading Grades");
 		}
 		
-	}
-	
-	public void saveGrades(SaveSheetGrades grades) {
-		try {
-			gradesModified = false;
-			googleClassroom.writeSheet(grades);
-		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
-					JOptionPane.ERROR_MESSAGE);
-		}
 	}
 	
 	public void runJPLAG() {
