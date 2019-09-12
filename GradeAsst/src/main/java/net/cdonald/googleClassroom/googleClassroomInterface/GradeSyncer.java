@@ -690,7 +690,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 * 
 	 */
 	private boolean conditionallyAddToSave(List<Object> studentRowData, int col, RubricEntry.StudentScore valueToSave, List<Object> currentRow) {
-		if (valueToSave == null) {
+		if (valueToSave == null || valueToSave.getScore() == null) {
 			return false;
 		}
 		if (valueToSave.isModifiedByUser() == false) {

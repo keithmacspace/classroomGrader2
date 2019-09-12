@@ -242,20 +242,22 @@ public class RubricEntry {
 
 	void runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
 		// Don't change the value of already graded rubrics
-		StudentScore studentScore = studentScores.get(message.getStudentId());
+		StudentScore studentScore = studentScores.get(studentId);
 		if (studentScore != null && studentScore.score != null) {
 			return;
 		}
 		if (studentScore == null) {
-			studentScores.put(studentId, new StudentScore());
+			studentScore = new StudentScore();
+			studentScores.put(studentId, studentScore);
 		}
+
 		
-		// No need to check the Rubric.ModifiableState, if we're running automation, we're changing the value
-		studentScore.modifiedByUser = true;
+		// No need to check the Rubric.ModifiableState, if we're running automation, we're changing the value		
 		if (automation != null) {			
 			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, consoleData);
 			// Leave the old score if the result is null.
 			if (result != null) {
+				studentScore.modifiedByUser = true;
 				double score = result;
 				score *= rubricValue;
 				// Just truncate below two digits of precision
@@ -269,14 +271,18 @@ public class RubricEntry {
 		else {
 			switch (automationType) {
 			case COMPILES:
-				if (message.isSuccessful()) {
-					studentScore.score = (double)rubricValue;
-				}
-				else {
-					studentScore.score = 0.0;
+				if (message != null) {
+					studentScore.modifiedByUser = true;
+					if (message.isSuccessful()) {
+						studentScore.score = (double)rubricValue;
+					}
+					else {
+						studentScore.score = 0.0;
+					}
 				}
 				break;
 			case TURN_IN_SOMETHING:
+				studentScore.modifiedByUser = true;
 				List<FileData> files = compiler.getSourceCode(studentId);
 				if (files != null) {
 					studentScore.score = (double)rubricValue;

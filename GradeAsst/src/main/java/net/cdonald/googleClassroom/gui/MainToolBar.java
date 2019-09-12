@@ -64,7 +64,7 @@ public class MainToolBar extends JToolBar {
 	private List<String> rubricNames;
 	private enum RunType {ALL, SELECTED}	
 	private final String[] RUN_TITLES = {"Run All", "Run Selected"};
-	private final String[] RUBRIC_TITLES = {"Run All Rubric", "Run Selected Rubrics"};
+	private final String[] RUBRIC_TITLES = {"Run All Rubrics", "Run Selected Rubrics"};
 
 
 	public MainToolBar() {

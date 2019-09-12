@@ -369,6 +369,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 				if (chunks.size() != 0) {
 					lastId = chunks.get(chunks.size() - 1);
 				}
+				dataUpdated();
 			}
 			@Override
 			protected Void doInBackground() throws Exception {
@@ -378,7 +379,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 					ids = studentPanel.getSelectedIds();
 				}
 				else {
-					ids = dataController.getAllIDs();
+					ids = dataController.getAllIDs();					
 				}
 				Set<String> selectedRubricNames = null;
 				if (runAll == false) {

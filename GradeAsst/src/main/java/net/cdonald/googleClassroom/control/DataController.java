@@ -525,9 +525,7 @@ public class DataController implements StudentListInfo {
 		}
 		if (currentRubric != null) {
 			CompilerMessage message = studentWorkCompiler.getCompilerMessage(studentId);			
-			currentRubric.runAutomation(updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);
-			updateListener.dataUpdated();
-			
+			currentRubric.runAutomation(updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);						
 		}
 		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 	}

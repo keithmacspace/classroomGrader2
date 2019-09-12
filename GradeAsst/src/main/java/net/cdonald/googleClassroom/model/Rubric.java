@@ -103,7 +103,7 @@ public class Rubric implements SheetAccessorInterface {
 		double value = 0.0;
 		for (RubricEntry entry : entries) {
 			RubricEntry.StudentScore studentValue = entry.getStudentScore(id);
-			if (studentValue != null) {
+			if (studentValue != null && studentValue.score != null) {
 				value += studentValue.getScore();
 			}
 		}

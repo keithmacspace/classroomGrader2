@@ -190,8 +190,11 @@ public class ExcelAdapter implements ActionListener {
 					rowIndex++;
 				}
 			}
+			AbstractTableModel model = (AbstractTableModel)jTable1.getModel();
+			model.fireTableDataChanged();
+			jTable1.setRowSelectionInterval(rows[0], rows[rows.length - 1]);
+			jTable1.setColumnSelectionInterval(cols[0], cols[cols.length - 1]);
+
 		}			
-		AbstractTableModel model = (AbstractTableModel)jTable1.getModel();
-		model.fireTableDataChanged();
 	}
 }
