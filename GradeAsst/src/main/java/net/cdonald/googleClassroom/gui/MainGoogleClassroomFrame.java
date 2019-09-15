@@ -12,7 +12,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 
@@ -31,6 +30,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricFileDialogLis
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PublishGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
+import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricFileSelectedListener;
@@ -109,13 +109,13 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 
 	private void setLayout() {
 		try {
-			// UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-				// System.out.println(info.getName());
-				if ("Windows".equals(info.getName())) {
-					UIManager.setLookAndFeel(info.getClassName());
-				}
-			}
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+//			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+//				// System.out.println(info.getName());
+//				if ("Windows".equals(info.getName())) {
+//					UIManager.setLookAndFeel(info.getClassName());
+//				}
+//			}
 			// UIManager.setLookAndFeel("javax.swing.plaf.motif.MotifLookAndFeel");
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -332,6 +332,14 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 				}
 				dataController.publishGrades(ids);
 			}			
+		});
+		
+		ListenerCoordinator.addListener(RemoveInstrumentationListener.class, new RemoveInstrumentationListener() {
+			public void fired(String studentID, String fileName) {
+				
+				dataController.removeInstrumentation(studentID, fileName);
+				consoleAndSourcePanel.refreshInfo();
+			}
 		});
 	
 	}

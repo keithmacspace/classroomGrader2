@@ -236,6 +236,12 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 	public void removeItems() {
 		isActive = false;		
 	}
+	
+	@Override
+	public void saving() {
+		
+	}
+
 
 
 	private void fillMethodCombo() {

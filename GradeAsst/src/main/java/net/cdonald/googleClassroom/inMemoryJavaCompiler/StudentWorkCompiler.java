@@ -407,8 +407,32 @@ public class StudentWorkCompiler {
 		}	
 	}
 	
-	public String getInstrumentationCall() {
+	private String getInstrumentationCall() {
 		return this.getClass().getCanonicalName() + ".stopInstrumentation";
+	}
+	
+	
+	private String getInstrumentationComment() {
+		return "Auto added to detect infinite loops, remove if it creates compile errors";
+	}
+	
+
+	
+	private class InstrumentaionRemover extends  ModifierVisitor<Void> {
+
+		@Override
+		public Visitable visit(MethodCallExpr n, Void arg) {
+			String name = n.getNameAsString();
+			if (name.equals(getInstrumentationCall())) {
+				return null;
+			}
+			else {
+				DebugLogDialog.appendln(name);
+			}
+			// TODO Auto-generated method stub
+			return super.visit(n, arg);
+		}
+		
 	}
 
 	
@@ -416,7 +440,7 @@ public class StudentWorkCompiler {
 
 		private MethodCallExpr createLoopCheckExpression() {
 			MethodCallExpr infiniteCheck = new MethodCallExpr(getInstrumentationCall());
-			infiniteCheck.setLineComment("Auto added to detect infinite loops, remove if it creates compile errors");
+			infiniteCheck.setLineComment(getInstrumentationComment());
 			return infiniteCheck;
 		}
 
@@ -457,5 +481,18 @@ public class StudentWorkCompiler {
 			modifyLoop(n.getBody());
 			return n;
 		}		
+	}
+	
+	public void removeInstrumentation(String studentID, String fileName) {
+		StudentBuildInfo buildInfo = studentBuildInfoMap.get(studentID);
+		if (buildInfo != null) {
+			buildInfo.removeInstrumentation(new InstrumentaionRemover(),  fileName);
+		}
+	}
+	
+	public void removeAllInstrumentation() {
+		for (StudentBuildInfo buildInfo : studentBuildInfoMap.values()) {
+			buildInfo.removeInstrumentation(new InstrumentaionRemover(),  null);
+		}
 	}
 }

@@ -175,6 +175,11 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 		isActive = false;		
 	}
 	
+	@Override
+	public void saving() {
+		
+	}
+	
 	private void fillRunCode() {				
 		while(sourceTabs.getTabCount() != 0) {
 			sourceTabs.removeTabAt(0);				

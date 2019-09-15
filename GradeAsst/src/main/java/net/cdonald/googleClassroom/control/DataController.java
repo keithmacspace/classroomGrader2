@@ -44,6 +44,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricURL;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetRubricEntryQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetWorkingDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
@@ -274,6 +275,18 @@ public class DataController implements StudentListInfo {
 				return getRubricURL();
 			}
 		});
+		
+		ListenerCoordinator.addQueryResponder(GetRubricEntryQuery.class, new GetRubricEntryQuery() {
+			@Override
+			public RubricEntry fired(int columnNumber) {
+				if (currentRubric != null) {
+					return currentRubric.getEntry(getRubricIndex(columnNumber));
+				}
+				return null;
+			}			
+		});
+		
+
 		
 		ListenerCoordinator.addListener(SetWorkingDirListener.class,  new SetWorkingDirListener() {
 
@@ -916,4 +929,16 @@ public class DataController implements StudentListInfo {
 			}
 		}
 		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Publishing Grades");
-	}}
+	}
+	public void removeInstrumentation(String studentID, String fileName) {
+		if (studentID == null) {
+			studentWorkCompiler.removeAllInstrumentation();
+		}
+		else {
+			studentWorkCompiler.removeInstrumentation(studentID, fileName);
+		}
+	}
+	
+}
+
+

@@ -13,7 +13,7 @@
   !define MUI_VERSION "1.0"
   !define MUI_PRODUCT "GradingAssistant";
   !define MUI_FILE "GradeAsst-all.jar"
-  !define MUI_JPLAG "jplag-2.12.1.jar"
+  !define MUI_JPLAG "..\GradeAsst\jplag-2.12.1.jar"
   !define MUI_BRANDINGTEXT "Classroom Grader Ver. ${MUI_VERSION}"
   !define SOURCE_PATH "..\GradeAsst\build\libs"
   !define JAVA_PATH "$PROGRAMFILES64\java"
@@ -80,7 +80,7 @@ Section "Grading Assistant" InstallGrader
   SetOutPath "$INSTDIR"
  
   File "${SOURCE_PATH}\${MUI_FILE}"
-  File "${SOURCE_PATH}\${MUI_JPLAG}"
+  File "${MUI_JPLAG}"
 ;create desktop shortcut
   CreateShortCut "$DESKTOP\${MUI_PRODUCT}.lnk" "${JAVA_DEST}\bin\javaw.exe" '-jar "$INSTDIR\${MUI_FILE}"' 
  

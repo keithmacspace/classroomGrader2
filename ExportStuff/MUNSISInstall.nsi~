@@ -16,13 +16,12 @@
   !define MUI_JPLAG "jplag-2.12.1.jar"
   !define MUI_BRANDINGTEXT "Classroom Grader Ver. ${MUI_VERSION}"
   !define SOURCE_PATH "..\GradeAsst\build\libs"
-  ;!define JAVA_PATH "$PROGRAMFILES64\java"
-  !define JAVA_PATH "c:\temp\java"
+  !define JAVA_PATH "$PROGRAMFILES64\java"
+  ;!define JAVA_PATH "c:\temp\java"
   !define JAVA_DEST "${JAVA_PATH}\jdk-12.0.2"
   !define ZIP_NAME "openjdk-12.0.2_windows-x64_bin.zip"
   !define ZIP_SOURCE "https://download.java.net/java/GA/jdk12.0.2/e482c34c86bd4bf8b56c0b35558996b9/10/GPL/openjdk-12.0.2_windows-x64_bin.zip"
   !define ZIP_DEST "$PLUGINSDIR\${ZIP_NAME}"
-  ;!define ZIP_DEST "c:\temp\${ZIP_NAME}"
   CRCCheck On
  
  

@@ -7,7 +7,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +36,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
+import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
@@ -104,9 +104,14 @@ public class ConsoleAndSourcePanel extends JPanel {
 			}
 
 		});
-
 	}
 	
+	public void refreshInfo() {
+		if (currentID != null) {
+			setWindowData(currentID);
+		}
+	}
+		
 	private void setSourceContents(String title, String text) {
 		JPanel sourcePanel = new JPanel();
 		sourcePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -143,6 +148,21 @@ public class ConsoleAndSourcePanel extends JPanel {
 		paste.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
 		popupSource.add(paste);
 		popupInput.add(paste);
+		
+		JMenuItem removeInstrumentation = new JMenuItem("Remove Instrumentation");
+		popupSource.add(removeInstrumentation);
+		removeInstrumentation.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (currentID != null) {
+					int currentTab = sourceTabbedPane.getSelectedIndex();
+					String fileName = sourceTabbedPane.getTitleAt(currentTab);
+					if (currentTab < currentSourceTextAreas.size()) {
+						ListenerCoordinator.fire(RemoveInstrumentationListener.class, currentID, fileName);
+					}
+				}				
+			}			
+		});
 
 		JMenuItem recompile = new JMenuItem("Recompile");
 		popupSource.add(recompile);

@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
-
 
 public class RubricEntry {
 	public static enum HeadingNames {
@@ -17,18 +17,47 @@ public class RubricEntry {
 	public static enum AutomationTypes {
 		NONE, TURN_IN_SOMETHING, POINT_LOSS_FOR_LATE, COMPILES, RUN_CODE, CODE_CONTAINS_METHOD
 	}
-	
+
 	public class StudentScore {
 		public Double getScore() {
 			return score;
 		}
+
 		public boolean isModifiedByUser() {
 			return modifiedByUser;
 		}
+
 		Double score;
 		boolean modifiedByUser;
 	}
-
+	public class PointBreakdown {
+		private int value;
+		private String description;
+		public PointBreakdown(int value, String description) {
+			super();
+			this.value = value;
+			this.description = description;
+		}
+		public int getValue() {
+			return value;
+		}
+		public void setValue(int value) {
+			this.value = value;
+		}
+		public void setValue(String value) {
+			try {
+				this.value = Integer.parseInt(value);
+			}catch(NumberFormatException e) {
+				
+			}
+		}
+		public String getDescription() {
+			return description;
+		}
+		public void setDescription(String description) {
+			this.description = description;
+		}		
+	}
 	String id;
 	String name;
 	String description;
@@ -36,8 +65,7 @@ public class RubricEntry {
 	AutomationTypes automationType;
 	Map<String, StudentScore> studentScores;
 	RubricAutomation automation;
-	
-
+	List<PointBreakdown> pointBreakdown;
 
 	public RubricEntry(List<String> headings, List<Object> entries) {
 		rubricValue = 0;
@@ -55,32 +83,34 @@ public class RubricEntry {
 			}
 		}
 		studentScores = new HashMap<String, StudentScore>();
-
 	}
-	
-	
+
 	// This is the form used when we create it via the dialog box in addRubricEntry
 	public RubricEntry() {
 		automationType = AutomationTypes.NONE;
-		studentScores = new HashMap<String, StudentScore>();
-
+		studentScores = new HashMap<String, StudentScore>();		
 	}
-	
+
 	public RubricEntry(RubricEntry other) {
 		id = other.id;
 		name = other.name;
 		description = other.description;
 		rubricValue = other.rubricValue;
 		automationType = other.automationType;
-		studentScores = new HashMap<String, StudentScore>();
+		studentScores = new HashMap<String, StudentScore>();		
 		for (String key : other.studentScores.keySet()) {
 			studentScores.put(key, other.studentScores.get(key));
 		}
 		if (other.automation != null) {
 			setAutomation(other.automation.newCopy());
 		}
+		if (other.pointBreakdown != null) {
+			for (PointBreakdown points : other.pointBreakdown) {
+				addPointBreakdown(points);
+			}
+		}
 	}
-
+	
 	public void setStudentValue(String studentID, String stringValue) {
 		if (studentScores.containsKey(studentID) == false) {
 			studentScores.put(studentID, new StudentScore());
@@ -93,8 +123,7 @@ public class RubricEntry {
 		try {
 			if (stringValue == null) {
 				score.score = null;
-			}
-			else if ( stringValue.length() > 0) {
+			} else if (stringValue.length() > 0) {
 				Double test = Double.parseDouble(stringValue);
 				if (test <= rubricValue || rubricValue == 0.0) {
 					score.score = test;
@@ -105,21 +134,20 @@ public class RubricEntry {
 		}
 	}
 
-	
 	public StudentScore getStudentScore(String studentID) {
-		
-		if (studentScores.containsKey(studentID)) {			
+
+		if (studentScores.containsKey(studentID)) {
 			return studentScores.get(studentID);
 		}
 		return null;
 	}
-	
+
 	public String getStudentValue(String studentID) {
 		String displayValue = "";
-		
-		if (studentScores.containsKey(studentID)) {			
+
+		if (studentScores.containsKey(studentID)) {
 			Double doubleValue = studentScores.get(studentID).score;
-			if (doubleValue != null) {				
+			if (doubleValue != null) {
 				double test = doubleValue;
 				if ((int) test == test) {
 					displayValue = "" + ((int) test);
@@ -130,36 +158,46 @@ public class RubricEntry {
 		}
 		return displayValue;
 	}
-	
+
 	public void setTableValue(HeadingNames headingName, Object param) {
 		switch (headingName) {
 		case NAME:
-			name = (String)param;
+			name = (String) param;
 			break;
 		case VALUE:
-			rubricValue = (Integer)param;
+			if (param instanceof Integer) {
+				rubricValue = (Integer)param;
+			}
+			else if (param != null){
+				try {
+					rubricValue = Integer.parseInt(param.toString());
+				}
+				catch (NumberFormatException e) {
+					
+				}
+				
+			}
 			break;
 		case DESCRIPTION:
-			description = (String)param;
+			description = (String) param;
 			break;
 		case AUTOMATION_TYPE:
-			automationType = (AutomationTypes)param;
+			automationType = (AutomationTypes) param;
 			newAutomationType();
 			break;
 		default:
 			break;
-		}		
+		}
 	}
-	
+
 	public Object getTableValue(HeadingNames headingName) {
 		switch (headingName) {
 		case NAME:
 			return name;
 		case VALUE:
 			if (rubricValue != 0.0) {
-				return (Integer)rubricValue;
-			}
-			else {
+				return (Integer) rubricValue;
+			} else {
 				return null;
 			}
 		case DESCRIPTION:
@@ -170,10 +208,11 @@ public class RubricEntry {
 			break;
 		}
 		return null;
-		
+
 	}
+
 	private void newAutomationType() {
-		switch(automationType) {
+		switch (automationType) {
 		case RUN_CODE:
 			setAutomation(new RubricEntryRunCode());
 			break;
@@ -186,7 +225,7 @@ public class RubricEntry {
 		default:
 			break;
 		}
-		
+
 	}
 
 	public void setValue(HeadingNames headingName, String param) {
@@ -227,23 +266,27 @@ public class RubricEntry {
 		return description;
 	}
 
-
 	public AutomationTypes getAutomationType() {
 		return automationType;
 	}
-	
 
 	@Override
 	public String toString() {
-		return "RubricEntry [name=" + name + ", description=" + description + 
-			  ", rubricValue=" + rubricValue + ", automationType=" + automationType
-				+ "]";
+		return "RubricEntry [name=" + name + ", description=" + description + ", rubricValue=" + rubricValue
+				+ ", automationType=" + automationType + "]";
 	}
 
-	void runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
+	void runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
+			ConsoleData consoleData) {
 		// Don't change the value of already graded rubrics
 		StudentScore studentScore = studentScores.get(studentId);
 		if (studentScore != null && studentScore.score != null) {
+			return;
+		}
+		// If they haven't turned anything in, don't run any automation, Even for "Turn something in"
+		// it is better to wait since we won't reassign the grade later
+		List<FileData> files = compiler.getSourceCode(studentId);
+		if (files != null) {
 			return;
 		}
 		if (studentScore == null) {
@@ -251,9 +294,9 @@ public class RubricEntry {
 			studentScores.put(studentId, studentScore);
 		}
 
-		
-		// No need to check the Rubric.ModifiableState, if we're running automation, we're changing the value		
-		if (automation != null) {			
+		// No need to check the Rubric.ModifiableState, if we're running automation,
+		// we're changing the value
+		if (automation != null) {
 			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, consoleData);
 			// Leave the old score if the result is null.
 			if (result != null) {
@@ -262,37 +305,30 @@ public class RubricEntry {
 				score *= rubricValue;
 				// Just truncate below two digits of precision
 				score *= 100.0;
-				score = (int)score;
+				score = (int) score;
 				score /= 100.0;
 				studentScore.score = score;
 			}
 		}
-		
+
 		else {
 			switch (automationType) {
 			case COMPILES:
 				if (message != null) {
 					studentScore.modifiedByUser = true;
 					if (message.isSuccessful()) {
-						studentScore.score = (double)rubricValue;
-					}
-					else {
+						studentScore.score = (double) rubricValue;
+					} else {
 						studentScore.score = 0.0;
 					}
 				}
 				break;
 			case TURN_IN_SOMETHING:
+				// We checked above that they turned something in, so they just get these points
 				studentScore.modifiedByUser = true;
-				List<FileData> files = compiler.getSourceCode(studentId);
-				if (files != null) {
-					studentScore.score = (double)rubricValue;
-					return;
-				}
-				else {
-					studentScore.score = 0.0;				
-				}
+				studentScore.score = (double) rubricValue;
 				break;
-				
+
 			default:
 				break;
 			}
@@ -300,9 +336,8 @@ public class RubricEntry {
 	}
 
 	public void clearStudentData() {
-		studentScores.clear();		
+		studentScores.clear();
 	}
-	
 
 	public void setName(String name) {
 		this.name = name;
@@ -312,20 +347,17 @@ public class RubricEntry {
 		this.description = description;
 	}
 
-
 	public void setValue(int rubricValue) {
 		this.rubricValue = rubricValue;
 	}
 
-
 	public RubricAutomation getAutomation() {
 		return automation;
 	}
-	
+
 	public void setAutomationType(AutomationTypes automationType) {
 		this.automationType = automationType;
 	}
-
 
 	public void setAutomation(RubricAutomation automation) {
 		this.automation = automation;
@@ -334,16 +366,15 @@ public class RubricEntry {
 		}
 	}
 
-	
 	public List<Object> getRubricEntryInfo() {
 		List<Object> row = new ArrayList<Object>();
 		row.add(name);
 		row.add("" + rubricValue);
-		row.add(description);		
-		row.add(automationType.toString());		
+		row.add(description);
+		row.add(automationType.toString());
 		return row;
 	}
-	
+
 	public static List<Object> getRubricHeader() {
 		List<Object> row = new ArrayList<Object>();
 		for (HeadingNames name : HeadingNames.values()) {
@@ -354,42 +385,146 @@ public class RubricEntry {
 		return row;
 	}
 
-
-	
 	public void loadAutomationColumns(Map<String, List<List<Object>>> columnData, Map<String, FileData> fileDataMap) {
-	
 		if (automation != null) {
 			automation.loadAutomationColumns(name, columnData, fileDataMap);
 		}
+		else {
+			loadPointsBreakdown(columnData);
+		}
 	}
 	
+	public void addPointBreakdown(int value, String description) {
+		addPointBreakdown(new PointBreakdown(value, description));
+	}
+	
+	public void addPointBreakdown(PointBreakdown points) {
+		if (pointBreakdown == null) {
+			pointBreakdown = new ArrayList<PointBreakdown>();
+		}
+		pointBreakdown.add(points);
+	}
+	
+	public List<PointBreakdown> getPointBreakdown() {
+		return pointBreakdown;
+	}
+	public String getPointBreakdownValue(int row) {
+		if (pointBreakdown != null && pointBreakdown.size() > row) {
+			return "" + pointBreakdown.get(row).getValue();
+		}
+		return null;		
+	}
+	public String getPointBreakdownDescription(int row) {
+		if (pointBreakdown != null && pointBreakdown.size() > row) {
+			return pointBreakdown.get(row).getDescription();
+		}
+		return null;		
+	}
+	
+	public PointBreakdown getPointBreakdown(int row) {
+		if (pointBreakdown == null) {
+			pointBreakdown = new ArrayList<PointBreakdown>();
+		}
+		if (row < pointBreakdown.size()) {
+			return pointBreakdown.get(row);
+		}
+		pointBreakdown.add(new PointBreakdown(0, ""));
+		return pointBreakdown.get(pointBreakdown.size() - 1);
+	}
+	public void setPointBreakdownValue(int row, String value) {
+		getPointBreakdown(row).setValue(value);
+		
+	}
+	public void setPointBreakdownDescription(int row, String value) {
+		getPointBreakdown(row).setDescription(value);
+	}
+
+	
+	private void loadPointsBreakdown(Map<String, List<List<Object>>> columnData) {
+		List<List<Object> > columns = columnData.get(name.toUpperCase());
+		if (columns == null || columns.size() == 0) {
+			return;
+		}
+		else {
+			List<Object> valueRows = null;
+			int maxRows = 0;
+			int descriptionIndex = columns.size() - 1;
+			if (descriptionIndex != 0) {
+				valueRows = columns.get(0);
+				maxRows = valueRows.size();
+			}
+			List<Object> descriptionRows = columns.get(descriptionIndex);
+			maxRows = Math.max(descriptionRows.size(), maxRows);
+			for (int i = 0; i < maxRows; i++) {
+				int value = 0;
+				String description = "";
+				if (valueRows != null && valueRows.size() > i) {
+					String valueString = (String)valueRows.get(i);
+					if (valueString != null) {
+						try {
+							value = Integer.parseInt(valueString);
+						}
+						catch(NumberFormatException e) {
+							description = valueString;
+						}
+					}
+				}
+				if (descriptionRows.size() > i) {
+					String descriptionString = (String)descriptionRows.get(i);
+					if (descriptionString != null) {
+						description += descriptionString;
+					}
+				}
+				if (description.length() > 0) {
+					addPointBreakdown(value, description);
+				}
+			}
+		}
+	}
+
 	public void saveAutomationData(List<List<Object>> columnData, Map<String, List<Object>> fileData) {
 		if (automation != null) {
 			automation.saveAutomationColumns(name, columnData, fileData);
 		}
+		else {
+			savePointBreakdown(columnData);
+		}
 	}
 
+	private void savePointBreakdown(List<List<Object>> columnData) {
+		if (pointBreakdown == null) {
+			return;
+		}
+		List<Object> values = new ArrayList<Object>();
+		List<Object> descriptions = new ArrayList<Object>();
+		values.add(name);
+		descriptions.add(name);
+		for (PointBreakdown points : pointBreakdown) {
+			values.add((Integer)points.getValue());
+			descriptions.add(points.description);
+		}
+		columnData.add(values);
+		columnData.add(descriptions);
+	}
 
 	public void addRubricTab(List<String> rubricTabs) {
 		if (automation != null) {
 			rubricTabs.add(name);
-		}		
+		}
 	}
-	
+
 	public void removeFileData(FileData fileData) {
 		if (automation != null) {
 			automation.removeFileData(fileData);
 		}
 	}
 
-
 	public boolean requiresGoldenFile() {
-		if (automationType != null && automationType.ordinal() > AutomationTypes.COMPILES.ordinal() ) {
+		if (automationType != null && automationType.ordinal() > AutomationTypes.COMPILES.ordinal()) {
 			return true;
 		}
 		return false;
 	}
-
 
 	public boolean anyGradesModified() {
 		for (StudentScore studentScore : studentScores.values()) {
@@ -400,13 +535,12 @@ public class RubricEntry {
 		return false;
 	}
 
-
 	public void clearModifiedFlag() {
 		for (StudentScore score : studentScores.values()) {
 			if (score != null) {
 				score.modifiedByUser = false;
 			}
 		}
-		
+
 	}
 }

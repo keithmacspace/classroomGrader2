@@ -106,8 +106,13 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardIn
 			}
 
 		}
+	}
+	
+	@Override
+	public void saving() {
 		
 	}
+
 	
 	@Override
 	public void addItems() {

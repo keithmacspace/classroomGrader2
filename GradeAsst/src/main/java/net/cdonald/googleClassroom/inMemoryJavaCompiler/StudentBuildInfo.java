@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.github.javaparser.ast.visitor.ModifierVisitor;
+
 import net.cdonald.googleClassroom.model.FileData;
 
 /**
@@ -85,6 +87,15 @@ public class StudentBuildInfo {
 		}
  
 		
+	}
+
+
+	public void removeInstrumentation(ModifierVisitor<Void> visitor, String fileName) {
+		for (int i = 0; i < studentFileData.size(); i++) {
+			if (fileName == null || fileName.equals(studentFileData.get(i).getName())) {
+				studentFileData.get(i).modifySourceFile(visitor);
+			}
+		}		
 	}
 
 

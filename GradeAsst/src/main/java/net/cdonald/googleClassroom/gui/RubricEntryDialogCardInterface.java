@@ -5,5 +5,5 @@ public interface RubricEntryDialogCardInterface {
 	public boolean isActive();
 	public void removeItems();
 	public void goldenSourceEnabled(boolean enable);
-
+	public void saving();
 }

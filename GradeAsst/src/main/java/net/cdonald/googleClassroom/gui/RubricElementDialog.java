@@ -157,6 +157,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		cardInterfaces.put(RubricEntry.AutomationTypes.RUN_CODE, new RubricEntryRunCodeCard(this));
 		cardInterfaces.put(RubricEntry.AutomationTypes.CODE_CONTAINS_METHOD, new RubricEntryCodeContainsStringCard(this));
 		cardInterfaces.put(RubricEntry.AutomationTypes.POINT_LOSS_FOR_LATE, new RubricEntryPointLossForLateCard(this));
+		cardInterfaces.put(RubricEntry.AutomationTypes.NONE, new RubricEntryPointBreakdownCard(this));
 		
 		
 		
@@ -251,6 +252,11 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	}
 
 	public void preOKSaveTest() {
+		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+			if (card.isActive()) {
+				card.saving();
+			}
+		}
 		if (entriesTable.getCellEditor() != null) {
 			entriesTable.getCellEditor().stopCellEditing();
 		}
