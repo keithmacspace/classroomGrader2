@@ -1,8 +1,7 @@
 package net.cdonald.googleClassroom.listenerCoordinator;
 
-import net.cdonald.googleClassroom.model.GoogleSheetData;
+import net.cdonald.googleClassroom.model.Rubric;
 
 public interface GetCurrentRubricQuery {
-	public GoogleSheetData fired();
-
+	Rubric fired();
 }

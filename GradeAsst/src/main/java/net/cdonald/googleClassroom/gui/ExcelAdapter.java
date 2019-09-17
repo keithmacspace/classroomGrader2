@@ -7,6 +7,9 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import javax.swing.Action;
@@ -17,8 +20,14 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.text.DefaultEditorKit;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
+import org.jsoup.select.Elements;  
 /**
  * pulled from
  * https://www.javaworld.com/article/2077579/java-tip-77--enable-copy-and-paste-functionality-between-swing-s-jtables-and-excel.html
@@ -32,13 +41,15 @@ public class ExcelAdapter implements ActionListener {
 	private Clipboard system;
 	private StringSelection stsel;
 	private JTable jTable1;
+	private boolean expandRows;
 
 	/**
 	 * The Excel Adapter is constructed with a JTable on which it enables Copy-Paste
 	 * and acts as a Clipboard listener.
 	 */
-	public ExcelAdapter(JTable myJTable) {
+	public ExcelAdapter(JTable myJTable, boolean expandRows) {
 		jTable1 = myJTable;
+		this.expandRows = expandRows;
 		KeyStroke copy = KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false);
 		// Identifying the copy KeyStroke user can modify this
 		// to copy on some other Key combination.
@@ -153,48 +164,129 @@ public class ExcelAdapter implements ActionListener {
 	private void pasteAction() {
 		int[] rows = jTable1.getSelectedRows();
 		int[] cols = jTable1.getSelectedColumns();
+
 		if (rows != null && cols != null && rows.length > 0 && cols.length > 0) {
 			String trstring = "";
+			String htmlString = null;
 			try {
 				trstring = (String) (system.getContents(this).getTransferData(DataFlavor.stringFlavor));
+				htmlString = (String)(system.getContents(this).getTransferData(DataFlavor.allHtmlFlavor));
+
 			} catch (Exception ex) {
-				ex.printStackTrace();
-			}				
 
-			int rowIndex = 0;
-			int colIndex = 0;
-
-			int totalToConsume = cols.length * rows.length;
-			while (totalToConsume > 0) {
-				StringTokenizer st1 = new StringTokenizer(trstring, "\n");
-				while (st1.hasMoreTokens() && totalToConsume > 0) {
-					rowstring = st1.nextToken();
-					rowIndex %= rows.length;
-					int row = rows[rowIndex];
-					StringTokenizer st2 = new StringTokenizer(rowstring, "\t");
-					int entryValue = totalToConsume;
-					while (st2.hasMoreTokens() && totalToConsume > 0) {							
-						colIndex %= cols.length;
-						int col = cols[colIndex];
-						value = (String) st2.nextToken();							
-						if (jTable1.isCellEditable(row, col)) {
-							jTable1.setValueAt(value, row, col);
-						}
-						totalToConsume--;							
-						colIndex++;
-					}
-					// Hit a case with nothing to copy.
-					if (entryValue == totalToConsume) {
-						totalToConsume = 0;
-					}
-					rowIndex++;
-				}
 			}
+			List<List<String> > entries = null;
+			if (htmlString != null) {
+				entries = parseClipHTMLContents(htmlString);
+			}
+			else {
+				entries = parseClipTextContents(trstring);
+			}
+			
+			int currentRow = rows[0];
+			int numRows = rows.length;
 			AbstractTableModel model = (AbstractTableModel)jTable1.getModel();
+
+			for (List<String> col : entries) {
+				if (numRows > 0 || expandRows ) {
+					for (int colIndex = 0, entryColIndex = 0; colIndex < cols.length && entryColIndex < col.size(); colIndex++, entryColIndex++) {
+						String colValue = col.get(entryColIndex);
+						int colNum = cols[colIndex];
+						if (expandRows == true && model.getRowCount() <= currentRow) {
+							((DefaultTableModel)model).addRow((Object []) null); 
+							
+						}
+
+						if (jTable1.isCellEditable(currentRow, colNum)) {
+							jTable1.setValueAt(colValue, currentRow, colNum);
+						}
+
+					}
+				}
+				currentRow++;
+				numRows--;
+			}
+			
 			model.fireTableDataChanged();
 			jTable1.setRowSelectionInterval(rows[0], rows[rows.length - 1]);
 			jTable1.setColumnSelectionInterval(cols[0], cols[cols.length - 1]);
 
 		}			
+	}
+	public static List<List<String> > parseClipTextContents(String contents) {
+		List<List<String> > entries = new ArrayList<List<String>>();
+		
+		StringTokenizer st1 = new StringTokenizer(contents, "\n");
+		while (st1.hasMoreTokens()) {
+			String rowstring = st1.nextToken();
+			StringTokenizer st2 = new StringTokenizer(rowstring, "\t");
+			List<String> colList = new ArrayList<String>();
+			while (st2.hasMoreTokens()) {							
+				String colValue = (String) st2.nextToken();
+				colList.add(colValue);
+			}
+			entries.add(colList);
+		}
+		return entries;
+	}
+	
+	
+	public static List<List<String> > parseClipHTMLContents(String contents) {
+		List<List<String> > entries = new ArrayList<List<String>>();
+		try {
+		
+			Document doc = Jsoup.parseBodyFragment(contents);
+			doc.outputSettings().prettyPrint(false);
+			
+			Elements metas = doc.select("meta");
+			String lineBreak = "span";
+			for (Element meta : metas) {
+				if (meta.hasAttr("name")) {					
+					if (meta.attr("name").toLowerCase().contains("generator")) {
+						if (meta.hasAttr("content")) {
+							String gen = meta.attr("content").toLowerCase();
+							if (gen.contains("sheets")) {
+								lineBreak = null;
+							}
+						}
+					}
+				}
+			}
+			Elements table = doc.select("table");
+
+			Elements rows = table.select("tr");
+			for (Element row : rows) {
+				List<String> colList = new ArrayList<String>();
+				Elements cols = row.select("td");
+				for (Element col : cols) {					
+					String str = "";
+					if (lineBreak != null) {
+						Elements lines = col.select(lineBreak);
+						if (lines.size() == 0) {
+							str = col.text();
+						}
+						for (int i = 0; i < lines.size(); i++) {
+							Element div = lines.get(i);
+							String line = div.ownText();
+							line = line.stripLeading();
+							line = line.stripTrailing();
+							if (line.length() > 0) {
+								if (str.length() != 0) {
+									str += "\n";
+								}
+								str += line;
+							}
+						}
+					}
+					else {						
+						str = col.text();
+					}
+					colList.add(str);
+				}
+				entries.add(colList);
+			}
+		} catch (Exception e) {
+		}
+		return entries;
 	}
 }

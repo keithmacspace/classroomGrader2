@@ -77,7 +77,9 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			if (card.isActive()) {
 				card.removeItems();
 			}
+			card.rubricSet();
 		}
+
 		possiblyLoadGoldenSource();
 		setVisible(true);
 		
@@ -143,21 +145,17 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		automationPanel = new JPanel();
 		automationPanel.setLayout(new CardLayout());
 		
-		JPanel emptyPanel = new JPanel();
-		automationPanel.add(emptyPanel, RubricEntry.AutomationTypes.NONE.toString());
-		
 		mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, defaultPanel, automationPanel);
 		if (prefs.getSplitLocation(MyPreferences.Dividers.RUBRIC_SPLIT) != 0) {
 			mainSplit.setDividerLocation(prefs.getSplitLocation(MyPreferences.Dividers.RUBRIC_SPLIT));
 			
 		}
-			
+		RubricEntryPointBreakdownCard defaultCard = new RubricEntryPointBreakdownCard(this);	
 		add(mainSplit, BorderLayout.CENTER);
-		
+		cardInterfaces.put(RubricEntry.AutomationTypes.NONE, defaultCard);
 		cardInterfaces.put(RubricEntry.AutomationTypes.RUN_CODE, new RubricEntryRunCodeCard(this));
 		cardInterfaces.put(RubricEntry.AutomationTypes.CODE_CONTAINS_METHOD, new RubricEntryCodeContainsStringCard(this));
 		cardInterfaces.put(RubricEntry.AutomationTypes.POINT_LOSS_FOR_LATE, new RubricEntryPointLossForLateCard(this));
-		cardInterfaces.put(RubricEntry.AutomationTypes.NONE, new RubricEntryPointBreakdownCard(this));
 		
 		
 		
@@ -252,10 +250,8 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	}
 
 	public void preOKSaveTest() {
-		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
-			if (card.isActive()) {
-				card.saving();
-			}
+		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {			
+			card.saving();
 		}
 		if (entriesTable.getCellEditor() != null) {
 			entriesTable.getCellEditor().stopCellEditing();

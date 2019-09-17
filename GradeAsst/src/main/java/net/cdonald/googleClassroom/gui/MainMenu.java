@@ -75,7 +75,6 @@ public class MainMenu extends JMenuBar {
 		edit = new JMenu("Edit");
 		rubric = new JMenu("Rubrics");
 		jplag = new JMenu("JPLAG");
-		// edit = new JMenu("Edit");
 		run = new JMenu("Run");
 		help = new JMenu("Help");
 
@@ -175,25 +174,26 @@ public class MainMenu extends JMenuBar {
 		ListenerCoordinator.addListener(RubricSelected.class, new RubricSelected() {
 			@Override
 			public void fired(GoogleSheetData googleSheet) {
-				syncGrades.setEnabled(!googleSheet.isEmpty());
-				editRubric.setEnabled(!googleSheet.isEmpty());
-				publishGrades.setEnabled(!googleSheet.isEmpty());
+				boolean enable = googleSheet != null && !googleSheet.isEmpty();
+				syncGrades.setEnabled(enable);
+				editRubric.setEnabled(enable);
+				publishGrades.setEnabled(enable);
 			}
 		});
 	}
 
 	private void fillEditMenu() {
-		JMenuItem removeInstrumentation = new JMenuItem("Remove All Instrumentation");
-		edit.add(removeInstrumentation);
-		removeInstrumentation.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				ListenerCoordinator.fire(RemoveInstrumentationListener.class, null, null);
-			}
-
-		});
-		add(edit);
+//		JMenuItem removeInstrumentation = new JMenuItem("Remove All Instrumentation");
+//		edit.add(removeInstrumentation);
+//		removeInstrumentation.addActionListener(new ActionListener() {
+//
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				ListenerCoordinator.fire(RemoveInstrumentationListener.class, null, null);
+//			}
+//
+//		});
+//		add(edit);
 	}
 
 	private void fillRunMenu() {
@@ -290,8 +290,9 @@ public class MainMenu extends JMenuBar {
 		ListenerCoordinator.addListener(RubricSelected.class, new RubricSelected() {
 			@Override
 			public void fired(GoogleSheetData googleSheet) {
-				editRubric.setEnabled(!googleSheet.isEmpty());
-				runAllRubrics.setEnabled(!googleSheet.isEmpty());
+				boolean enable = googleSheet != null && !googleSheet.isEmpty();
+				editRubric.setEnabled(enable);
+				runAllRubrics.setEnabled(enable);
 			}
 		});
 		ListenerCoordinator.addListener(StudentSelectedListener.class, new StudentSelectedListener() {

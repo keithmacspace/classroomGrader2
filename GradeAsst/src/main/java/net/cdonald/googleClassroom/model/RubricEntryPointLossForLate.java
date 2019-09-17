@@ -89,10 +89,20 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		if (submitDate == null) {
 			return null;
 		}
+		
+		if (pointsLostPerTimeUnit == 0.0 || timeUnit == TimeUnit.NONE) {
+			System.err.println(getOwnerName() + " is not fully defined ");
+			return null;
+		}
+		
+		
+
 		// If we were totally on time, then we are done.
 		if (submitDate.compareTo(dueDate) <= 0) {
+			addOutput(studentId, "On time");
 			return 1.0;
 		}
+		
 		
 		long dueDateTime = dueDate.getTime();
 		long submitDateTime = submitDate.getTime();
@@ -113,10 +123,13 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 			break;
 		}
 		if (difference == 0) {
+			addOutput(studentId, "Submitted before the first " + timeUnit.name().toLowerCase() + " had elapsed.");
 			return 1.0;
 		}
+		addOutput(studentId, "Late by " + difference + " " + timeUnit.name().toLowerCase() + "s");
 		double numToSubtract = pointsLostPerTimeUnit * difference;
 		if (numToSubtract >= owner.getValue()) {
+			addOutput(studentId, "Submitted too late to get any points");
 			return 0.0;
 		}
 		return (double)(owner.getValue() - numToSubtract)/(double)owner.getValue();		

@@ -27,45 +27,17 @@ public class RubricEntry {
 			return modifiedByUser;
 		}
 
-		Double score;
-		boolean modifiedByUser;
+		private Double score;
+		private boolean modifiedByUser;
 	}
-	public class PointBreakdown {
-		private int value;
-		private String description;
-		public PointBreakdown(int value, String description) {
-			super();
-			this.value = value;
-			this.description = description;
-		}
-		public int getValue() {
-			return value;
-		}
-		public void setValue(int value) {
-			this.value = value;
-		}
-		public void setValue(String value) {
-			try {
-				this.value = Integer.parseInt(value);
-			}catch(NumberFormatException e) {
-				
-			}
-		}
-		public String getDescription() {
-			return description;
-		}
-		public void setDescription(String description) {
-			this.description = description;
-		}		
-	}
-	String id;
-	String name;
-	String description;
-	int rubricValue;
-	AutomationTypes automationType;
-	Map<String, StudentScore> studentScores;
-	RubricAutomation automation;
-	List<PointBreakdown> pointBreakdown;
+	private String id;
+	private String name;
+	private String description;
+	private int rubricValue;
+	private AutomationTypes automationType;
+	private Map<String, StudentScore> studentScores;
+	private RubricAutomation automation;
+
 
 	public RubricEntry(List<String> headings, List<Object> entries) {
 		rubricValue = 0;
@@ -104,11 +76,7 @@ public class RubricEntry {
 		if (other.automation != null) {
 			setAutomation(other.automation.newCopy());
 		}
-		if (other.pointBreakdown != null) {
-			for (PointBreakdown points : other.pointBreakdown) {
-				addPointBreakdown(points);
-			}
-		}
+
 	}
 	
 	public void setStudentValue(String studentID, String stringValue) {
@@ -286,7 +254,7 @@ public class RubricEntry {
 		// If they haven't turned anything in, don't run any automation, Even for "Turn something in"
 		// it is better to wait since we won't reassign the grade later
 		List<FileData> files = compiler.getSourceCode(studentId);
-		if (files != null) {
+		if (files == null) {
 			return;
 		}
 		if (studentScore == null) {
@@ -389,123 +357,16 @@ public class RubricEntry {
 		if (automation != null) {
 			automation.loadAutomationColumns(name, columnData, fileDataMap);
 		}
-		else {
-			loadPointsBreakdown(columnData);
-		}
-	}
-	
-	public void addPointBreakdown(int value, String description) {
-		addPointBreakdown(new PointBreakdown(value, description));
-	}
-	
-	public void addPointBreakdown(PointBreakdown points) {
-		if (pointBreakdown == null) {
-			pointBreakdown = new ArrayList<PointBreakdown>();
-		}
-		pointBreakdown.add(points);
-	}
-	
-	public List<PointBreakdown> getPointBreakdown() {
-		return pointBreakdown;
-	}
-	public String getPointBreakdownValue(int row) {
-		if (pointBreakdown != null && pointBreakdown.size() > row) {
-			return "" + pointBreakdown.get(row).getValue();
-		}
-		return null;		
-	}
-	public String getPointBreakdownDescription(int row) {
-		if (pointBreakdown != null && pointBreakdown.size() > row) {
-			return pointBreakdown.get(row).getDescription();
-		}
-		return null;		
-	}
-	
-	public PointBreakdown getPointBreakdown(int row) {
-		if (pointBreakdown == null) {
-			pointBreakdown = new ArrayList<PointBreakdown>();
-		}
-		if (row < pointBreakdown.size()) {
-			return pointBreakdown.get(row);
-		}
-		pointBreakdown.add(new PointBreakdown(0, ""));
-		return pointBreakdown.get(pointBreakdown.size() - 1);
-	}
-	public void setPointBreakdownValue(int row, String value) {
-		getPointBreakdown(row).setValue(value);
-		
-	}
-	public void setPointBreakdownDescription(int row, String value) {
-		getPointBreakdown(row).setDescription(value);
-	}
 
-	
-	private void loadPointsBreakdown(Map<String, List<List<Object>>> columnData) {
-		List<List<Object> > columns = columnData.get(name.toUpperCase());
-		if (columns == null || columns.size() == 0) {
-			return;
-		}
-		else {
-			List<Object> valueRows = null;
-			int maxRows = 0;
-			int descriptionIndex = columns.size() - 1;
-			if (descriptionIndex != 0) {
-				valueRows = columns.get(0);
-				maxRows = valueRows.size();
-			}
-			List<Object> descriptionRows = columns.get(descriptionIndex);
-			maxRows = Math.max(descriptionRows.size(), maxRows);
-			for (int i = 0; i < maxRows; i++) {
-				int value = 0;
-				String description = "";
-				if (valueRows != null && valueRows.size() > i) {
-					String valueString = (String)valueRows.get(i);
-					if (valueString != null) {
-						try {
-							value = Integer.parseInt(valueString);
-						}
-						catch(NumberFormatException e) {
-							description = valueString;
-						}
-					}
-				}
-				if (descriptionRows.size() > i) {
-					String descriptionString = (String)descriptionRows.get(i);
-					if (descriptionString != null) {
-						description += descriptionString;
-					}
-				}
-				if (description.length() > 0) {
-					addPointBreakdown(value, description);
-				}
-			}
-		}
 	}
+	
 
 	public void saveAutomationData(List<List<Object>> columnData, Map<String, List<Object>> fileData) {
 		if (automation != null) {
 			automation.saveAutomationColumns(name, columnData, fileData);
 		}
-		else {
-			savePointBreakdown(columnData);
-		}
 	}
 
-	private void savePointBreakdown(List<List<Object>> columnData) {
-		if (pointBreakdown == null) {
-			return;
-		}
-		List<Object> values = new ArrayList<Object>();
-		List<Object> descriptions = new ArrayList<Object>();
-		values.add(name);
-		descriptions.add(name);
-		for (PointBreakdown points : pointBreakdown) {
-			values.add((Integer)points.getValue());
-			descriptions.add(points.description);
-		}
-		columnData.add(values);
-		columnData.add(descriptions);
-	}
 
 	public void addRubricTab(List<String> rubricTabs) {
 		if (automation != null) {

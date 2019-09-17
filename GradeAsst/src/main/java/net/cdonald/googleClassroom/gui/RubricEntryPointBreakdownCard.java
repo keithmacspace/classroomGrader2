@@ -25,7 +25,6 @@ public class RubricEntryPointBreakdownCard implements RubricEntryDialogCardInter
 	
 	@Override
 	public void addItems() {
-		pointBreakdownTable.setAssociatedEntry(dialogOwner.getCurrentEntry());
 		isActive = true;
 	}
 
@@ -37,7 +36,6 @@ public class RubricEntryPointBreakdownCard implements RubricEntryDialogCardInter
 	@Override
 	public void removeItems() {
 		pointBreakdownTable.stopEditing();
-		pointBreakdownTable.setAssociatedEntry(null);
 		isActive = false;
 	}
 
@@ -48,6 +46,11 @@ public class RubricEntryPointBreakdownCard implements RubricEntryDialogCardInter
 	@Override
 	public void saving() {
 		pointBreakdownTable.stopEditing();
+	}
+	
+	@Override
+	public void rubricSet() {
+		pointBreakdownTable.setAssociatedEntry(dialogOwner.getRubricToModify());
 	}
 
 }

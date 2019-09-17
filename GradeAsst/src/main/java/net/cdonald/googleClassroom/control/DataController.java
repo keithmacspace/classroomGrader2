@@ -44,7 +44,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricURL;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetRubricEntryQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetWorkingDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
@@ -139,16 +139,6 @@ public class DataController implements StudentListInfo {
 		}
 		else {
 			
-		}
-		String rubricURLName = prefs.getRubricURL();
-		String rubricFileName = prefs.getRubricFile();
-		if (rubricURLName != null) {
-			ListenerCoordinator.fire(RubricFileSelectedListener.class, rubricURLName, rubricFileName);
-		}
-		String gradeURL = prefs.getGradeURL();
-		String gradeFileName = prefs.getGradeFile();
-		if (gradeURL != null) {
-			ListenerCoordinator.fire(GradeFileSelectedListener.class, gradeURL, gradeFileName);			
 		}
 		DebugLogDialog.endMethod();
 	}
@@ -276,13 +266,10 @@ public class DataController implements StudentListInfo {
 			}
 		});
 		
-		ListenerCoordinator.addQueryResponder(GetRubricEntryQuery.class, new GetRubricEntryQuery() {
+		ListenerCoordinator.addQueryResponder(GetCurrentRubricQuery.class, new GetCurrentRubricQuery() {
 			@Override
-			public RubricEntry fired(int columnNumber) {
-				if (currentRubric != null) {
-					return currentRubric.getEntry(getRubricIndex(columnNumber));
-				}
-				return null;
+			public Rubric fired() {
+				return currentRubric;
 			}			
 		});
 		
@@ -449,6 +436,7 @@ public class DataController implements StudentListInfo {
 				saveRubric(rubric);
 			}
 		}
+		updateListener.dataUpdated();
 	}
 
 	private void setRubricBeingEdited(Rubric rubricBeingEdited) {
@@ -490,6 +478,16 @@ public class DataController implements StudentListInfo {
 	private void setCurrentCourse(ClassroomData currentCourse) {
 		prefs.setClassroom(currentCourse);
 		this.currentCourse = currentCourse;
+		String rubricURLName = prefs.getRubricURL();
+		String rubricFileName = prefs.getRubricFile();
+		if (rubricURLName != null) {
+			ListenerCoordinator.fire(RubricFileSelectedListener.class, rubricURLName, rubricFileName);
+		}
+		String gradeURL = prefs.getGradeURL();
+		String gradeFileName = prefs.getGradeFile();
+		if (gradeURL != null) {
+			ListenerCoordinator.fire(GradeFileSelectedListener.class, gradeURL, gradeFileName);			
+		}
 		clearAllData();
 		initStudents();
 	}
@@ -910,13 +908,7 @@ public class DataController implements StudentListInfo {
 		boolean publishReady = true;
 		Map<String, Double> scores = new HashMap<String, Double>();
 		for (String id : ids) {
-			if (currentRubric.isGradingComplete(id) == false) {
-				publishReady = false;			
-				JOptionPane.showMessageDialog(null, "Cannot publish grades until all rubric entries have been assigned a value",  "Grades incomplete",
-					JOptionPane.ERROR_MESSAGE);
-				break;
-			}
-			else {
+			if (currentRubric.isGradingComplete(id) == true) {
 				scores.put(id, currentRubric.getTotalValue(id));				
 			}			
 		}

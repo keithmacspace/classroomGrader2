@@ -38,7 +38,7 @@ import javax.swing.table.TableColumnModel;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
-import net.cdonald.googleClassroom.listenerCoordinator.GetRubricEntryQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.SetInfoLabelListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
@@ -47,7 +47,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
-import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.StudentData;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
@@ -104,7 +103,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 		studentTable.setCellSelectionEnabled(true);
 		studentTable.getTableHeader().setReorderingAllowed(false);
 		studentListRenderer = new StudentListRenderer();
-		new ExcelAdapter(studentTable);
+		new ExcelAdapter(studentTable, false);
 
 		verticalHeaderRenderer = new VerticalTableHeaderCellRenderer();
 		studentTable.setDefaultRenderer(FileData.class, studentListRenderer);
@@ -118,9 +117,8 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 		notesTitle = BorderFactory.createTitledBorder(DEFAULT_NOTES_HEADER);
 		commentPane.setBorder(notesTitle);
 		commentTabs = new JTabbedPane();
-		rubricEntryPointBreakdown = new RubricEntryPointBreakdownTable(false);
-		commentTabs.addTab("Partial Credit", new JScrollPane(rubricEntryPointBreakdown));
 		commentPane.add(commentTabs, BorderLayout.CENTER);
+		rubricEntryPointBreakdown = new RubricEntryPointBreakdownTable(false);
 		JPanel studentPanel = new JPanel();
 		studentPanel.setLayout(new BorderLayout());
 		studentPanel.add(new JScrollPane(studentTable, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -170,6 +168,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 					@Override
 					public void run() {
 						resizeColumns();
+						rubricEntryPointBreakdown.updateRowHeights();
 					}
 
 				});
@@ -212,14 +211,16 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 										+ studentInfo.getName());
 							}
 							addCommentAreas(studentId);
-							for (int tab = 1; tab < commentTabs.getTabCount(); tab++) {
+							for (int tab = 0; tab < commentTabs.getTabCount(); tab++) {
 								String graderName = commentTabs.getTitleAt(tab);
 								Map<String, String> commentMap = otherComments.get(graderName);
-								JTextArea commentArea = notesAndCommentsTextArea.get(graderName);
-								if (studentId != null && commentMap.containsKey(studentId)) {
-									commentArea.setText(commentMap.get(studentId));
-								} else {
-									commentArea.setText("");
+								if (commentMap != null) {
+									JTextArea commentArea = notesAndCommentsTextArea.get(graderName);
+									if (studentId != null && commentMap.containsKey(studentId)) {
+										commentArea.setText(commentMap.get(studentId));
+									} else {
+										commentArea.setText("");
+									}
 								}
 							}
 
@@ -301,7 +302,7 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 				if (lsm.isSelectionEmpty() == false) {
 					int maxCol = lsm.getMaxSelectionIndex();
 					int minCol = lsm.getMinSelectionIndex();
-					rubricEntryPointBreakdown.setAssociatedEntry((RubricEntry)ListenerCoordinator.runQuery(GetRubricEntryQuery.class, maxCol));
+
 					if (minCol == maxCol) {
 						if (keyPressed) {
 							minCol = lastKeyboardCol;
@@ -394,8 +395,11 @@ public class StudentPanel extends JPanel implements ResizeAfterUpdateListener {
 	}
 
 	private void addCommentAreas(String studentId) {
-		for (int i = 1; i < commentTabs.getTabCount(); i++) {
-			commentTabs.remove(i);
+		commentTabs.removeAll();
+		Rubric associatedRubric = (Rubric)ListenerCoordinator.runQuery(GetCurrentRubricQuery.class);
+		rubricEntryPointBreakdown.setAssociatedEntry(associatedRubric);
+		if (rubricEntryPointBreakdown.getRowCount() != 0) {
+			commentTabs.addTab("Partial Credit", new JScrollPane(rubricEntryPointBreakdown));
 		}
 		if (studentId != null) {
 			addCommentArea(currentGrader, true);

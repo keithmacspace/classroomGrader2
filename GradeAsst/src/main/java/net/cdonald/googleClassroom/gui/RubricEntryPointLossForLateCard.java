@@ -143,4 +143,9 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardIn
 	public void goldenSourceEnabled(boolean enable) {
 		
 	}
+	
+	@Override
+	public void rubricSet() {
+
+	}
 }

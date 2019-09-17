@@ -241,6 +241,11 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 	public void saving() {
 		
 	}
+	
+	@Override
+	public void rubricSet() {
+
+	}
 
 
 

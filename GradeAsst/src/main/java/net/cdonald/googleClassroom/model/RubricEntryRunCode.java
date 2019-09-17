@@ -145,6 +145,11 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)
 		{
+			if (methodToCall == null || sourceFiles.size() == 0 || goldenSourceClassNames == null || goldenSourceClassNames.size() == 0) {
+				System.err.println(getOwnerName() + " is not fully defined ");
+				return null;
+			}
+
 			List<FileData> rubricFiles = new ArrayList<FileData>(studentFiles);
 			consoleData.runStarted(studentId, getOwnerName());				
 			prepareForNextTest();
@@ -161,7 +166,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			Object returnValue = null;
 
 			try {					
-				returnValue = compiler.compileAndRun(true,  rubricFiles, methodToCall, params, args);				
+				returnValue = compiler.compileAndRun(true,  rubricFiles, methodToCall, params, args, true);				
 			}
 			catch (Exception e) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");

@@ -149,20 +149,20 @@ public class ConsoleAndSourcePanel extends JPanel {
 		popupSource.add(paste);
 		popupInput.add(paste);
 		
-		JMenuItem removeInstrumentation = new JMenuItem("Remove Instrumentation");
-		popupSource.add(removeInstrumentation);
-		removeInstrumentation.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (currentID != null) {
-					int currentTab = sourceTabbedPane.getSelectedIndex();
-					String fileName = sourceTabbedPane.getTitleAt(currentTab);
-					if (currentTab < currentSourceTextAreas.size()) {
-						ListenerCoordinator.fire(RemoveInstrumentationListener.class, currentID, fileName);
-					}
-				}				
-			}			
-		});
+//		JMenuItem removeInstrumentation = new JMenuItem("Remove Instrumentation");
+//		popupSource.add(removeInstrumentation);
+//		removeInstrumentation.addActionListener(new ActionListener() {
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				if (currentID != null) {
+//					int currentTab = sourceTabbedPane.getSelectedIndex();
+//					String fileName = sourceTabbedPane.getTitleAt(currentTab);
+//					if (currentTab < currentSourceTextAreas.size()) {
+//						ListenerCoordinator.fire(RemoveInstrumentationListener.class, currentID, fileName);
+//					}
+//				}				
+//			}			
+//		});
 
 		JMenuItem recompile = new JMenuItem("Recompile");
 		popupSource.add(recompile);

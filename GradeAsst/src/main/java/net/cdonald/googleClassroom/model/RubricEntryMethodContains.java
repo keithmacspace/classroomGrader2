@@ -113,7 +113,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 	private Double runAutomationWrapped(String studentName, String studentId, StudentWorkCompiler compiler,
 			ConsoleData consoleData) {
 	
-		if (stringsToFind.size() == 0 || methodNameToSearch == null) {
+		if (stringsToFind == null || stringsToFind.size() == 0 || methodNameToSearch == null || methodReturnTypeToSearch == null) {
 			System.err.println(getOwnerName() + " is not fully defined ");
 			return null;
 		}

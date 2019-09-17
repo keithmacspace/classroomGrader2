@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.inMemoryJavaCompiler;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class StudentWorkCompiler {
 		if (studentBuildInfoMap.containsKey(key) == false) {
 			studentBuildInfoMap.put(key, new StudentBuildInfo());
 		}
-		fileData.modifySourceFile(new LoopInstrumenter());
+		//fileData.modifySourceFile(new LoopInstrumenter());
 		studentBuildInfoMap.get(key).addFileData(fileData);
 		if (listener != null) {
 			listener.dataUpdated();
@@ -137,9 +138,26 @@ public class StudentWorkCompiler {
 		
 	}
 	
-	public Object compileAndRun(boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args) throws Exception {
-		Map<String, Class<?>> compiled = compile(fileDataList);
-		return runSpecificMethod(expectingReturn, methodName, fileDataList, compiled, params, args);
+	public Object compileAndRun(boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args, boolean instrument) throws Exception {
+		List<FileData> instrumentedList = new ArrayList<FileData>();
+		Map<String, Class<?>> compiled = null;
+		List<FileData> filesToUse = null;
+		if (instrument) {
+			for (FileData file : fileDataList) {
+				FileData instrumentedFile = new FileData(file);
+				instrumentedFile.modifySourceFile(new LoopInstrumenter());
+				instrumentedList.add(instrumentedFile);
+
+			}
+			compiled = compile(instrumentedList);
+			filesToUse = instrumentedList;
+		}
+		else {
+			compiled = compile(fileDataList);
+			filesToUse = fileDataList;
+		}
+		
+		return runSpecificMethod(expectingReturn, methodName, filesToUse, compiled, params, args);
 	}
 	
 	public void compileAll() {
@@ -215,14 +233,20 @@ public class StudentWorkCompiler {
 
 		if (studentBuildInfoMap.containsKey(id)) {
 			StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(id);
-			if (studentBuildInfo.getStudentCompilerMap() != null) {				
-				Map<String, Class<?>> compiled = studentBuildInfo.getStudentCompilerMap();
+			if (studentBuildInfo.getStudentCompilerMap() != null) {								
 				List<FileData> files = studentBuildInfo.getStudentFileData();
-				for (FileData fileData : files) {
-					Class<?> aClass = compiled.get(fileData.getClassName());
-					Method method = getMethod(aClass);
-					if (method != null) {
-						runCore(method);
+				
+				//boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args
+				Class<?> [] mainParamTypes = {String[].class};
+				Object [] mainParams = {new String[] {}};
+				try {
+					compileAndRun(false, files, "main", mainParamTypes, mainParams, true);
+				} catch (Exception e) {
+					try {
+						// If, for some reason, instrumentation adds a bug, run without it
+						compileAndRun(false, files, "main", mainParamTypes, mainParams, false);
+					} catch (Exception e1) {
+
 					}
 				}
 			}

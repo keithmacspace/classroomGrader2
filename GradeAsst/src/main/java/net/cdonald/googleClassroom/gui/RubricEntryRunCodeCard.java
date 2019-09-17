@@ -340,6 +340,12 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 		return associatedAutomation.containsSource(fileData);
 	}
 	
+	
+	@Override
+	public void rubricSet() {
+
+	}
+	
 	public void fillMethodCombo() {
 		List<Method> methods = associatedAutomation.getPossibleMethods(dialogOwner.getRubricToModify().getGoldenSource(), dialogOwner.getCompiler());
 		if (methods == null) {

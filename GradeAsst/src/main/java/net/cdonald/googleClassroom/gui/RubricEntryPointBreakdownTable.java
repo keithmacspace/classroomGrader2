@@ -2,62 +2,160 @@ package net.cdonald.googleClassroom.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 
-import javax.swing.BorderFactory;
+import javax.swing.AbstractAction;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JCheckBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-import net.cdonald.googleClassroom.model.RubricEntry;
+import net.cdonald.googleClassroom.model.Rubric;
 
 public class RubricEntryPointBreakdownTable extends JTable {
 	private PointBreakdownTableModel pointBreakdownModel;
-	private RubricEntry associatedEntry;
+	private Rubric associatedRubric;
 	private boolean isEditable;
-
+	private static final String enterActionKey = "Enter_Action";
 	public RubricEntryPointBreakdownTable(boolean isEditable) {
 		super();
 		this.isEditable = isEditable;
-		setDefaultRenderer(String.class, new TextAreaRenderer());
+		setDefaultRenderer(String.class, new MultiLineCellRenderer());
 		setDefaultEditor(String.class, new TextAreaEditor());
 		setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-		if (isEditable) {
-			setRowHeight(80);
-		}
 		pointBreakdownModel = new PointBreakdownTableModel();
 		setModel(pointBreakdownModel);
-		//getColumnModel().getColumn(0).setMaxWidth(16);
-	}
-
-	public RubricEntry getAssociatedEntry() {
-		return associatedEntry;
-	}
-
-	public void setAssociatedEntry(RubricEntry associatedEntry) {
-		this.associatedEntry = associatedEntry;
-		pointBreakdownModel.fireTableDataChanged();
-		if (isEditable == false) {
-			updateRowHeights();
+		JLabel val = new JLabel("Val");
+		getColumnModel().getColumn(0).setMaxWidth((int)(val.getPreferredSize().getWidth() * 2));
+		if (isEditable) {
+			setComponentPopupMenu(createPopupMenu());
 		}
+		else {
+			setBackground(val.getBackground());
+		}
+		setSelectionBackground(getSelectionBackground());
+		setCellSelectionEnabled(true);
+		new ExcelAdapter(this, true);
+	}
+	
+	private JPopupMenu createPopupMenu() {
+		ListSelectionModel selectionModel = getSelectionModel();
+		JPopupMenu rightClickPopup = new JPopupMenu();
+		JMenuItem moveUpItem = new JMenuItem("Move Up");
+		JMenuItem moveDownItem = new JMenuItem("Move Down");
+		JMenuItem insertAbove = new JMenuItem("Add Entry Above");
+		JMenuItem insertBelow = new JMenuItem("Add Entry Below");
+		JMenuItem delete = new JMenuItem("Delete");
+		rightClickPopup.add(moveUpItem);		
+		rightClickPopup.add(moveDownItem);
+		rightClickPopup.add(insertAbove);
+		rightClickPopup.add(insertBelow);
+		rightClickPopup.add(delete);
+		
+		delete.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				stopEditing();
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				associatedRubric.removePointBreakdownDescription(selectedIndex);
+				pointBreakdownModel.fireTableDataChanged();
+				
+			}			
+		});
+
+		moveUpItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				stopEditing();
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				associatedRubric.swapPointBreakdownDescriptions(selectedIndex, selectedIndex -1);
+				pointBreakdownModel.fireTableDataChanged();
+				
+			}			
+		});
+		moveDownItem.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				stopEditing();
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				associatedRubric.swapPointBreakdownDescriptions(selectedIndex, selectedIndex + 1);
+				pointBreakdownModel.fireTableDataChanged();
+			}			
+		});
+		insertAbove.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				stopEditing();
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				associatedRubric.addNewPointBreakdownDescription(selectedIndex);
+				pointBreakdownModel.fireTableDataChanged();
+			}			
+		});
+		insertBelow.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				stopEditing();
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				associatedRubric.addNewPointBreakdownDescription(selectedIndex + 1);
+				pointBreakdownModel.fireTableDataChanged();
+
+			}			
+		});
+
+		return rightClickPopup;
+		
+
+	}
+
+
+	public Rubric getAssociatedRubric() {
+		return associatedRubric;
+	}
+
+	public void setAssociatedEntry(Rubric associatedEntry) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				associatedRubric = associatedEntry;
+				pointBreakdownModel.fireTableDataChanged();		
+				updateRowHeights();				
+			}
+		});
+		
 	}
 	
 	public void stopEditing() {
-		if (getCellEditor() != null) {
-			getCellEditor().stopCellEditing();
+		if (isEditable) {
+			if (getCellEditor() != null) {
+				getCellEditor().stopCellEditing();
+			}
 		}
 	}
 	
-	private void updateRowHeights()
+	public void updateRowHeights()
 	{
 	    for (int row = 0; row < getRowCount(); row++)
 	    {
 	        int rowHeight = getRowHeight();
-
 	        for (int column = 0; column < getColumnCount(); column++)
 	        {
 	            Component comp = prepareRenderer(getCellRenderer(row, column), row, column);
@@ -66,55 +164,133 @@ public class RubricEntryPointBreakdownTable extends JTable {
 	        setRowHeight(row, rowHeight);
 	    }
 	}
+	
+	private void updateRowHeight(JTextArea area) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				int selectedIndex = selectionModel.getMinSelectionIndex();
+				if (selectedIndex >= 0 && selectedIndex <= getRowCount()) {
 
+					int newRowHeight = area.getLineCount();
 
-	class TextAreaRenderer extends JScrollPane implements TableCellRenderer {
-		JTextArea textarea;
+					Graphics g = area.getGraphics();
+					if (g != null) {
+						FontMetrics f = g.getFontMetrics(area.getFont());
+						if (f != null) {
+							newRowHeight *= f.getHeight();
+						}
+					}
+					if (newRowHeight > getRowHeight()) {
+						setRowHeight(selectedIndex, newRowHeight);
+					}
 
-		public TextAreaRenderer() {
-			textarea = new JTextArea();
-			textarea.setLineWrap(true);
-			textarea.setWrapStyleWord(true);
-			getViewport().add(textarea);
+				}
+			}
+		});
+	}
+	
+	class MultiLineCellRenderer extends JTextArea implements TableCellRenderer {
+
+		public MultiLineCellRenderer() {
+			setLineWrap(true);
+			setWrapStyleWord(true);
+			setOpaque(true);
 		}
 
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-				int row, int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value,
+				boolean isSelected, boolean hasFocus, int row, int column) {
 			if (isSelected) {
 				setForeground(table.getSelectionForeground());
 				setBackground(table.getSelectionBackground());
-				textarea.setForeground(table.getSelectionForeground());
-				textarea.setBackground(table.getSelectionBackground());
 			} else {
 				setForeground(table.getForeground());
 				setBackground(table.getBackground());
-				textarea.setForeground(table.getForeground());
-				textarea.setBackground(table.getBackground());
 			}
-
-			textarea.setText((String) value);
-			textarea.setCaretPosition(0);
+			setFont(table.getFont());
+//			if (hasFocus) {
+//				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+//				if (table.isCellEditable(row, column)) {
+//					setForeground(UIManager.getColor("Table.focusCellForeground"));
+//					setBackground(UIManager.getColor("Table.focusCellBackground"));
+//				}
+//			} else {
+//				setBorder(new EmptyBorder(1, 2, 1, 2));
+//			}
+			setText((value == null) ? "" : value.toString());
 			return this;
 		}
 	}
 
+//
+//	class TextAreaRenderer extends JTextArea implements TableCellRenderer {
+//		
+//
+//		public TextAreaRenderer() {
+//			super();			
+//			setLineWrap(true);
+//			setWrapStyleWord(true);
+//		}
+//
+//		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+//				int row, int column) {
+//			if (isSelected) {
+//				setForeground(table.getSelectionForeground());
+//				setBackground(table.getSelectionBackground());
+//				setForeground(table.getSelectionForeground());
+//				setBackground(table.getSelectionBackground());
+//			} else {
+//				setForeground(table.getForeground());
+//				setBackground(table.getBackground());
+//				setForeground(table.getForeground());
+//				setBackground(table.getBackground());
+//			}
+//
+//			setText((String) value);
+//			setCaretPosition(0);
+//			return this;
+//		}
+//	}
+//
 	class TextAreaEditor extends DefaultCellEditor {
-		protected JScrollPane scrollpane;
+
 		protected JTextArea textarea;
 
 		public TextAreaEditor() {
 			super(new JCheckBox());
-			scrollpane = new JScrollPane();
+			
 			textarea = new JTextArea();
 			textarea.setLineWrap(true);
 			textarea.setWrapStyleWord(true);
-			scrollpane.getViewport().add(textarea);
+			
+			if (isEditable) {
+				textarea.setComponentPopupMenu(createPopupMenu());
+				textarea.getDocument().addDocumentListener(new DocumentListener() {
+
+					@Override
+					public void insertUpdate(DocumentEvent e) {
+						updateRowHeight(textarea);
+						
+					}
+
+					@Override
+					public void removeUpdate(DocumentEvent e) {
+						updateRowHeight(textarea);
+						
+					}
+
+					@Override
+					public void changedUpdate(DocumentEvent e) {
+						
+					}
+					
+				});
+			}
 		}
 
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
 				int column) {
 			textarea.setText((String) value);
-			return scrollpane;
+			return textarea;
 		}
 
 		public Object getCellEditorValue() {
@@ -128,8 +304,8 @@ public class RubricEntryPointBreakdownTable extends JTable {
 		@Override
 		public int getRowCount() {
 			int min = (isEditable) ? 3 : 0;
-			if (associatedEntry != null && associatedEntry.getPointBreakdown() != null) {
-				min = Math.max(min, associatedEntry.getPointBreakdown().size());
+			if (associatedRubric != null && associatedRubric.getPointBreakdown() != null) {
+				min = Math.max(min, associatedRubric.getPointBreakdown().size());
 				if (isEditable) {
 					min++;
 				}
@@ -153,7 +329,7 @@ public class RubricEntryPointBreakdownTable extends JTable {
 		@Override
 		public String getColumnName(int column) {
 			if (column == 0) {
-				return "Value";
+				return "Val";
 			}
 			return "Description";
 		}
@@ -165,28 +341,59 @@ public class RubricEntryPointBreakdownTable extends JTable {
 
 		@Override
 		public Object getValueAt(int row, int column) {
-
-			if (associatedEntry == null) {
+			if (associatedRubric == null) {
 				return null;
 			}
 			if (column == 0) {
-				return associatedEntry.getPointBreakdownValue(row);
+				return associatedRubric.getPointBreakdownValue(row);
 			}
-			return associatedEntry.getPointBreakdownDescription(row);
+			String description = associatedRubric.getPointBreakdownDescription(row);
+			return description;
 		}
 
 		@Override
 		public void setValueAt(Object aValue, int row, int column) {
-			if (associatedEntry == null) {
+			if (associatedRubric == null) {
 				return;
 			}
 			if (column == 0) {
-				associatedEntry.setPointBreakdownValue(row, aValue.toString());
+				associatedRubric.setPointBreakdownValue(row, aValue.toString());
 			} else {
-				associatedEntry.setPointBreakdownDescription(row, (String) aValue);
+				String temp = (String) aValue;			
+				associatedRubric.setPointBreakdownDescription(row, temp);
 			}
 		}
 
+		@Override
+		public void fireTableDataChanged() {			
+			super.fireTableDataChanged();
+			updateRowHeights();
+		}
+
+		@Override
+		public void fireTableStructureChanged() {
+			super.fireTableStructureChanged();
+			updateRowHeights();
+		}
+
+	}
+	
+	public static void main(String args[]) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				JFrame a = new JFrame();
+				JPanel x = new JPanel();
+				x.setLayout(new BorderLayout());
+				RubricEntryPointBreakdownTable t = new RubricEntryPointBreakdownTable(true);
+				t.setAssociatedEntry(new Rubric());
+				x.add(new JScrollPane(t));
+				a.add(x);
+				a.pack();
+				a.setVisible(true);
+			}
+		});
+		
+		
 	}
 
 }

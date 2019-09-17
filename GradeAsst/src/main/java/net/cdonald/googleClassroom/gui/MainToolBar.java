@@ -27,7 +27,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.EnableRunRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentAssignmentQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetSelectedRubricSheetData;
 import net.cdonald.googleClassroom.listenerCoordinator.GetRubricNamesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryListener;
@@ -142,7 +142,7 @@ public class MainToolBar extends JToolBar {
 				return null;
 			}			
 		});
-		ListenerCoordinator.addQueryResponder(GetCurrentRubricQuery.class, new GetCurrentRubricQuery() {
+		ListenerCoordinator.addQueryResponder(GetSelectedRubricSheetData.class, new GetSelectedRubricSheetData() {
 			@Override
 			public GoogleSheetData fired() {
 				Object item = rubricCombo.getSelectedItem();
@@ -192,9 +192,8 @@ public class MainToolBar extends JToolBar {
 			public void fired(String url, String fileName) {
 				final String progressName = "Reading " + fileName;
 				rubricNames.clear();
-				for (int i = 1; i < rubricCombo.getComponentCount(); i++) {
-					rubricCombo.remove(i);
-				}
+				rubricModel.removeAllElements();
+				rubricModel.addElement(emptySheet);
 				ListenerCoordinator.fire(AddProgressBarListener.class, progressName);
 				ListenerCoordinator.runLongQuery(SheetFetcher.class, new SheetFetcherListener(url) {
 					@Override

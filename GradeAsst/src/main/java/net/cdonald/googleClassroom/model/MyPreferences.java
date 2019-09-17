@@ -2,10 +2,13 @@ package net.cdonald.googleClassroom.model;
 
 import java.awt.Dimension;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
+import net.cdonald.googleClassroom.utils.FileUtils;
 
 /**
  * 
@@ -198,6 +201,24 @@ public class MyPreferences {
 		}
 		String tokenDir = directoryPath + File.separator + "tokens";
 		new File(tokenDir).mkdir();		
+	}
+
+	public void uninstall() {
+		String directoryPath = getWorkingDir();
+		if (directoryPath != null) {
+			try {
+				FileUtils.removeRecursive(Paths.get(directoryPath));
+			} catch (IOException e) {
+
+			}
+		}
+		try {
+			preferences.removeNode();
+		} catch (BackingStoreException e) {
+
+		}
+		
+		
 	}
 	
 

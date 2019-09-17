@@ -19,7 +19,40 @@ public class Rubric implements SheetAccessorInterface {
 	public enum ModifiableState {
 		TRACK_MODIFICATIONS, LOCK_USER_MODIFICATIONS
 	}
-
+	public class PointBreakdown {
+		private int value;
+		private String description;
+		public PointBreakdown() {
+			super();
+			this.value = 0;
+			this.description = "";
+		}
+		public PointBreakdown(int value, String description) {
+			super();
+			this.value = value;
+			this.description = description;
+		}
+		public int getValue() {
+			return value;
+		}
+		public void setValue(int value) {
+			this.value = value;
+		}
+		public void setValue(String value) {
+			try {
+				this.value = Integer.parseInt(value);
+			}catch(NumberFormatException e) {
+				
+			}
+		}
+		public String getDescription() {
+			return description;
+		}
+		public void setDescription(String description) {
+			this.description = description;
+		}		
+	}
+	private final String partialCreditString = "PARTIAL CREDIT";
 	private static ModifiableState modifiableState = ModifiableState.TRACK_MODIFICATIONS;
 	private GoogleSheetData sheetData;
 	private List<RubricEntry> entries;
@@ -27,6 +60,7 @@ public class Rubric implements SheetAccessorInterface {
 	private Map<String, FileData> fileDataMap;
 	private List<FileData> goldenSource;
 	private static final String GOLDEN_SOURCE_LABEL = "Golden Source Files";
+	private List<PointBreakdown> pointBreakdown;
 
 	public static ModifiableState getModifiableState() {
 		return modifiableState;
@@ -58,6 +92,11 @@ public class Rubric implements SheetAccessorInterface {
 		}
 		goldenSource = new ArrayList<FileData>();
 		setGoldenSource(other.goldenSource);
+		if (other.pointBreakdown != null) {
+			for (PointBreakdown points : other.pointBreakdown) {
+				addPointBreakdown(points);
+			}
+		}
 
 	}
 
@@ -101,7 +140,7 @@ public class Rubric implements SheetAccessorInterface {
 		double value = 0.0;
 		for (RubricEntry entry : entries) {
 			RubricEntry.StudentScore studentValue = entry.getStudentScore(id);
-			if (studentValue != null && studentValue.score != null) {
+			if (studentValue != null && studentValue.getScore() != null) {
 				value += studentValue.getScore();
 			}
 		}
@@ -317,6 +356,7 @@ public class Rubric implements SheetAccessorInterface {
 			}
 		}
 
+		loadPointsBreakdown(entryColumns);
 		// Finally read the golden source
 		loadGoldenSource(entryColumns);
 	}
@@ -365,6 +405,7 @@ public class Rubric implements SheetAccessorInterface {
 
 		saveState.addOneRow(RubricEntry.getRubricHeader(), 1);
 		int currentRow = 2;
+		savePointBreakdown(columnData);
 		for (RubricEntry entry : entries) {
 			saveState.addOneRow(entry.getRubricEntryInfo(), currentRow);
 			entry.saveAutomationData(columnData, fileData);
@@ -372,6 +413,7 @@ public class Rubric implements SheetAccessorInterface {
 		}
 
 		int currentColumn = RubricEntry.HeadingNames.values().length + 1;
+		
 		for (List<Object> column : columnData) {
 			saveState.writeFullColumn(column, currentColumn);
 			currentColumn++;
@@ -381,6 +423,7 @@ public class Rubric implements SheetAccessorInterface {
 			saveState.writeFullColumn(fileColumn, currentColumn);
 			currentColumn++;
 		}
+		
 		saveGoldenSource(saveState, currentColumn);
 		return saveState;
 	}
@@ -445,5 +488,127 @@ public class Rubric implements SheetAccessorInterface {
 			entry.clearModifiedFlag();
 		}
 	}
+	
+	public void addPointBreakdown(int value, String description) {
+		addPointBreakdown(new PointBreakdown(value, description));
+	}
+	
+	public void addPointBreakdown(PointBreakdown points) {
+		if (pointBreakdown == null) {
+			pointBreakdown = new ArrayList<PointBreakdown>();
+		}
+		pointBreakdown.add(points);
+	}
+	
+	public List<PointBreakdown> getPointBreakdown() {
+		return pointBreakdown;
+	}
+	public String getPointBreakdownValue(int row) {
+		if (pointBreakdown != null && pointBreakdown.size() > row) {
+			return "" + pointBreakdown.get(row).getValue();
+		}
+		return null;		
+	}
+	public String getPointBreakdownDescription(int row) {
+		if (pointBreakdown != null && pointBreakdown.size() > row) {
+			return pointBreakdown.get(row).getDescription();
+		}
+		return null;		
+	}
+	
+	public PointBreakdown getPointBreakdown(int row) {
+		if (pointBreakdown == null) {
+			pointBreakdown = new ArrayList<PointBreakdown>();
+		}
+		if (row < pointBreakdown.size()) {
+			return pointBreakdown.get(row);
+		}
+		pointBreakdown.add(new PointBreakdown(0, ""));
+		return pointBreakdown.get(pointBreakdown.size() - 1);
+	}
+	public void setPointBreakdownValue(int row, String value) {		
+			getPointBreakdown(row).setValue(value);			
+	}
+	public void setPointBreakdownDescription(int row, String value) {		
+			getPointBreakdown(row).setDescription(value);		
+	}
+	public void addNewPointBreakdownDescription(int row) {
+		if (row <= pointBreakdown.size() && row >= 0) {
+			pointBreakdown.add(row, new PointBreakdown());
+		}
+	}
+	
+	public void removePointBreakdownDescription(int row) {
+		if (row < pointBreakdown.size() && row >= 0) {
+			pointBreakdown.remove(row);
+		}
+	}
+	public void swapPointBreakdownDescriptions(int row1, int row2) {
+		if (row1 >= 0 && row2 >= 0 && row1 < pointBreakdown.size() && row2 < pointBreakdown.size()) {
+			PointBreakdown a = pointBreakdown.get(row1);
+			pointBreakdown.set(row1, pointBreakdown.get(row2));
+			pointBreakdown.set(row2, a);
+		}
+	}
+
+	
+	private void loadPointsBreakdown(Map<String, List<List<Object>>> columnData) {
+		List<List<Object> > columns = columnData.get(partialCreditString);
+		if (columns == null || columns.size() == 0) {
+			return;
+		}
+		else {
+			List<Object> valueRows = null;
+			int maxRows = 0;
+			int descriptionIndex = columns.size() - 1;
+			if (descriptionIndex != 0) {
+				valueRows = columns.get(0);
+				maxRows = valueRows.size();
+			}
+			List<Object> descriptionRows = columns.get(descriptionIndex);
+			maxRows = Math.max(descriptionRows.size(), maxRows);
+			for (int i = 1; i < maxRows; i++) {
+				int value = 0;
+				String description = "";
+				if (valueRows != null && valueRows.size() > i) {
+					String valueString = (String)valueRows.get(i);
+					if (valueString != null) {
+						try {
+							value = Integer.parseInt(valueString);
+						}
+						catch(NumberFormatException e) {
+							description = valueString;
+						}
+					}
+				}
+				if (descriptionRows.size() > i) {
+					String descriptionString = (String)descriptionRows.get(i);
+					if (descriptionString != null) {
+						description += descriptionString;
+					}
+				}
+				if (description.length() > 0) {
+					addPointBreakdown(value, description);
+				}
+			}
+		}
+	}
+	
+	private void savePointBreakdown(List<List<Object>> columnData) {
+		if (pointBreakdown == null) {
+			return;
+		}
+		List<Object> values = new ArrayList<Object>();
+		List<Object> descriptions = new ArrayList<Object>();
+		values.add(partialCreditString);
+		descriptions.add(partialCreditString);
+		for (PointBreakdown points : pointBreakdown) {
+			values.add((Integer)points.getValue());
+			descriptions.add(points.description);
+		}
+		columnData.add(values);
+		columnData.add(descriptions);
+	}
+
 
 }
