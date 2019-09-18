@@ -145,8 +145,7 @@ public class MyPreferences {
 	
 	
 	public void setClassroom(ClassroomData classroom) {
-		if (classroom != null) {
-			DebugLogDialog.appendln(classroom.getName() + " " + classroom.getId());
+		if (classroom != null) {			
 			preferences.put(GlobalPrefs.CLASS_NAME.toString(), classroom.getName());
 			preferences.put(GlobalPrefs.CLASS_ID.toString(), classroom.getId());
 			makeDirs(getClassroomDir(classroom.getId()));			
@@ -185,7 +184,11 @@ public class MyPreferences {
 	}
 	
 	public String getJsonPath() {
-		return getWorkingDir() + File.separator + "credentials.json";
+		String workingDir = getWorkingDir();
+		if (workingDir == null) {
+			return null;
+		}
+		return workingDir + File.separator + "credentials.json";
 		
 	}
 	

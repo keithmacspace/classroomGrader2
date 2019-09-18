@@ -87,13 +87,15 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		if (ranGuided == true) {
 			callExit();
 		}
+		else {
 		
-		dataController.performFirstInit();
+			dataController.performFirstInit();
 		
 
 	
-		if (dataController.getPrefs().getClass() == null) {
-			new GuidedSetupFinalInstructions(this).setVisible(true);
+			if (dataController.getPrefs().getClassroom() == null) {
+				new GuidedSetupFinalInstructions(this).setVisible(true);
+			}
 		}
 	}
 	
@@ -155,6 +157,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent ev) {
+				studentPanel.stopEditing();
 				if (dataController.areGradesModified()) {
 					int option = JOptionPane.showConfirmDialog(MainGoogleClassroomFrame.this,  "Save Grades Before Exiting?", "Unsaved Changes", JOptionPane.YES_NO_CANCEL_OPTION);
 					if (option == JOptionPane.CANCEL_OPTION) {
@@ -162,23 +165,30 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 					}
 					if (option == JOptionPane.YES_OPTION) {
 						SwingWorker<Void, Void> saveWorker = new SwingWorker<Void, Void>() {
-
+							private boolean worked;
 							@Override
 							protected Void doInBackground() throws Exception {
-								saveGrades();
+								worked = saveGradesInCurrentThread();
 								return null;
 							}
 
 							@Override
 							protected void done() {
-								finalizeExit();
+								if (worked) {
+									finalizeExit();
+								}
 							}														
 						};
 						saveWorker.execute();
 						return;
 					}
+					else {
+						finalizeExit();
+					}
 				}
-				finalizeExit();
+				else {
+					finalizeExit();
+				}
 			}
 		});
 	}
@@ -349,18 +359,20 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 
 			@Override
 			protected Void doInBackground() throws Exception {
-				ListenerCoordinator.fire(AddProgressBarListener.class, "Syncing Grades");
-				studentPanel.stopEditing();				
-				dataController.syncGrades();
-				ListenerCoordinator.fire(RemoveProgressBarListener.class, "Syncing Grades");	
+				saveGradesInCurrentThread();
 				return null;
 			}
 			
 		};
 		syncWorker.execute();
-
-		
-
+	}
+	
+	private boolean saveGradesInCurrentThread() {
+		ListenerCoordinator.fire(AddProgressBarListener.class, "Syncing Grades");
+		studentPanel.stopEditing();				
+		boolean worked = dataController.syncGrades();
+		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Syncing Grades");
+		return worked;
 	}
 	
 	private void editRubric(Rubric rubricToModify) {
@@ -438,6 +450,11 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 	@Override
 	public void dataUpdated() {
 		studentPanel.dataChanged();
+	}
+	
+	@Override
+	public void structureChanged() {
+		studentPanel.structureChanged();
 	}
 
 

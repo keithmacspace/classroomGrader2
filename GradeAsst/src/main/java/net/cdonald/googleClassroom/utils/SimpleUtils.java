@@ -12,8 +12,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class SimpleUtils {
-	private static final String PATTERN = "MM/dd/yyyy HH:mm:ss";
-	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(PATTERN);
+	public static final String DATE_PATTERN = "MM/dd/yyyy HH:mm:ss";
+	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_PATTERN);
 
 	public static List<String> breakUpCommaList(Object object) {
 		List<String> partsList = new ArrayList<String>();

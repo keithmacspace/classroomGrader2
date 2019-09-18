@@ -556,6 +556,10 @@ public class DataController implements StudentListInfo {
 					}					
 				}
 				@Override
+				public void done() {
+					updateListener.structureChanged();
+				}
+				@Override
 				public void remove(Set<String> removeList) {					
 					for (String id : removeList) {
 						if (studentMap.containsKey(id)) {
@@ -802,7 +806,8 @@ public class DataController implements StudentListInfo {
 		return null;
 	}
 	
-	public void syncGrades() {
+	public boolean syncGrades() {
+		boolean worked = true;
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null) {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
@@ -825,10 +830,12 @@ public class DataController implements StudentListInfo {
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
 						JOptionPane.ERROR_MESSAGE);
+				worked = false;
 			}
 			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
 			
 		}
+		return worked;
 	}
 	
 	public void loadGrades() {

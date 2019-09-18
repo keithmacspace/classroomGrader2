@@ -450,10 +450,6 @@ public class StudentWorkCompiler {
 			if (name.equals(getInstrumentationCall())) {
 				return null;
 			}
-			else {
-				DebugLogDialog.appendln(name);
-			}
-			// TODO Auto-generated method stub
 			return super.visit(n, arg);
 		}
 		
