@@ -101,7 +101,7 @@ SectionEnd
 ;--------------------------------    
 ;Uninstaller Section  
 Section "Uninstall"
- 
+ ExecWait   '"${JAVA_DEST}\bin\javaw.exe" -jar "$INSTDIR\${MUI_FILE}" -uninstall'
 ;Delete Files 
   RMDir /r "$INSTDIR\*.*"    
  

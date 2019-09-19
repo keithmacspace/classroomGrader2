@@ -31,6 +31,9 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.classroom.Classroom;
 import com.google.api.services.classroom.Classroom.Builder;
+import com.google.api.services.classroom.Classroom.Courses;
+import com.google.api.services.classroom.Classroom.Courses.CourseWork.StudentSubmissions;
+import com.google.api.services.classroom.Classroom.Courses.CourseWork.StudentSubmissions.Patch;
 import com.google.api.services.classroom.ClassroomScopes;
 import com.google.api.services.classroom.model.AssignmentSubmission;
 import com.google.api.services.classroom.model.Attachment;
@@ -402,13 +405,25 @@ public class GoogleClassroomCommunicator {
 		try {
 			acquireReadStudentsWorkSemaphore();
 			initServices();
-			ListStudentSubmissionsResponse studentSubmissionResponse = classroomService.courses().courseWork()
-					.studentSubmissions().list(course.getId(), assignment.getId()).execute();
+			Courses courses = classroomService.courses();
+			Courses.CourseWork courseWork = courses.courseWork();
+			StudentSubmissions submissions = courseWork.studentSubmissions();
+			ListStudentSubmissionsResponse studentSubmissionResponse = submissions.list(course.getId(), assignment.getId()).execute();
 			for (StudentSubmission submission : studentSubmissionResponse.getStudentSubmissions()) {
 				String studentNameKey = submission.getUserId();
 				Double value = grades.get(studentNameKey);
+				
 				if (value != null) {
-					submission.setAssignedGrade(value);
+					Double assignedGrade = submission.getAssignedGrade();
+					if (assignedGrade == null || !value.equals(assignedGrade)) {
+						submission.setDraftGrade(value);
+						String courseId = submission.getCourseId();
+						String courseWorkId = submission.getCourseWorkId();
+						String submissionId = submission.getId();
+						Patch patchGrade = submissions.patch(courseId, courseWorkId, submissionId, submission);
+						patchGrade.setUpdateMask("draftGrade");
+						patchGrade.execute();
+					}
 				}
 			}
 			

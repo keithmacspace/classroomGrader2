@@ -452,6 +452,8 @@ public class GradeSyncer implements SheetAccessorInterface {
 				for (int i = 0; i < rubric.getEntryCount(); i++) {
 					possiblyInsertColumn(rubric.getEntry(i).getName(), col++);
 				}
+				possiblyInsertColumn(graderName + NOTES_APPEND, computeMaxColumn());
+
 			}
 		}
 		return -1;		
@@ -641,8 +643,14 @@ public class GradeSyncer implements SheetAccessorInterface {
 				changedData |= fillStudentGradeColumns(studentID, studentRowData, row, currentRow);
 
 				String note = graderComments.get(studentID);
-				if (note != null) {
-					studentRowData.set(getColumnLocation(graderName + NOTES_APPEND), note);
+				if (note != null) {					 
+					Integer notesIndex = getColumnLocation(graderName + NOTES_APPEND);
+					if(notesIndex == null) {
+						studentRowData.add(note);
+					}
+					else {
+						studentRowData.set(notesIndex, note);
+					}
 				}
 				saveData.addOneRow(studentRowData, row + 1);
 			}

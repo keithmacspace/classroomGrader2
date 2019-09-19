@@ -923,7 +923,7 @@ public class DataController implements StudentListInfo {
 			try {
 				googleClassroom.publishStudentGrades(currentCourse, assignment, scores);
 			} catch (IOException e) {
-				JOptionPane.showMessageDialog(null, "Google classroom communication error: " + e.getMessage(),  "Error publishing grades",
+				JOptionPane.showMessageDialog(null, "Only the person who created this assignment can modify it\n" + e.getMessage(),  "Error publishing grades",
 						JOptionPane.ERROR_MESSAGE);
 			}
 		}
