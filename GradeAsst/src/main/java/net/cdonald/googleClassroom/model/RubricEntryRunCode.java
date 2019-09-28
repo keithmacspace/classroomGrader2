@@ -31,7 +31,7 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
 public class RubricEntryRunCode extends  RubricAutomation {
 	private String methodToCall;
 	private List<FileData> sourceFiles;
-	private List<String> goldenSourceClassNames;
+	private List<String> referenceSourceClassNames;
 	boolean checkSystemOut;		
 	private enum ColumnNames {METHOD_TO_CALL, CLASS_NAMES_TO_REPLACE, SOURCE_FILE};
 
@@ -39,18 +39,18 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	
 	public RubricEntryRunCode() {		
 		sourceFiles = new ArrayList<FileData>();
-		goldenSourceClassNames = new ArrayList<String>();
+		referenceSourceClassNames = new ArrayList<String>();
 	}
 	
 	public RubricEntryRunCode(RubricEntryRunCode other) {
 		methodToCall = other.methodToCall;
 		sourceFiles = new ArrayList<FileData>();
-		goldenSourceClassNames = new ArrayList<String>();
+		referenceSourceClassNames = new ArrayList<String>();
 		for (FileData fileData : other.sourceFiles) {
 			sourceFiles.add(fileData);
 		}
-		for (String className : other.goldenSourceClassNames) {
-			goldenSourceClassNames.add(className);
+		for (String className : other.referenceSourceClassNames) {
+			referenceSourceClassNames.add(className);
 		}
 		checkSystemOut = other.checkSystemOut;
 	}
@@ -90,18 +90,18 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 	}
 	
-	public List<Method> getPossibleMethods(List<FileData> goldenSource, StudentWorkCompiler compiler) {
+	public List<Method> getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler) {
 
-		if (goldenSource == null || goldenSource.size() == 0) {
+		if (referenceSource == null || referenceSource.size() == 0) {
 			return null;
 		}
 		
-		goldenSourceClassNames.clear();		
-		for (FileData fileData : goldenSource) {
-			goldenSourceClassNames.add(fileData.getClassName());
+		referenceSourceClassNames.clear();		
+		for (FileData fileData : referenceSource) {
+			referenceSourceClassNames.add(fileData.getClassName());
 		}
 		
-		List<FileData> rubricFiles = new ArrayList<FileData>(goldenSource);
+		List<FileData> rubricFiles = new ArrayList<FileData>(referenceSource);
 		
 
 		for (FileData sourceFile : sourceFiles) {
@@ -145,7 +145,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)
 		{
-			if (methodToCall == null || sourceFiles.size() == 0 || goldenSourceClassNames == null || goldenSourceClassNames.size() == 0) {
+			if (methodToCall == null || sourceFiles.size() == 0 || referenceSourceClassNames == null || referenceSourceClassNames.size() == 0) {
 				System.err.println(getOwnerName() + " is not fully defined ");
 				return null;
 			}
@@ -206,7 +206,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			}
 			for (FileData testFile : sourceFiles) {
 				CompilationUnit testCode = StaticJavaParser.parse(testFile.getFileContents());
-				ClassNameModifier nameChange = new ClassNameModifier(goldenSourceClassNames, studentSourceMap);
+				ClassNameModifier nameChange = new ClassNameModifier(referenceSourceClassNames, studentSourceMap);
 				nameChange.visit(testCode, null);
 				if (nameChange.isError()) {
 					error += nameChange.getErrorString();					
@@ -228,13 +228,13 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	}
 	
 	private static class ClassNameModifier extends ModifierVisitor<Void>  {
-		List<String> goldenSourceScopes;
+		List<String> referenceSourceScopes;
 		Map<String, MethodAndFieldList> studentSources;
 		boolean error;
 		String errorString;
-		public ClassNameModifier(List<String> goldenSources, Map<String, MethodAndFieldList> studentSources) {
+		public ClassNameModifier(List<String> referenceSources, Map<String, MethodAndFieldList> studentSources) {
 			super();
-			this.goldenSourceScopes = goldenSources;
+			this.referenceSourceScopes = referenceSources;
 			this.studentSources = studentSources;
 			error = false;
 			errorString = "";
@@ -258,8 +258,8 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			}
 		}
 		
-		private boolean isGoldenScope(String scopeString) {
-			for (String scope : goldenSourceScopes) {
+		private boolean isReferenceScope(String scopeString) {
+			for (String scope : referenceSourceScopes) {
 				if (scopeString.equals(scope)) {					
 					return true;
 				}
@@ -275,7 +275,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			Expression scope = n.getScope();
 			String fieldName = n.getNameAsString();
 			String scopeString = scope.toString();
-			if (isGoldenScope(scopeString)) {
+			if (isReferenceScope(scopeString)) {
 				for (String studentKey : studentSources.keySet()) {
 					List<FieldDeclaration> fields = studentSources.get(studentKey).getFields();
 					for (FieldDeclaration field : fields) {
@@ -302,7 +302,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			String methodName = n.getNameAsString();
 			if (scope.isPresent()) {
 				String scopeString = scope.get().toString();
-				if (isGoldenScope(scopeString)) {
+				if (isReferenceScope(scopeString)) {
 					for (String studentKey : studentSources.keySet()) {
 						List<MethodDeclaration> methods = studentSources.get(studentKey).getMethods();
 						for (MethodDeclaration methodDec : methods) {
@@ -397,11 +397,11 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		content.add(entryName);
 		labels.add(ColumnNames.CLASS_NAMES_TO_REPLACE.toString());
 		String classes = "";
-		for (int i = 0; i < goldenSourceClassNames.size() - 1; i++) {
-			classes += goldenSourceClassNames.get(i) + ",";
+		for (int i = 0; i < referenceSourceClassNames.size() - 1; i++) {
+			classes += referenceSourceClassNames.get(i) + ",";
 		}
-		if (goldenSourceClassNames.size() != 0) {
-			classes += goldenSourceClassNames.get(goldenSourceClassNames.size() - 1);
+		if (referenceSourceClassNames.size() != 0) {
+			classes += referenceSourceClassNames.get(referenceSourceClassNames.size() - 1);
 		}
 		content.add(classes);
 		labels.add(ColumnNames.METHOD_TO_CALL.toString());
@@ -441,7 +441,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		}
 		else {
 			List<String> files = null;
-			goldenSourceClassNames.clear();
+			referenceSourceClassNames.clear();
 
 			List<Object> labelRow = columns.get(0);
 			methodToCall = null;
@@ -455,11 +455,11 @@ public class RubricEntryRunCode extends  RubricAutomation {
 						files = SimpleUtils.breakUpCommaList(columns.get(1).get(row));
 					}
 					else if (label.equalsIgnoreCase(ColumnNames.CLASS_NAMES_TO_REPLACE.toString())) {
-						goldenSourceClassNames = SimpleUtils.breakUpCommaList(columns.get(1).get(row));
+						referenceSourceClassNames = SimpleUtils.breakUpCommaList(columns.get(1).get(row));
 					}
 				}
 			}
-			if (files == null || files.size() == 0 ||  goldenSourceClassNames.size() == 0 || methodToCall == null) {
+			if (files == null || files.size() == 0 ||  referenceSourceClassNames.size() == 0 || methodToCall == null) {
 				showErrorMessage(entryName);							
 			}
 			if (files == null) {

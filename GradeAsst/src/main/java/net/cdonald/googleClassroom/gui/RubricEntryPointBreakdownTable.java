@@ -207,50 +207,13 @@ public class RubricEntryPointBreakdownTable extends JTable {
 				setBackground(table.getBackground());
 			}
 			setFont(table.getFont());
-//			if (hasFocus) {
-//				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
-//				if (table.isCellEditable(row, column)) {
-//					setForeground(UIManager.getColor("Table.focusCellForeground"));
-//					setBackground(UIManager.getColor("Table.focusCellBackground"));
-//				}
-//			} else {
-//				setBorder(new EmptyBorder(1, 2, 1, 2));
-//			}
+
 			setText((value == null) ? "" : value.toString());
 			return this;
 		}
 	}
 
-//
-//	class TextAreaRenderer extends JTextArea implements TableCellRenderer {
-//		
-//
-//		public TextAreaRenderer() {
-//			super();			
-//			setLineWrap(true);
-//			setWrapStyleWord(true);
-//		}
-//
-//		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-//				int row, int column) {
-//			if (isSelected) {
-//				setForeground(table.getSelectionForeground());
-//				setBackground(table.getSelectionBackground());
-//				setForeground(table.getSelectionForeground());
-//				setBackground(table.getSelectionBackground());
-//			} else {
-//				setForeground(table.getForeground());
-//				setBackground(table.getBackground());
-//				setForeground(table.getForeground());
-//				setBackground(table.getBackground());
-//			}
-//
-//			setText((String) value);
-//			setCaretPosition(0);
-//			return this;
-//		}
-//	}
-//
+
 	class TextAreaEditor extends DefaultCellEditor {
 
 		protected JTextArea textarea;

@@ -139,7 +139,7 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 	}
 	
 
-	public void goldenSourceEnabled(boolean enable) {
+	public void referenceSourceEnabled(boolean enable) {
 
 		
 	}
@@ -347,7 +347,7 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 	}
 	
 	public void fillMethodCombo() {
-		List<Method> methods = associatedAutomation.getPossibleMethods(dialogOwner.getRubricToModify().getGoldenSource(), dialogOwner.getCompiler());
+		List<Method> methods = associatedAutomation.getPossibleMethods(dialogOwner.getRubricToModify().getReferenceSource(), dialogOwner.getCompiler());
 		if (methods == null) {
 			methodToCallCombo.removeAllItems();
 			methodMap.clear();

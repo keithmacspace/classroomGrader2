@@ -25,6 +25,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
@@ -70,24 +71,25 @@ public class StudentPanel extends JPanel{
 	private static final String DEFAULT_NOTES_HEADER = "Partial Credit/Notes";
 	private JPanel commentPane;
 	private JSplitPane splitPane;
-	private int defaultValueWidth;
 	private RubricEntryPointBreakdownTable rubricEntryPointBreakdown;
 	private String NOTES_APPEND = ": Notes";
-
+	private StudentListInfo studentListInfo;
+	private JTextArea descriptionArea;
 	private int lastKeyboardCol;
 	private boolean keyPressed;
-	private static final int OTHER_COL_BASE_SIZE = 15;
 
 	public StudentPanel(StudentListInfo studentListInfo, int dividerLocation) {
+		this.studentListInfo = studentListInfo;
 		this.otherComments = studentListInfo.getNotesCommentsMap();
 		this.currentGrader = studentListInfo.getUserName();
 		this.notesAndCommentsMap = studentListInfo.getNotesCommentsMap().get(currentGrader);
 
 		lastKeyboardCol = -1;
 		keyPressed = false;
-		defaultValueWidth = OTHER_COL_BASE_SIZE;
 		studentModel = new StudentListModel(studentListInfo);
-		studentTable = new JTable(studentModel) {
+		studentTable = new JTable(studentModel);
+		/*
+		{
 			private static final long serialVersionUID = 1L;
 
 			// Implement table header tool tips.
@@ -103,6 +105,7 @@ public class StudentPanel extends JPanel{
 				};
 			}
 		};
+		*/
 		studentTable.setAutoCreateRowSorter(false);
 		studentTable.setCellSelectionEnabled(true);
 		studentTable.getTableHeader().setReorderingAllowed(false);
@@ -138,7 +141,10 @@ public class StudentPanel extends JPanel{
 		setLayout(new BorderLayout());
 		add(splitPane, BorderLayout.CENTER);
 
-		// studentList.setRowHeight(25);
+		descriptionArea = new JTextArea();
+		descriptionArea.setEditable(false);
+		descriptionArea.setWrapStyleWord(true);
+		descriptionArea.setLineWrap(true);
 		notesAndCommentsTextArea.put(currentGrader, new JTextArea());
 		addListeners(studentListInfo);
 		resizeColumns();
@@ -220,29 +226,13 @@ public class StudentPanel extends JPanel{
 								notesTitle.setTitle(DEFAULT_NOTES_HEADER + ": " + studentInfo.getFirstName() + " "
 										+ studentInfo.getName());
 							}
-							addCommentAreas(studentId);
-							for (int tab = 0; tab < commentTabs.getTabCount(); tab++) {
-								String graderName = commentTabs.getTitleAt(tab);
-								int notesApppendIndex = graderName.indexOf(NOTES_APPEND);
-								if (notesApppendIndex != -1) {
-									graderName = graderName.substring(0, notesApppendIndex);
-									Map<String, String> commentMap = otherComments.get(graderName);
-									if (commentMap != null) {
-										JTextArea commentArea = notesAndCommentsTextArea.get(graderName);
-										if (studentId != null && commentMap.containsKey(studentId)) {
-											commentArea.setText(commentMap.get(studentId));
-										} else {
-											commentArea.setText("");
-										}
-									}
-								}
-							}
+							setGraderNotesData(studentId);
 
 							currentStudent = studentId;
 						} else {
 							notesTitle.setTitle(DEFAULT_NOTES_HEADER);
 							currentStudent = null;
-							addCommentAreas(null);
+							setGraderNotesData(null);
 						}
 						
 						commentPane.repaint();
@@ -321,13 +311,11 @@ public class StudentPanel extends JPanel{
 							minCol = lastKeyboardCol;
 							maxCol = lastKeyboardCol;
 						}
-						String tip = studentListInfo.getColumnTip(minCol);
-						if (tip == null) {
-							tip = "";
+						String description = studentListInfo.getColumnTip(minCol);
+						if (description == null) {
+							description = "";
 						}
-
-						ListenerCoordinator.fire(SetInfoLabelListener.class,
-								SetInfoLabelListener.LabelTypes.RUBRIC_INFO, tip);						
+						descriptionArea.setText(description);
 						if (minCol < StudentListInfo.COMPILER_COLUMN) {
 							studentTable.setColumnSelectionInterval(0, studentTable.getColumnCount() - 1);
 						} else {
@@ -406,33 +394,62 @@ public class StudentPanel extends JPanel{
 		return splitPane.getDividerLocation();
 	}
 
-	private void addCommentAreas(String studentId) {
+	private void addCommentAreas() {
 		commentTabs.removeAll();
+		
 		Rubric associatedRubric = (Rubric)ListenerCoordinator.runQuery(GetCurrentRubricQuery.class);
-		rubricEntryPointBreakdown.setAssociatedEntry(associatedRubric);
-		if (rubricEntryPointBreakdown.getRowCount() != 0) {
-			commentTabs.addTab("Partial Credit", new JScrollPane(rubricEntryPointBreakdown));
+		if (associatedRubric == null) {
+			return;
 		}
-		if (studentId != null) {
-			addCommentArea(currentGrader, true);
-			for (String key : otherComments.keySet()) {
-				if (key.equalsIgnoreCase(currentGrader) == false) {
-					addCommentArea(key, false);
+		rubricEntryPointBreakdown.setAssociatedEntry(associatedRubric);
+		if (associatedRubric.getPointBreakdown() != null) {
+			commentTabs.addTab("Point Breakdown", new JScrollPane(rubricEntryPointBreakdown));
+		}
+
+		if (associatedRubric != null) {
+			JScrollPane descriptionPane = new JScrollPane(descriptionArea);
+			descriptionPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+			commentTabs.addTab("Description", descriptionPane);
+			if (currentGrader != null) {
+				addGraderCommentArea(currentGrader, true);
+				for (String key : otherComments.keySet()) {
+					if (key.equalsIgnoreCase(currentGrader) == false) {
+						addGraderCommentArea(key, false);
+					}
 				}
 			}
 		}
+		
 	}
 
-	private void addCommentArea(String grader, boolean editable) {
+	private void addGraderCommentArea(String grader, boolean editable) {
 		JTextArea commentArea = notesAndCommentsTextArea.get(grader);
 		if (commentArea == null) {
 			commentArea = new JTextArea();
 			notesAndCommentsTextArea.put(grader, commentArea);
 		}
-
 		commentArea.setEditable(editable);
 		commentTabs.addTab(grader + NOTES_APPEND, new JScrollPane(commentArea));
-
+	}
+	
+	
+	private void setGraderNotesData(String studentId) {
+		for (int tab = 0; tab < commentTabs.getTabCount(); tab++) {
+			String graderName = commentTabs.getTitleAt(tab);
+			int notesApppendIndex = graderName.indexOf(NOTES_APPEND);
+			if (notesApppendIndex != -1) {
+				graderName = graderName.substring(0, notesApppendIndex);
+				Map<String, String> commentMap = otherComments.get(graderName);
+				if (commentMap != null) {
+					JTextArea commentArea = notesAndCommentsTextArea.get(graderName);
+					if (studentId != null && commentMap.containsKey(studentId)) {
+						commentArea.setText(commentMap.get(studentId));
+					} else {
+						commentArea.setText("");
+					}
+				}
+			}
+		}
 	}
 
 	private void resizeColumns() {
@@ -588,8 +605,7 @@ public class StudentPanel extends JPanel{
 
 			@Override
 			public void run() {
-				studentModel.fireTableDataChanged();
-				addCommentAreas(currentStudent);
+				studentModel.fireTableDataChanged();				
 			}
 		});
 		//resizeColumns();
@@ -604,6 +620,7 @@ public class StudentPanel extends JPanel{
 				setHeaderRenderer();
 				revalidate();
 				resizeColumns();
+				addCommentAreas();
 			}
 		});
 	}

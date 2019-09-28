@@ -60,7 +60,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private static Semaphore pauseSemaphore = new Semaphore(1);
 	private JTextArea currentInputHistory;
 	private String currentID;
-	private List<JTextArea> currentSourceTextAreas;
+	private List<JTextArea> currentSourceTextAreas;	
 
 
 	public ConsoleAndSourcePanel() {
@@ -240,14 +240,14 @@ public class ConsoleAndSourcePanel extends JPanel {
 		consoleInput.setText("");
 		consoleInput.setMinimumSize(new Dimension(20, 25));
 		consoleInput.setPreferredSize(new Dimension(20, 25));
-		consoleInput.setComponentPopupMenu(popupInput);
+		consoleInput.setComponentPopupMenu(popupInput);	
 
 
 		JPanel ioPanel = new JPanel();
 		ioPanel.setLayout(new BorderLayout());
 		JPanel inputWrapper = new JPanel();
 		inputWrapper.setLayout(new BorderLayout());
-		;
+		
 		inputWrapper.setBorder(BorderFactory.createTitledBorder("Console Input"));		
 		inputWrapper.add(consoleInput);
 
@@ -256,7 +256,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 
 		inputHistorWrapperPanel = new JPanel();
 		inputHistorWrapperPanel.setLayout(new BorderLayout());
-		;
+		
 		inputHistorWrapperPanel.setBorder(BorderFactory.createTitledBorder("Input History"));
 
 
@@ -328,6 +328,19 @@ public class ConsoleAndSourcePanel extends JPanel {
 						rubricTabbedPane.removeAll();
 						rubricPanels.clear();
 						if (rubric != null) {
+							List<FileData> referenceSourceArea = rubric.getReferenceSource();
+							if (referenceSourceArea != null && referenceSourceArea.size() > 0) {
+								JTabbedPane referenceSourceTabs = new JTabbedPane();
+								rubricTabbedPane.addTab("Reference Source", referenceSourceTabs);
+								for (FileData file : referenceSourceArea) {
+									JTextArea goldSource = new JTextArea();
+									goldSource.setComponentPopupMenu(popupDisplays);
+									goldSource.setEditable(false);
+									goldSource.setText(file.getFileContents());
+									referenceSourceTabs.addTab(file.getName(), new JScrollPane(goldSource));
+								}
+							}
+
 							List<String> tabNames = rubric.getRubricTabs();					
 							for (String rubricName : tabNames) {
 								SplitOutErrPanel rubricPanel = new SplitOutErrPanel();

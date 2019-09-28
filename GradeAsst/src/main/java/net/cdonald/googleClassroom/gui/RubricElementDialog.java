@@ -52,15 +52,14 @@ import net.cdonald.googleClassroom.model.RubricEntry;
 
 public class RubricElementDialog extends JDialog implements RubricElementListener {
 	private static final long serialVersionUID = -5580080426150572162L;
-	private JTable entriesTable;
-	private RubricElementTableModel entriesModel;	
+	private RubricEntriesTable entriesTable;	
 	private Rubric rubricToModify;	
 
 	private JPanel defaultPanel;
 	private int priorSelectedIndex;
 	private List<JButton> buttons;
-	private List<JButton> goldSourceEnabledButtons;
-	private JButton goldenSourceButton;
+	private List<JButton> referenceSourceEnabledButtons;
+	private JButton referenceSourceButton;
 	private JButton cancelButton;
 	private StudentWorkCompiler compiler;
 	private JPanel automationPanel;
@@ -71,7 +70,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	public void modifyRubric(Rubric rubric) {
 		this.rubricToModify = new Rubric(rubric);
 		ListenerCoordinator.fire(SetRubricListener.class, this.rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
-		entriesModel.setRubricToModify(rubricToModify);
+		entriesTable.setAssociatedEntry(rubricToModify);
 		rubricToModify.setInModifiedState(true);
 		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
 			if (card.isActive()) {
@@ -80,7 +79,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			card.rubricSet();
 		}
 
-		possiblyLoadGoldenSource();
+		possiblyLoadReferenceSource();
 		setVisible(true);
 		
 	}
@@ -93,21 +92,15 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		cardInterfaces = new HashMap<RubricEntry.AutomationTypes, RubricEntryDialogCardInterface>();
 		buttons = new ArrayList<JButton>();		
 		priorSelectedIndex = -1;		
-		entriesModel = new RubricElementTableModel();
-		entriesTable = new JTable(entriesModel);		
-		entriesTable.setDefaultRenderer(RubricEntry.AutomationTypes.class, new RubricElementRenderer(this));
-		entriesTable.setDefaultEditor(RubricEntry.AutomationTypes.class, new RubricElementEditor());
-		entriesTable.setRowHeight(20);
-		entriesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		entriesTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+
 		
 		buttons = new ArrayList<JButton>();
-		goldSourceEnabledButtons = new ArrayList<JButton>();
+		referenceSourceEnabledButtons = new ArrayList<JButton>();
 		JButton okButton = newButton("OK", false);
 		JButton saveButton = newButton("Save", false);
 		JButton deleteButton = newButton("Delete Row", false);
-		goldenSourceButton = newButton("Load Gold Source", false);
-		goldenSourceButton.setToolTipText("Load the source file(s) representing code that passes 100% of the rubrics");
+		referenceSourceButton = newButton("Load Ref. Src", false);
+		referenceSourceButton.setToolTipText("Load the source file(s) representing code that passes 100% of the rubrics");
 
 		JButton testButton = newButton("Test Run", true);
 		
@@ -124,7 +117,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		buttonsPanel.add(okButton);		
 		buttonsPanel.add(saveButton);
 		buttonsPanel.add(deleteButton);
-		buttonsPanel.add(goldenSourceButton);
+		buttonsPanel.add(referenceSourceButton);
 		buttonsPanel.add(testButton);
 		buttonsPanel.add(cancelButton);
 
@@ -132,6 +125,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 
 
 		constantPanel.add(buttonsPanel, BorderLayout.NORTH);
+		entriesTable = new RubricEntriesTable(this);
 
 		defaultPanel = new JPanel();
 		// cards = new JPanel(new CardLayout());
@@ -163,10 +157,10 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		
 		ListSelectionModel selectionModel = entriesTable.getSelectionModel();
 		
-		goldenSourceButton.addActionListener(new ActionListener() {
+		referenceSourceButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				loadGoldSource();
+				loadreferenceSource();
 			}
 		});
 		
@@ -207,7 +201,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 				int selectedIndex = selectionModel.getMinSelectionIndex();
 				if (selectedIndex != -1) {
 					rubricToModify.removeEntry(selectedIndex);
-					entriesModel.fireTableDataChanged();
+					entriesTable.fireTableDataChanged();
 				}
 			}
 		});
@@ -228,9 +222,9 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			public void valueChanged(ListSelectionEvent e) {
 				int selectedIndex = selectionModel.getMinSelectionIndex();
 				if (selectedIndex != -1 && priorSelectedIndex != selectedIndex) {
-					for (int i = 0; i < entriesModel.getColumnCount(); i++) {
-						if (entriesModel.getColumnClass(i) == RubricEntry.AutomationTypes.class) {
-							typeSelected((RubricEntry.AutomationTypes)entriesModel.getValueAt(selectedIndex, i), true);
+					for (int i = 0; i < entriesTable.getColumnCount(); i++) {
+						if (entriesTable.getColumnClass(i) == RubricEntry.AutomationTypes.class) {
+							typeSelected((RubricEntry.AutomationTypes)entriesTable.getValueAt(selectedIndex, i), true);
 							break;
 						}
 					}
@@ -245,7 +239,6 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			}
 		});
 
-		createPopupMenu(selectionModel);
 		pack();
 	}
 
@@ -274,7 +267,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		return buttonsPanel;
 	}
 	
-	public JButton newButton(String name, boolean requiresGoldSource) {
+	public JButton newButton(String name, boolean requiresreferenceSource) {
 		JButton button = new JButton(name);		
 		Dimension former = null;
 		if (buttons.size() > 0) {
@@ -289,64 +282,15 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		else if (former != null){			
 			button.setPreferredSize(former);
 		}
-		if (requiresGoldSource) {
-			goldSourceEnabledButtons.add(button);
+		if (requiresreferenceSource) {
+			referenceSourceEnabledButtons.add(button);
 		}
 		buttons.add(button);
 		return button;
 	}
 	
 	
-	private void createPopupMenu(ListSelectionModel selectionModel) {
-		JPopupMenu rightClickPopup = new JPopupMenu();
-		JMenuItem moveUpItem = new JMenuItem("Move Up");
-		JMenuItem moveDownItem = new JMenuItem("Move Down");
-		JMenuItem insertAbove = new JMenuItem("Add Entry Above");
-		JMenuItem insertBelow = new JMenuItem("Add Entry Below");
-		rightClickPopup.add(moveUpItem);		
-		rightClickPopup.add(moveDownItem);
-		rightClickPopup.add(insertAbove);
-		rightClickPopup.add(insertBelow);
-		
-		moveUpItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				int selectedIndex = selectionModel.getMinSelectionIndex();
-				rubricToModify.swapEntries(selectedIndex, selectedIndex -1);
-				entriesModel.fireTableDataChanged();
-			}			
-		});
-		moveDownItem.addActionListener(new ActionListener() {
 
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				int selectedIndex = selectionModel.getMinSelectionIndex();
-				rubricToModify.swapEntries(selectedIndex, selectedIndex + 1);
-				entriesModel.fireTableDataChanged();
-			}			
-		});
-		insertAbove.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				int selectedIndex = selectionModel.getMinSelectionIndex();
-				rubricToModify.addNewEntry(selectedIndex);
-				entriesModel.fireTableDataChanged();
-			}			
-		});
-		insertBelow.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				int selectedIndex = selectionModel.getMinSelectionIndex();
-				rubricToModify.addNewEntry(selectedIndex + 1);
-				entriesModel.fireTableDataChanged();
-			}			
-		});
-
-		entriesTable.setComponentPopupMenu(rightClickPopup);
-		
-
-	}
-	
 
 
 	@Override
@@ -361,11 +305,11 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 				entry.setAutomationType(automationType);
 			}
 			if ((entry.getAutomationType().ordinal() > RubricEntry.AutomationTypes.COMPILES.ordinal()) &&
-					(rubricToModify.getGoldenSource() == null || rubricToModify.getGoldenSource().size() == 0)) {
+					(rubricToModify.getReferenceSource() == null || rubricToModify.getReferenceSource().size() == 0)) {
 				entry.setAutomationType(RubricEntry.AutomationTypes.NONE);
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {					
-						JOptionPane.showMessageDialog(null, "Before this automation type can be selected, golden source must be loaded.", "Golden Source Missing",
+						JOptionPane.showMessageDialog(null, "Before this automation type can be selected, reference source must be loaded.", "Reference Source Missing",
 								JOptionPane.ERROR_MESSAGE);
 					}
 				});
@@ -435,11 +379,11 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	}
 
 
-	public void loadGoldSource() {
+	public void loadreferenceSource() {
 		List<FileData> allFiles = loadSource();
 		if (allFiles != null & allFiles.size() != 0) {
-			rubricToModify.setGoldenSource(allFiles);
-			possiblyLoadGoldenSource();
+			rubricToModify.setReferenceSource(allFiles);
+			possiblyLoadReferenceSource();
 		}	
 	}
 	
@@ -461,7 +405,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 				
 				try {
 					String text = new String(Files.readAllBytes(path));
-					FileData fileData = new FileData(fileName, text, FileData.GOLDEN_SOURCE_ID, null);
+					FileData fileData = new FileData(fileName, text, FileData.REFERENCE_SOURCE_ID, null);
 					allFiles.add(fileData);
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
@@ -472,15 +416,15 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		return allFiles;
 	}
 	
-	private void possiblyLoadGoldenSource() {
-		boolean enable = (rubricToModify != null && rubricToModify.getGoldenSource() != null && rubricToModify.getGoldenSource().size() != 0);
-		for (JButton button : goldSourceEnabledButtons) {			
+	private void possiblyLoadReferenceSource() {
+		boolean enable = (rubricToModify != null && rubricToModify.getReferenceSource() != null && rubricToModify.getReferenceSource().size() != 0);
+		for (JButton button : referenceSourceEnabledButtons) {			
 				button.setEnabled(enable);			
 		}
 		if (enable) {
 			ListenerCoordinator.fire(SetRubricListener.class, rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
 			for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
-				card.goldenSourceEnabled(enable);
+				card.referenceSourceEnabled(enable);
 			}
 		}
 	}

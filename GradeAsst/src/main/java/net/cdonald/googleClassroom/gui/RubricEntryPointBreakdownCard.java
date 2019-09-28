@@ -40,7 +40,7 @@ public class RubricEntryPointBreakdownCard implements RubricEntryDialogCardInter
 	}
 
 	@Override
-	public void goldenSourceEnabled(boolean enable) {
+	public void referenceSourceEnabled(boolean enable) {
 	}
 	
 	@Override

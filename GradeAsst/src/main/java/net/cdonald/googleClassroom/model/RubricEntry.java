@@ -380,7 +380,7 @@ public class RubricEntry {
 		}
 	}
 
-	public boolean requiresGoldenFile() {
+	public boolean requiresReferenceFile() {
 		if (automationType != null && automationType.ordinal() > AutomationTypes.COMPILES.ordinal()) {
 			return true;
 		}

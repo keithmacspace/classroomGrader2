@@ -11,7 +11,7 @@ import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 
 public class FileData extends ClassroomData {
-	public static final String GOLDEN_SOURCE_ID = "GoldenSource";
+	public static final String REFERENCE_SOURCE_ID = "ReferenceSource";
 	private String fileContents;
 	private String packageName;
 	private String className;
@@ -74,7 +74,7 @@ public class FileData extends ClassroomData {
 					}
 				}					
 			}
-			fileData = new FileData(fileName, text, GOLDEN_SOURCE_ID, null); 
+			fileData = new FileData(fileName, text, REFERENCE_SOURCE_ID, null); 
 		}
 		return fileData;
 	}

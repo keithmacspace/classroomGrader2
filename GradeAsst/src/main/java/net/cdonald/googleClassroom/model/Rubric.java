@@ -58,8 +58,8 @@ public class Rubric implements SheetAccessorInterface {
 	private List<RubricEntry> entries;
 	private boolean inModifiedState;
 	private Map<String, FileData> fileDataMap;
-	private List<FileData> goldenSource;
-	private static final String GOLDEN_SOURCE_LABEL = "Golden Source Files";
+	private List<FileData> referenceSource;
+	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";
 	private List<PointBreakdown> pointBreakdown;
 
 	public static ModifiableState getModifiableState() {
@@ -75,7 +75,7 @@ public class Rubric implements SheetAccessorInterface {
 		this.sheetData = sheetData;
 		entries = new ArrayList<RubricEntry>();
 		fileDataMap = new HashMap<String, FileData>();
-		goldenSource = new ArrayList<FileData>();
+		referenceSource = new ArrayList<FileData>();
 
 	}
 
@@ -90,8 +90,8 @@ public class Rubric implements SheetAccessorInterface {
 		for (String key : other.fileDataMap.keySet()) {
 			fileDataMap.put(key, new FileData(other.fileDataMap.get(key)));
 		}
-		goldenSource = new ArrayList<FileData>();
-		setGoldenSource(other.goldenSource);
+		referenceSource = new ArrayList<FileData>();
+		setReferenceSource(other.referenceSource);
 		if (other.pointBreakdown != null) {
 			for (PointBreakdown points : other.pointBreakdown) {
 				addPointBreakdown(points);
@@ -105,22 +105,22 @@ public class Rubric implements SheetAccessorInterface {
 		inModifiedState = true;
 		entries = new ArrayList<RubricEntry>();
 		fileDataMap = new HashMap<String, FileData>();
-		goldenSource = new ArrayList<FileData>();
+		referenceSource = new ArrayList<FileData>();
 	}
 
 	public Map<String, FileData> getFileDataMap() {
 		return fileDataMap;
 	}
 
-	public List<FileData> getGoldenSource() {
-		return goldenSource;
+	public List<FileData> getReferenceSource() {
+		return referenceSource;
 	}
 
-	public void setGoldenSource(List<FileData> fileDataList) {
-		goldenSource.clear();
+	public void setReferenceSource(List<FileData> fileDataList) {
+		referenceSource.clear();
 		if (fileDataList != null) {
 			for (FileData fileData : fileDataList) {
-				goldenSource.add(fileData);
+				referenceSource.add(fileData);
 			}
 		}
 	}
@@ -357,12 +357,12 @@ public class Rubric implements SheetAccessorInterface {
 		}
 
 		loadPointsBreakdown(entryColumns);
-		// Finally read the golden source
-		loadGoldenSource(entryColumns);
+		// Finally read the reference source
+		loadReferenceSource(entryColumns);
 	}
 
-	private void loadGoldenSource(Map<String, List<List<Object>>> entryColumns) {
-		List<List<Object>> columns = entryColumns.get(GOLDEN_SOURCE_LABEL.toUpperCase());
+	private void loadReferenceSource(Map<String, List<List<Object>>> entryColumns) {
+		List<List<Object>> columns = entryColumns.get(REFERENCE_SOURCE_LABEL.toUpperCase());
 		if (columns == null || columns.size() == 0) {
 
 			return;
@@ -384,15 +384,15 @@ public class Rubric implements SheetAccessorInterface {
 			if (fileData == null) {
 				boolean showError = false;
 				for (RubricEntry entry : entries) {
-					if (entry.requiresGoldenFile() == true) {
+					if (entry.requiresReferenceFile() == true) {
 						showError = true;
 					}
 				}
 				if (showError) {
-					showLoadError("Golden source file " + fileName + " is missing from save data");
+					showLoadError("Reference source file " + fileName + " is missing from save data");
 				}
 			} else {
-				goldenSource.add(fileData);
+				referenceSource.add(fileData);
 			}
 		}
 	}
@@ -424,20 +424,20 @@ public class Rubric implements SheetAccessorInterface {
 			currentColumn++;
 		}
 		
-		saveGoldenSource(saveState, currentColumn);
+		saveReferenceSource(saveState, currentColumn);
 		return saveState;
 	}
 
-	private void saveGoldenSource(SaveSheetData saveState, int currentColumn) {
-		List<Object> goldenSourceNameRows = new ArrayList<Object>();
-		goldenSourceNameRows.add(GOLDEN_SOURCE_LABEL);
-		for (FileData file : goldenSource) {
-			goldenSourceNameRows.add(file.getName());
+	private void saveReferenceSource(SaveSheetData saveState, int currentColumn) {
+		List<Object> referenceSourceNameRows = new ArrayList<Object>();
+		referenceSourceNameRows.add(REFERENCE_SOURCE_LABEL);
+		for (FileData file : referenceSource) {
+			referenceSourceNameRows.add(file.getName());
 		}
 
-		saveState.writeFullColumn(goldenSourceNameRows, currentColumn);
+		saveState.writeFullColumn(referenceSourceNameRows, currentColumn);
 		currentColumn++;
-		for (FileData file : goldenSource) {
+		for (FileData file : referenceSource) {
 			saveState.writeFullColumn(file.fillSaveData(), currentColumn);
 			currentColumn++;
 		}

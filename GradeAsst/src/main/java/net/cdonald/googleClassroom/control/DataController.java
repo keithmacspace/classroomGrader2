@@ -444,18 +444,19 @@ public class DataController implements StudentListInfo {
 		rubricBeingEditedStudent = null;
 		if (rubricBeingEdited != null) {
 			currentRubric = rubricBeingEdited;
-			rubricBeingEditedStudent = new StudentData("Source", "Golden", FileData.GOLDEN_SOURCE_ID, null);
-			studentWorkCompiler.clearStudentFiles(FileData.GOLDEN_SOURCE_ID);			
-			for (FileData fileData : rubricBeingEdited.getGoldenSource()) {
-				fileData.setId(FileData.GOLDEN_SOURCE_ID);
+			rubricBeingEditedStudent = new StudentData("Source", "Reference", FileData.REFERENCE_SOURCE_ID, null);
+			studentWorkCompiler.clearStudentFiles(FileData.REFERENCE_SOURCE_ID);			
+			for (FileData fileData : rubricBeingEdited.getReferenceSource()) {
+				fileData.setId(FileData.REFERENCE_SOURCE_ID);
 				studentWorkCompiler.addFile(fileData);
 			}
-			studentWorkCompiler.compile(FileData.GOLDEN_SOURCE_ID);
+			studentWorkCompiler.compile(FileData.REFERENCE_SOURCE_ID);
 			ListenerCoordinator.fire(AddRubricTabsListener.class, rubricBeingEdited);					
 		}
 		else {
 			currentRubric = primaryRubric;
 		}
+		updateListener.structureChanged();
 	}
 
 
@@ -723,7 +724,7 @@ public class DataController implements StudentListInfo {
 
 	public String getStudentId(int row) {
 		if (rubricBeingEdited != null) {
-				return FileData.GOLDEN_SOURCE_ID;
+				return FileData.REFERENCE_SOURCE_ID;
 		}
 		return studentData.get(row).getId();		
 	}
@@ -767,7 +768,7 @@ public class DataController implements StudentListInfo {
 	public List<String> getAllIDs() {
 		List<String> ids = new ArrayList<String>();
 		if (rubricBeingEdited != null) {
-			ids.add(FileData.GOLDEN_SOURCE_ID);
+			ids.add(FileData.REFERENCE_SOURCE_ID);
 		}
 		else {
 			for (StudentData student : studentData) {

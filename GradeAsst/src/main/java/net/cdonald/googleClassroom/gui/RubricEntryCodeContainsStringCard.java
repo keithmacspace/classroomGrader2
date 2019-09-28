@@ -47,8 +47,8 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 		this.dialogOwner = dialogOwner;
 		isActive = false;
 		explanation = new JLabel("<html>Method to search is the one that should contain the string(s) of interest.<br/>"
-				+ "  The method must be part of your golden source. "
-				+ "By default, all of the method names in the golden source are possible strings to find.<br/>"
+				+ "  The method must be part of your reference source. "
+				+ "By default, all of the method names in the reference source are possible strings to find.<br/>"
 				+ "This automaton will only search for method calls and field use i.e. Math.pow or Math.PI.<br/>"
 				+ "It will not search for things like variable declarations, local variable use, comments etc.<br/>"
 				+ "<br/>Test by selecting the \"Test Run\" button."
@@ -178,7 +178,7 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 	}
 
 
-	public void goldenSourceEnabled(boolean enable) {
+	public void referenceSourceEnabled(boolean enable) {
 		fillMethodCombo();
 
 	}
@@ -252,9 +252,9 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 	private void fillMethodCombo() {
 		enableTableListener = false;
 		Map<String, Class<?>> classMap = null;
-		List<FileData> goldenSource = dialogOwner.getRubricToModify().getGoldenSource();
+		List<FileData> referenceSource = dialogOwner.getRubricToModify().getReferenceSource();
 		try {
-			classMap = dialogOwner.getCompiler().compile(goldenSource);
+			classMap = dialogOwner.getCompiler().compile(referenceSource);
 		} catch (Exception e) {
 
 		}
@@ -269,7 +269,7 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 			for (Class<?> classContainer : classMap.values()) {				
 				for (Method method : classContainer.getMethods()) {
 					String methodName = method.getName();
-					for (FileData file : goldenSource) {
+					for (FileData file : referenceSource) {
 						if (file.getFileContents().indexOf(methodName) != -1) {						
 							boolean inserted = false;
 							for (int i = 0; i < sortedNames.size(); i++) {
@@ -298,7 +298,7 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 			valuesToSearchForModel.addRow(new Object[] {null, ""});
 		}
 		else {
-			JOptionPane.showMessageDialog(null, "Golden source does not compile.  You can view the compiler message in the source window of the main screen.", "Golden Source Does Not Compile",
+			JOptionPane.showMessageDialog(null, "Reference source does not compile.  You can view the compiler message in the source window of the main screen.", "Reference Source Does Not Compile",
 					JOptionPane.ERROR_MESSAGE);
 		}
 		enableTableListener = true;
