@@ -7,20 +7,29 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
+
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.RubricEntry;
@@ -35,7 +44,7 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
  */
 public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardInterface{
 	private JPanel codeContainsPanel;
-	private JComboBox<Method> methodToSearchCombo;
+	private JComboBox<String> methodToSearchCombo;
 	private JTable valuesToSearchForTable;
 	private DefaultTableModel valuesToSearchForModel;
 	private JLabel explanation;
@@ -43,8 +52,10 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 	private boolean enableTableListener;
 	private RubricEntryMethodContains associatedAutomation;
 	private RubricElementDialog dialogOwner;
+	private Map<String, Set<String> > methodMap;
 	public RubricEntryCodeContainsStringCard(RubricElementDialog dialogOwner) {
 		this.dialogOwner = dialogOwner;
+		methodMap = new HashMap<String, Set<String>>(); 
 		isActive = false;
 		explanation = new JLabel("<html>Method to search is the one that should contain the string(s) of interest.<br/>"
 				+ "  The method must be part of your reference source. "
@@ -62,12 +73,6 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 		//codeContainsPanel.add(explanation, BorderLayout.NORTH);
 		codeContainsPanel.add(namePanel, BorderLayout.CENTER);
 
-		methodToSearchCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				//methodSelected();
-			}
-		});
 		dialogOwner.addAutomationCard(codeContainsPanel, RubricEntry.AutomationTypes.CODE_CONTAINS_METHOD);
 	}
 
@@ -99,24 +104,22 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 				super.setValueAt(aValue, rowIndex, columnIndex);
 
 				if (associatedAutomation != null) {
-
 					if (columnIndex == 0) {
-						List<String> valuesToFind = new ArrayList<String>();
 						for (int row = 0; row < valuesToSearchForModel.getRowCount(); row++) {
 							Object valueAtCol = valuesToSearchForModel.getValueAt(row, 0);
 							if (valueAtCol instanceof Boolean) {
 								Boolean booleanVal = (Boolean)valueAtCol;
-
-								if (booleanVal != null && booleanVal) {
-									String name = (String)valuesToSearchForModel.getValueAt(row,  1);
-									if (name != null && name.length() > 1) {
-										valuesToFind.add(name);
+								String name = (String)valuesToSearchForModel.getValueAt(row,  1);
+								if (booleanVal != null && name != null && name.length() > 0) {
+									String methodName = (String)methodToSearchCombo.getSelectedItem();
+									if (methodName != null) {
+										associatedAutomation.changeStringsToFind(methodName, name, booleanVal);
 									}
+									updateDescription();
 								}
+
 							}
 						}
-
-						associatedAutomation.setStringsToFind(valuesToFind);
 					}
 					else if (columnIndex == 1) {
 						setValueAt(Boolean.TRUE, rowIndex, 0);
@@ -139,31 +142,19 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 		valuesToSearchForTable = new JTable(valuesToSearchForModel);
 
 
-		valuesToSearchForModel.addTableModelListener(new TableModelListener() {
-			@Override
-			public void tableChanged(TableModelEvent e) {
-				if (enableTableListener == true && e.getType() == TableModelEvent.UPDATE) {
-					if ((e.getLastRow() + 1) == valuesToSearchForModel.getRowCount()) {
-						valuesToSearchForModel.addRow(new Object[] {Boolean.FALSE, ""});
-					}
-				}
-			}
-		});
 		valuesToSearchForTable.getColumnModel().getColumn(0).setMaxWidth(10);
 		valuesToSearchForTable.setModel(valuesToSearchForModel);
 		valuesToSearchForTable.setEnabled(false);
 		namePanel.setBorder(BorderFactory.createEmptyBorder(SPACE, 0, SPACE, 0));
-		methodToSearchCombo = new JComboBox<Method>();
+		methodToSearchCombo = new JComboBox<String>();
 		methodToSearchCombo.setEditable(false);	
-		methodToSearchCombo.setRenderer(new MethodComboRenderer());
+		//methodToSearchCombo.setRenderer(new MethodComboRenderer());
 		methodToSearchCombo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Method methodToSearch = (Method)methodToSearchCombo.getSelectedItem();
+				String methodToSearch = (String)methodToSearchCombo.getSelectedItem();
 				valuesToSearchForTable.setEnabled(methodToSearch != null);
-				if (associatedAutomation != null) {
-					associatedAutomation.setMethodToSearch(methodToSearch);
-				}
+				fillMethodToFindTable(methodToSearch);
 			}
 		});
 
@@ -176,11 +167,20 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 		return namePanel;
 
 	}
+	
+	private void updateDescription() {
+		if (associatedAutomation != null) {
+			String description = "Automated. Checks the following:\n";
+			description += associatedAutomation.createCompleteCallList();
+			description += "If the automation does not set a grade, see the rubric tab for more info.";
+			dialogOwner.getCurrentEntry().setDescription(description);
+			dialogOwner.fireTableDataChanged();
+		}			
+	}
 
 
 	public void referenceSourceEnabled(boolean enable) {
 		fillMethodCombo();
-
 	}
 
 
@@ -194,32 +194,8 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 			valuesToSearchForModel.setValueAt(Boolean.FALSE, row, 0);
 		}
 		methodToSearchCombo.setSelectedIndex(0);
+		fillMethodCombo();
 		RubricEntryMethodContains automation = (RubricEntryMethodContains)dialogOwner.getCurrentEntry().getAutomation();
-		if (automation != null) {				
-			for (String strToFind : automation.getStringsToFind()) {
-				boolean found = false;
-				for (int row = 0; row < valuesToSearchForModel.getRowCount(); row++) {
-					String name = (String)valuesToSearchForModel.getValueAt(row,  1);
-					if (name != null && name.equals(strToFind)) {
-						valuesToSearchForModel.setValueAt(Boolean.TRUE, row, 0);
-						found = true;
-						break;
-					}
-				}
-				if (found == false) {
-					valuesToSearchForModel.insertRow(valuesToSearchForModel.getRowCount() - 1, new Object[]{Boolean.TRUE, strToFind});
-				}
-			}
-			valuesToSearchForTable.setEnabled(false);
-			for (int i = 1; i < methodToSearchCombo.getItemCount(); i++) {
-				Method method = methodToSearchCombo.getItemAt(i);
-				if (method.toString().equals(automation.getFullMethodSignature())) {
-					methodToSearchCombo.setSelectedIndex(i);
-					valuesToSearchForTable.setEnabled(true);
-					break;
-				}
-			}
-		}
 		associatedAutomation = automation;
 		enableTableListener = true;
 
@@ -251,57 +227,55 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 
 	private void fillMethodCombo() {
 		enableTableListener = false;
-		Map<String, Class<?>> classMap = null;
-		List<FileData> referenceSource = dialogOwner.getRubricToModify().getReferenceSource();
-		try {
-			classMap = dialogOwner.getCompiler().compile(referenceSource);
-		} catch (Exception e) {
 
-		}
+		methodMap.clear();
 		methodToSearchCombo.removeAllItems();
 		methodToSearchCombo.addItem(null);
+		
+		
+
+		List<FileData> referenceSource = dialogOwner.getRubricToModify().getReferenceSource();
+		methodMap = RubricEntryMethodContains.createCallMap(referenceSource);
+
+		List<String> sortedNames = new ArrayList<String>();		
+		for (String methodName : methodMap.keySet()) {
+			boolean inserted = false;
+			for (int i = 0; i < sortedNames.size(); i++) {
+				if (methodName.compareTo(sortedNames.get(i)) < 0) {
+					inserted = true;
+					sortedNames.add(i, methodName);
+
+					break;
+				}
+			}
+			if (inserted == false) {
+				sortedNames.add(methodName);
+
+			}
+		}
+		for (String methodName : sortedNames) {					
+			methodToSearchCombo.addItem(methodName);
+		}
+		enableTableListener = true;
+	}
+	
+	private void fillMethodToFindTable(String methodSelected) {
+		enableTableListener = false;
 		while (valuesToSearchForModel.getRowCount() > 0) {
 			valuesToSearchForModel.removeRow(0);
 		}
-		List<String> sortedNames = new ArrayList<String>();
-		List<Method> sortedMethods = new ArrayList<Method>();
-		if (classMap != null) {
-			for (Class<?> classContainer : classMap.values()) {				
-				for (Method method : classContainer.getMethods()) {
-					String methodName = method.getName();
-					for (FileData file : referenceSource) {
-						if (file.getFileContents().indexOf(methodName) != -1) {						
-							boolean inserted = false;
-							for (int i = 0; i < sortedNames.size(); i++) {
-								if (methodName.compareTo(sortedNames.get(i)) < 0) {
-									inserted = true;
-									sortedNames.add(i, methodName);
-									sortedMethods.add(i, method);
-									break;
-								}
-							}
-							if (inserted == false) {
-								sortedNames.add(methodName);
-								sortedMethods.add(method);
-							}
-						}
-					}
-				}
-				for (Method method : sortedMethods) {					
-					String methodName = method.getName();
-					methodToSearchCombo.addItem(method);
-					if (methodName != "main") {
-						valuesToSearchForModel.addRow(new Object[] {Boolean.FALSE, methodName});
-					}
-				}
+		if (methodSelected != null ) {
+			Set<String> calls = methodMap.get(methodSelected);
+			for (String call : calls) {
+				Boolean value = Boolean.FALSE;
+				if (associatedAutomation != null) {
+					value = associatedAutomation.requiresCall(methodSelected, call);
+				}				
+				valuesToSearchForModel.addRow(new Object[] {value, call});
 			}
-			valuesToSearchForModel.addRow(new Object[] {null, ""});
-		}
-		else {
-			JOptionPane.showMessageDialog(null, "Reference source does not compile.  You can view the compiler message in the source window of the main screen.", "Reference Source Does Not Compile",
-					JOptionPane.ERROR_MESSAGE);
 		}
 		enableTableListener = true;
+
 	}
 
 
@@ -327,6 +301,8 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 
 			return this;
 		}
-
 	}
+	
+
+
 }

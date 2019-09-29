@@ -525,17 +525,17 @@ public class StudentPanel extends JPanel{
 	}
 
 	private void resizeColumn(int columnNum, Object value) {
-		//SwingUtilities.invokeLater(new Runnable() {
-			//public void run() {
-				TableColumnModel jTableColumnModel = studentTable.getColumnModel();
+		TableColumnModel jTableColumnModel = studentTable.getColumnModel();
+		if (jTableColumnModel != null) {
+			if (columnNum < jTableColumnModel.getColumnCount()) {
 				TableColumn column = jTableColumnModel.getColumn(columnNum);
 				if (column != null) {
 					int preferredWidth = getColumnWidth(columnNum, studentTable);
 					preferredWidth += studentTable.getIntercellSpacing().width;
 					column.setPreferredWidth(preferredWidth);
 				}
-			//}
-		//});
+			}
+		}
 	}
 	
 	

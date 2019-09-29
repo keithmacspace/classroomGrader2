@@ -193,6 +193,12 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	}
 	
 	String replaceClassNames(List<FileData> studentFiles, List<FileData> rubricFiles, String studentId) {
+		String errorPre = "Not all the methods/class constants found that are needed by this test code.\n";
+		errorPre += "If the student just mis-spelled a name, fix it in the student source tab.\n";
+		errorPre += "If they are completely missing a method, in the student source tab,\n";
+		errorPre += "create an empty method that returns the correct type, but a bad value, like -10000000 in their file.\n\n";
+		errorPre += "After you make the changes right-click and recompile, then re-run the rubric.\n";
+		errorPre += "All code changes are local, and will not be saved back to google classroom\n\n";
 		String error = "";
 		try {
 			
@@ -224,7 +230,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		if (error.length() == 0) {
 			return null;
 		}
-		return error;
+		return errorPre + error;
 	}
 	
 	private static class ClassNameModifier extends ModifierVisitor<Void>  {

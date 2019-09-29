@@ -14,7 +14,6 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -26,30 +25,37 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
+import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntry.HeadingNames;
+import net.cdonald.googleClassroom.model.StudentData;
 
 public class RubricEntriesTable extends JTable {
 	private RubricEntryTableModel rubricEntryTableModel;
-	private Rubric associatedRubric;	
-	private static final String enterActionKey = "Enter_Action";
+	private Rubric associatedRubric;
+	private int defaultHeight;
+
+
 	public RubricEntriesTable(RubricElementListener listener) {
 		super();
-
 
 		setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		rubricEntryTableModel = new RubricEntryTableModel();
 		setModel(rubricEntryTableModel);
-		JLabel val = new JLabel("Val");
+
 		for (int i = 0; i < rubricEntryTableModel.getColumnCount(); i++) {
 			TableColumn column = getColumnModel().getColumn(i);
-			switch(rubricEntryTableModel.getColumnHeading(i)) {
+			switch (rubricEntryTableModel.getColumnHeading(i)) {
 			case AUTOMATION_TYPE:
 				column.setCellEditor(new RubricAutomationEditor());
 				column.setCellRenderer(new AutomationCellRenderer(listener));
@@ -64,32 +70,54 @@ public class RubricEntriesTable extends JTable {
 			case VALUE:
 				break;
 			default:
-				break;			
+				break;
 			}
 		}
 		setComponentPopupMenu(createPopupMenu());
 		setSelectionBackground(getSelectionBackground());
 		setCellSelectionEnabled(true);
+		addListeners();
+		defaultHeight = -1;
 		new ExcelAdapter(this, true);
 	}
 	
-	public void fireTableDataChanged() {
-		rubricEntryTableModel.fireTableDataChanged();
+	private void addListeners() {
+		getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				if (e.getValueIsAdjusting()) {
+					return;
+				}
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						ListSelectionModel lsm = (ListSelectionModel) e.getSource();		
+						if (lsm.isSelectionEmpty() == false) {
+							int selectedRow = lsm.getMinSelectionIndex();
+							updateRowHeights(selectedRow);
+						}
+
+					}
+				});
+			}
+		});
 	}
-	
+
+	public void fireTableDataChanged() {
+		rubricEntryTableModel.fireTableDataChanged();		
+	}
+
 	public int getColumnCount() {
 		return rubricEntryTableModel.getColumnCount();
 	}
-	
+
 	public Class<?> getColumnClass(int columnIndex) {
 		return rubricEntryTableModel.getColumnClass(columnIndex);
 	}
-	
+
 	public Object getValueAt(int row, int column) {
 		return rubricEntryTableModel.getValueAt(row, column);
 	}
-	
-	
 
 	private JPopupMenu createPopupMenu() {
 		ListSelectionModel selectionModel = getSelectionModel();
@@ -99,7 +127,7 @@ public class RubricEntriesTable extends JTable {
 		JMenuItem insertAbove = new JMenuItem("Add Entry Above");
 		JMenuItem insertBelow = new JMenuItem("Add Entry Below");
 		JMenuItem delete = new JMenuItem("Delete");
-		rightClickPopup.add(moveUpItem);		
+		rightClickPopup.add(moveUpItem);
 		rightClickPopup.add(moveDownItem);
 		rightClickPopup.add(insertAbove);
 		rightClickPopup.add(insertBelow);
@@ -115,7 +143,7 @@ public class RubricEntriesTable extends JTable {
 					rubricEntryTableModel.fireTableDataChanged();
 				}
 
-			}			
+			}
 		});
 
 		moveUpItem.addActionListener(new ActionListener() {
@@ -124,11 +152,11 @@ public class RubricEntriesTable extends JTable {
 				stopEditing();
 				if (associatedRubric != null) {
 					int selectedIndex = selectionModel.getMinSelectionIndex();
-					associatedRubric.swapEntries(selectedIndex, selectedIndex -1);
+					associatedRubric.swapEntries(selectedIndex, selectedIndex - 1);
 					rubricEntryTableModel.fireTableDataChanged();
 				}
 
-			}			
+			}
 		});
 		moveDownItem.addActionListener(new ActionListener() {
 
@@ -140,7 +168,7 @@ public class RubricEntriesTable extends JTable {
 					associatedRubric.swapEntries(selectedIndex, selectedIndex + 1);
 					rubricEntryTableModel.fireTableDataChanged();
 				}
-			}			
+			}
 		});
 		insertAbove.addActionListener(new ActionListener() {
 			@Override
@@ -151,7 +179,7 @@ public class RubricEntriesTable extends JTable {
 					associatedRubric.addNewEntry(selectedIndex);
 					rubricEntryTableModel.fireTableDataChanged();
 				}
-			}			
+			}
 		});
 		insertBelow.addActionListener(new ActionListener() {
 			@Override
@@ -162,25 +190,19 @@ public class RubricEntriesTable extends JTable {
 					associatedRubric.addNewEntry(selectedIndex + 1);
 					rubricEntryTableModel.fireTableDataChanged();
 				}
-			}			
+			}
 		});
 		return rightClickPopup;
 	}
-
 
 	public Rubric getAssociatedRubric() {
 		return associatedRubric;
 	}
 
 	public void setAssociatedEntry(Rubric associatedEntry) {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				associatedRubric = associatedEntry;
-				rubricEntryTableModel.fireTableDataChanged();		
-				updateRowHeights();				
-			}
-		});
-
+		associatedRubric = associatedEntry;
+		fireTableDataChanged();
+		updateRowHeights(-1);
 	}
 
 	public void stopEditing() {
@@ -191,46 +213,44 @@ public class RubricEntriesTable extends JTable {
 
 	}
 
-	public void updateRowHeights()
-	{
-		for (int row = 0; row < getRowCount(); row++)
-		{
-			int rowHeight = getRowHeight();
-			for (int column = 0; column < getColumnCount(); column++)
-			{
-				Component comp = prepareRenderer(getCellRenderer(row, column), row, column);
-				rowHeight = Math.max(rowHeight, comp.getPreferredSize().height);
-			}
-			setRowHeight(row, rowHeight);
-		}
-	}
-
-	private void updateRowHeight(JTextArea area) {
+	public void updateRowHeights(int selectedRow) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				int selectedIndex = selectionModel.getMinSelectionIndex();
-				if (selectedIndex >= 0 && selectedIndex <= getRowCount()) {
-					
-					int newRowHeight = area.getPreferredSize().height;
-					Graphics g = area.getGraphics();
-					if (g != null) {
-						FontMetrics f = g.getFontMetrics(area.getFont());
-						if (f != null) {
-							int maxHeight = 5 * f.getHeight();
-							if (newRowHeight > maxHeight) {
-								newRowHeight = maxHeight;
-							}
-						}
+				int automationCol = 0;
+				int descriptionCol = 0;
+				for (int column = 0; column < getColumnCount(); column++) {
+					if (rubricEntryTableModel.getColumnHeading(column) == RubricEntry.HeadingNames.DESCRIPTION )  {
+						descriptionCol = column;
 					}
-
-					if (newRowHeight > getRowHeight()) {
-						setRowHeight(selectedIndex, newRowHeight);
+					if (rubricEntryTableModel.getColumnHeading(column) == RubricEntry.HeadingNames.AUTOMATION_TYPE) {
+						automationCol = column;
 					}
-
 				}
+
+				if (defaultHeight == -1) {
+					Component comp = prepareRenderer(getCellRenderer(0, automationCol), 0, automationCol);				            
+					defaultHeight = comp.getPreferredSize().height;
+				}
+				for (int row = 0; row < getRowCount(); row++) {
+					int rowHeight = defaultHeight;
+					if (row == selectedRow) {
+						Component comp = prepareRenderer(getCellRenderer(row, descriptionCol), row, descriptionCol);
+						rowHeight = Math.max(rowHeight, comp.getPreferredSize().height);
+					}
+
+					setRowHeight(row, rowHeight);
+				}						
+				
 			}
+
 		});
 	}
+	
+	public void updateRowHeight() {
+		updateRowHeights(this.getSelectedRow());
+	}
+
+
 
 	private class RubricAutomationEditor extends AbstractCellEditor implements TableCellEditor {
 
@@ -247,7 +267,8 @@ public class RubricEntriesTable extends JTable {
 		}
 
 		@Override
-		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int colum) {
+		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
+				int colum) {
 			combo.setSelectedItem(value);
 
 			combo.addActionListener(new ActionListener() {
@@ -267,7 +288,6 @@ public class RubricEntriesTable extends JTable {
 			return true;
 		}
 
-
 	}
 
 	private class AutomationCellRenderer implements TableCellRenderer {
@@ -285,7 +305,7 @@ public class RubricEntriesTable extends JTable {
 				int row, int column) {
 			boolean valid = true;
 			if (rubricElementListener != null) {
-				valid = rubricElementListener.typeSelected((RubricEntry.AutomationTypes)value, isSelected);
+				valid = rubricElementListener.typeSelected((RubricEntry.AutomationTypes) value, isSelected);
 			}
 			if (valid == true) {
 				automationCombo.setSelectedItem(value);
@@ -294,9 +314,6 @@ public class RubricEntriesTable extends JTable {
 		}
 
 	}
-
-
-
 
 	private class DescriptionAreaEditor extends DefaultCellEditor {
 
@@ -312,19 +329,18 @@ public class RubricEntriesTable extends JTable {
 			scrollPane = new JScrollPane(textarea);
 			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-
 			textarea.setComponentPopupMenu(createPopupMenu());
 			textarea.getDocument().addDocumentListener(new DocumentListener() {
 
 				@Override
 				public void insertUpdate(DocumentEvent e) {
-					updateRowHeight(textarea);
+					updateRowHeight();
 
 				}
 
 				@Override
 				public void removeUpdate(DocumentEvent e) {
-					updateRowHeight(textarea);
+					updateRowHeight();
 
 				}
 
@@ -347,9 +363,10 @@ public class RubricEntriesTable extends JTable {
 			return textarea.getText();
 		}
 	}
-	
+
 	class DescriptionCellRenderer extends JScrollPane implements TableCellRenderer {
 		JTextArea textArea;
+
 		public DescriptionCellRenderer() {
 			textArea = new JTextArea();
 			textArea.setLineWrap(true);
@@ -359,8 +376,8 @@ public class RubricEntriesTable extends JTable {
 			setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		}
 
-		public Component getTableCellRendererComponent(JTable table, Object value,
-				boolean isSelected, boolean hasFocus, int row, int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			if (isSelected) {
 				setForeground(table.getSelectionForeground());
 				setBackground(table.getSelectionBackground());
@@ -377,22 +394,22 @@ public class RubricEntriesTable extends JTable {
 
 	private class RubricEntryTableModel extends DefaultTableModel {
 		private static final long serialVersionUID = 3651730049445837992L;
+
 		public RubricEntryTableModel() {
 
 		}
 
 		public RubricEntry.HeadingNames getColumnHeading(int column) {
-			column++;			
-			return RubricEntry.HeadingNames.values()[column];	
+			column++;
+			return RubricEntry.HeadingNames.values()[column];
 		}
 
 		@Override
 		public int getRowCount() {
 			int min = 3;
-			if (associatedRubric != null && associatedRubric.getPointBreakdown() != null) {
-				min = Math.max(min, associatedRubric.getPointBreakdown().size());
+			if (associatedRubric != null) {
+				min = Math.max(min, associatedRubric.getEntryCount());
 				min++;
-
 			}
 			return min;
 		}
@@ -407,24 +424,24 @@ public class RubricEntriesTable extends JTable {
 
 			if (getColumnHeading(columnIndex) == HeadingNames.AUTOMATION_TYPE) {
 				return RubricEntry.AutomationTypes.class;
-			}	
+			}
 			return String.class;
 
 		}
 
 		@Override
 		public String getColumnName(int column) {
-			switch(getColumnHeading(column)) {
+			switch (getColumnHeading(column)) {
 			case AUTOMATION_TYPE:
 				return "Automation Type";
 			case DESCRIPTION:
-				return "Description";		
+				return "Description";
 			case NAME:
 				return "Name";
 			case VALUE:
 				return "Val";
 			default:
-				break;				
+				break;
 			}
 			return "";
 		}
@@ -433,13 +450,17 @@ public class RubricEntriesTable extends JTable {
 		public int getColumnCount() {
 			return HeadingNames.values().length - 1; // We don't want ID
 		}
+
 		@Override
 		public Object getValueAt(int row, int column) {
 			if (associatedRubric == null) {
 				return null;
 			}
 			RubricEntry entry = associatedRubric.getEntry(row);
-			Object retVal = entry.getTableValue(getColumnHeading(column));
+			Object retVal = null;
+			if (entry != null) {
+				retVal = entry.getTableValue(getColumnHeading(column));
+			}
 			return retVal;
 		}
 
@@ -449,22 +470,24 @@ public class RubricEntriesTable extends JTable {
 				return;
 			}
 			RubricEntry entry = associatedRubric.getEntry(row);
-			entry.setTableValue(getColumnHeading(column), aValue);
-			if (row == getRowCount() - 1) {
-				this.fireTableStructureChanged();
+			if (entry != null) {
+				entry.setTableValue(getColumnHeading(column), aValue);
+				if (row == getRowCount() - 1) {
+					//associatedRubric.addNewEntry();
+				}
 			}
 		}
 
 		@Override
-		public void fireTableDataChanged() {			
+		public void fireTableDataChanged() {
 			super.fireTableDataChanged();
-			updateRowHeights();
+
 		}
 
 		@Override
 		public void fireTableStructureChanged() {
 			super.fireTableStructureChanged();
-			updateRowHeights();
+
 		}
 
 	}
@@ -475,8 +498,14 @@ public class RubricEntriesTable extends JTable {
 				JFrame a = new JFrame();
 				JPanel x = new JPanel();
 				x.setLayout(new BorderLayout());
+				Rubric rubric = new Rubric();
+				rubric.addNewEntry(0);
+				RubricEntry e = rubric.getEntry(0);
+				e.setDescription("This is a longish description which should require that we wrap.  I have to figure out what is causing my components to get so messed up");
+				
+				
 				RubricEntriesTable t = new RubricEntriesTable(null);
-				t.setAssociatedEntry(new Rubric());
+				t.setAssociatedEntry(rubric);
 				x.add(new JScrollPane(t));
 				a.add(x);
 				a.pack();

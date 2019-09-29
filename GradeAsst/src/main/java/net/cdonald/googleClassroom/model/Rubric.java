@@ -250,6 +250,7 @@ public class Rubric implements SheetAccessorInterface {
 			} else {
 				return entries.size();
 			}
+
 		}
 		return 0;
 	}

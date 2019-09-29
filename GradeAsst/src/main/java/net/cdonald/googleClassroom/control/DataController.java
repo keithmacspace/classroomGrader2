@@ -411,6 +411,15 @@ public class DataController implements StudentListInfo {
 	public Rubric getRubric() {
 		return currentRubric;
 	}
+	
+	public void setTestFile(List<FileData> files) {
+		rubricBeingEditedStudent = new StudentData("Source", "Reference", FileData.REFERENCE_SOURCE_ID, null);
+		for (FileData fileData : files) {
+			fileData.setId(FileData.REFERENCE_SOURCE_ID);
+			studentWorkCompiler.addFile(fileData);
+		}
+		studentWorkCompiler.compile(FileData.REFERENCE_SOURCE_ID);		
+	}
 
 	private void setRubric(Rubric rubric, RubricType rubricType) {
 		boolean isAlreadyLoaded = (rubric != null && primaryRubric != null && primaryRubric.getName().contentEquals(rubric.getName()));		
@@ -444,13 +453,7 @@ public class DataController implements StudentListInfo {
 		rubricBeingEditedStudent = null;
 		if (rubricBeingEdited != null) {
 			currentRubric = rubricBeingEdited;
-			rubricBeingEditedStudent = new StudentData("Source", "Reference", FileData.REFERENCE_SOURCE_ID, null);
-			studentWorkCompiler.clearStudentFiles(FileData.REFERENCE_SOURCE_ID);			
-			for (FileData fileData : rubricBeingEdited.getReferenceSource()) {
-				fileData.setId(FileData.REFERENCE_SOURCE_ID);
-				studentWorkCompiler.addFile(fileData);
-			}
-			studentWorkCompiler.compile(FileData.REFERENCE_SOURCE_ID);
+			setTestFile(rubricBeingEdited.getReferenceSource());
 			ListenerCoordinator.fire(AddRubricTabsListener.class, rubricBeingEdited);					
 		}
 		else {
@@ -602,7 +605,7 @@ public class DataController implements StudentListInfo {
 	
 	@Override
 	public int getRowCount() {
-		if (rubricBeingEdited != null) {
+		if (rubricBeingEdited != null || rubricBeingEditedStudent != null) {
 			return 1;
 		}
 		return studentData.size();
@@ -632,7 +635,7 @@ public class DataController implements StudentListInfo {
 			}
 			break;
 		case FIRST_NAME_COLUMN:
-			if (rubricBeingEdited != null) {
+			if (rubricBeingEditedStudent != null) {
 				retVal = "Source";
 			}
 			else {
@@ -723,7 +726,7 @@ public class DataController implements StudentListInfo {
 	}
 
 	public String getStudentId(int row) {
-		if (rubricBeingEdited != null) {
+		if (rubricBeingEdited != null || rubricBeingEditedStudent != null) {
 				return FileData.REFERENCE_SOURCE_ID;
 		}
 		return studentData.get(row).getId();		
@@ -809,7 +812,7 @@ public class DataController implements StudentListInfo {
 	
 	public boolean syncGrades() {
 		boolean worked = true;
-		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null) {
+		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null && rubricBeingEditedStudent == null) {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);

@@ -1,15 +1,19 @@
 package net.cdonald.googleClassroom.model;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -17,65 +21,64 @@ import net.cdonald.googleClassroom.listenerCoordinator.SetInfoLabelListener;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class RubricEntryMethodContains extends RubricAutomation {
-	String fullMethodSignature;
-	String methodNameToSearch;
-	String methodReturnTypeToSearch;
-	List<String> stringsToFind;
-	private enum ColumnNames {FULL_METHOD_SIGNATURE, METHOD_NAME_TO_SEARCH, METHOD_RETURN_TYPE_TO_SEARCH, STRINGS_TO_FIND};
+	Map<String, Set<String> > stringsToFind;
+
+	
 	
 	public RubricEntryMethodContains() {
-		fullMethodSignature = null;
-		methodNameToSearch = null;
-		methodReturnTypeToSearch = null;
-		stringsToFind = new ArrayList<String>();
+		stringsToFind = new HashMap<String, Set<String> >();
+
 	}
 	
 	public RubricEntryMethodContains(RubricEntryMethodContains other) {
-		fullMethodSignature = other.fullMethodSignature;
-		methodNameToSearch = other.methodNameToSearch;
-		methodReturnTypeToSearch = other.methodReturnTypeToSearch;
-		stringsToFind = new ArrayList<String>();
+		stringsToFind = new HashMap<String, Set<String> >();
 		setStringsToFind(other.stringsToFind);
 	}
 	
 
-	public String getFullMethodSignature() {
-		return fullMethodSignature;
-	}
 
-	public void setMethodToSearch(Method method) {
-		fullMethodSignature = method.toString();
-		methodNameToSearch = method.getName();
-		methodReturnTypeToSearch = method.getReturnType().toString();
-	}
-	
-	
-	/**
-	 * @return the methodNameToSearch
-	 */
-	public String getMethodNameToSearch() {
-		return methodNameToSearch;
-	}
-
-	/**
-	 * @return the methodReturnTypeToSearch
-	 */
-	public String getMethodReturnTypeToSearch() {
-		return methodReturnTypeToSearch;
-	}
-
-	public void setStringsToFind(List<String> stringsToFind) {
+	public void setStringsToFind(Map<String, Set<String> > otherStringsToFind) {
 		this.stringsToFind.clear();
-		for (String str : stringsToFind) {
-			this.stringsToFind.add(str);
+		for (String method : otherStringsToFind.keySet()) {
+			
+			Set<String> otherListToFind = otherStringsToFind.get(method);
+			Set<String> listToFind = new HashSet<String>();
+			for (String findIt : otherListToFind) {
+				listToFind.add(findIt);
+			}
+			this.stringsToFind.put(method, listToFind);
 		}
+	}
+	
+	public void changeStringsToFind(String methodName, String stringToCall, boolean add) {
+		if (stringsToFind.containsKey(methodName) == false) {
+			stringsToFind.put(methodName, new HashSet<String>());
+		}
+		Set<String> calls = stringsToFind.get(methodName);
+		if (add == true) {
+			calls.add(stringToCall);
+		}
+		else {
+			calls.remove(stringToCall);
+		}
+		if (calls.size() == 0) {
+			stringsToFind.remove(methodName);
+		}
+	}
+	
+	public Boolean requiresCall(String methodName, String call) {
+		Set<String> calls = stringsToFind.get(methodName);
+		if (calls == null) {
+			return Boolean.FALSE;
+		}
+		return (Boolean)calls.contains(call);		
 	}
 	
 
 	/**
 	 * @return the stringsToFind
 	 */
-	public List<String> getStringsToFind() {
+	public Map<String, Set<String> > getStringsToFind() {
 		return stringsToFind;
 	}
 
@@ -95,11 +98,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 		if (message == null) {
 			return null;
 		}
-		String messageStr = "Checking " + studentName + "'s source: " + methodNameToSearch + " for ";
-		for (String str : stringsToFind) {
-			messageStr += str;
-		}
-		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, messageStr);
+		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running: " + owner.getName());
 				
 		consoleData.runStarted(studentId, getOwnerName());
 
@@ -113,123 +112,148 @@ public class RubricEntryMethodContains extends RubricAutomation {
 	private Double runAutomationWrapped(String studentName, String studentId, StudentWorkCompiler compiler,
 			ConsoleData consoleData) {
 	
-		if (stringsToFind == null || stringsToFind.size() == 0 || methodNameToSearch == null || methodReturnTypeToSearch == null) {
+		if (stringsToFind == null || stringsToFind.size() == 0) {
 			System.err.println(getOwnerName() + " is not fully defined ");
 			return null;
 		}
+		
+		
 
-
-		Set<String> foundSet = new HashSet<String>();
 		List<FileData> studentFiles = compiler.getSourceCode(studentId);
-		MethodVisitor methodVisitor = new MethodVisitor();
-		for (FileData studentFile : studentFiles) {
-			methodVisitor.visit(studentFile.getCompilationUnit(), foundSet);
-		}
-		if (methodVisitor.getMethodContents() == null) {
-			System.err.println("Could not find method: " + methodNameToSearch);
-			return null;
-		}
-		else {
-
-			for (String strToFind : stringsToFind) {
-				if (foundSet.contains(strToFind) == false) {
-					addOutput(studentId, "Could not find string: " + strToFind);
-				}
-				else {
-					addOutput(studentId, "Found: " + strToFind);
-				}
-			}
-			addOutput(studentId, "\nMethod contents searched:");
-			addOutput(studentId, methodVisitor.getMethodContents());
-		}		
-		return (Double)((double)foundSet.size()/(double)stringsToFind.size());
-	}
-	private class CheckForUseVisitor extends VoidVisitorAdapter<Set<String>> {
-		//stringsToFind = new ArrayList<String>();
-		public void searchExpression(String scope, String name, Set<String> foundSet) {			
-			for (String str : stringsToFind) {
-				int scopeIndex = str.lastIndexOf('.');
-				String findScope = null;
-				String searchName = str;
-				
-				if (scopeIndex != -1) {
-					findScope = str.substring(0, scopeIndex);
-					searchName = str.substring(scopeIndex + 1);
-				}				
-				if (searchName.equals(name)) {
-					if ((findScope == null) || (scope.indexOf(findScope) != -1)) {
-						foundSet.add(str);
+		Map<String, Set<String> > methodMap = createCallMap(studentFiles);
+		int numFound = 0;
+		int numExpected = 0;
+		boolean allMethodsFound = true;
+		
+		for (String methodName : stringsToFind.keySet()) {
+			if (methodMap.containsKey(methodName)) {
+				Set<String> findCalls = stringsToFind.get(methodName);
+				Set<String> actualCalls = methodMap.get(methodName);
+				for (String call : findCalls) {
+					numExpected++;
+					if (actualCalls.contains(call)) {
+						numFound++;
+						addOutput(studentId, "Pass: " + methodName + " calls: " + call);
 					}
-					
-				}
+					else {
+						addOutput(studentId, "Fail: " + methodName + " does not call: " + call);
+					}
+				}				
+			}
+			else {
+				addOutput(studentId, "Could not find method: " + methodName);
+				allMethodsFound = false;
 			}
 		}
+		if (allMethodsFound == false) {
+			addOutput(studentId, "\nNot all methods found, cannot automatically assign a grade.");
+			addOutput(studentId, "You can modify the student source to correct a mis-spelled method.");
+			addOutput(studentId, "If the method is missing, you can also add the missing method, make it an empty method, and rerun to get the rest of the points calculated.");
+			addOutput(studentId, "Once you change the source, Right-click and recompile, then re-run the rubric.");
+			addOutput(studentId, "All code changes are local, and will not be saved back to google classroom\n");
+			addOutput(studentId, "Here is the complete list of what this rubric looked for:");
+			addOutput(studentId, createCompleteCallList());
+			addOutput(studentId, "\nHere is a complete list of all the methods in the student file and what they call:");
+			addOutput(studentId, createCompleteCallList(methodMap));
+			return null;			
+		}
+		return (Double)((double)numFound/(double)numExpected);
+	}
+	
+	public String createCompleteCallList() {
+		return createCompleteCallList(stringsToFind);
+	}
+	private  String createCompleteCallList(Map<String, Set<String>> methodMap) {
+		String output = "";
+		for (String methodName : methodMap.keySet()) {
+			output += methodName + " calls: ";
+			output += createCommaSeparatedList(methodMap.get(methodName));
+			output += "\n";
+		}
+		return output;
+	}
+	
+	private String createCommaSeparatedList(Set<String> calls) {
+		String output = "";	
+		if (calls != null) {
+
+			int printCount = 1;
+			for (String call : calls) {
+				output += " " + call;
+				if (printCount < calls.size()) {
+					output += ", ";
+				}
+				printCount++;
+			}
+		}
+		return output;
+	}
+	
+	public static Map<String, Set<String> > createCallMap(List<FileData> fileData) {
+		Map<String, Set<String> > methodMap = new HashMap<String, Set<String> >();
+		
+		MethodVisitor methodVisitor = new MethodVisitor();
+		for (FileData studentFile : fileData) {
+			methodVisitor.visit(studentFile.getCompilationUnit(), methodMap);
+		}
+		return methodMap;
+
+	}
+	private static class CheckForUseVisitor extends VoidVisitorAdapter<Set<String>> {
 		
 		@Override
 		public void visit(FieldAccessExpr n, Set<String> foundSet) {
 			// TODO Auto-generated method stub
 			super.visit(n, foundSet);
-			searchExpression(n.getScope().toString(), n.getNameAsString(), foundSet);
+			Expression scope = n.getScope();
+			foundSet.add(scope.toString() + "." + n.getNameAsString());
 		}
 
 		@Override
 		public void visit(MethodCallExpr n, Set<String> foundSet) {
 			// TODO Auto-generated method stub
 			super.visit(n, foundSet);
-			String scope = "";
-			if (n.getScope().isPresent()) {
-				scope = n.getScope().get().toString();
+			
+			Optional<Expression> scope = n.getScope();
+			String name = "";
+			if (scope.isPresent()) {
+				name = scope.get().toString() + ".";
 			}
-			searchExpression(scope, n.getNameAsString(), foundSet);
+			name += n.getNameAsString();
+			foundSet.add(name);
 		}
 
 	}
-	private class MethodVisitor extends VoidVisitorAdapter<Set<String>> {
-		private String methodContents;
+	private static class MethodVisitor extends VoidVisitorAdapter<Map<String, Set<String> >> {
 		@Override
-		public void visit(MethodDeclaration n, Set<String> foundSet) {
+		public void visit(MethodDeclaration n, Map<String, Set<String> > methodContents) {
 			// TODO Auto-generated method stub
-			super.visit(n, foundSet);
+			super.visit(n, methodContents);
 			if (n.getBody().isPresent() && n.getBody().get().isBlockStmt()) {
-				if (n.getNameAsString().equals(methodNameToSearch) && n.getTypeAsString().equals(methodReturnTypeToSearch)) {
-					methodContents = n.getDeclarationAsString() + n.getBody().get().toString();
-					CheckForUseVisitor mup = new CheckForUseVisitor();
-					n.accept(mup, foundSet);
-				}			
+				String methodName = n.getDeclarationAsString(false, false, false);
+				CheckForUseVisitor mup = new CheckForUseVisitor();
+				Set<String> callsList = new HashSet<String>();
+				n.accept(mup, callsList);
+				methodContents.put(methodName, callsList);
+							
 			}
 		}
-		
-		public String getMethodContents() {
-			return methodContents;
-		}
-		
+
 	}
 
 	@Override
 	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData,
 			Map<String, List<Object>> fileData) {
-		List<Object> labels = new ArrayList<Object>();
-		List<Object> content = new ArrayList<Object>();
-		labels.add(entryName);
-		content.add(entryName);
-		labels.add(ColumnNames.FULL_METHOD_SIGNATURE.toString());
-		labels.add(ColumnNames.METHOD_NAME_TO_SEARCH.toString());
-		labels.add(ColumnNames.METHOD_RETURN_TYPE_TO_SEARCH.toString());
-		labels.add(ColumnNames.STRINGS_TO_FIND.toString());
-		content.add(fullMethodSignature);
-		content.add(methodNameToSearch);
-		content.add(methodReturnTypeToSearch);
-
-		String searchStrings = "";
-		for (int i = 0; i < stringsToFind.size() - 1; i++) {
-			searchStrings += stringsToFind.get(i) + ",";
+		List<Object> methodNames = new ArrayList<Object>();
+		List<Object> callsToFind = new ArrayList<Object>();
+		methodNames.add(entryName);
+		callsToFind.add(entryName);
+		for (String methodName : stringsToFind.keySet()) {
+			methodNames.add(methodName);
+			callsToFind.add(createCommaSeparatedList(stringsToFind.get(methodName)));
 		}
-		if (stringsToFind.size() != 0) {
-			searchStrings += stringsToFind.get(stringsToFind.size() - 1);
-		}
-		content.add(searchStrings);
-		columnData.add(labels);
-		columnData.add(content);
+		columnData.add(methodNames);
+		columnData.add(callsToFind);
 
 	}
 
@@ -243,33 +267,25 @@ public class RubricEntryMethodContains extends RubricAutomation {
 		}
 		else {			
 			stringsToFind.clear();
-
-			List<Object> labelRow = columns.get(0);
-			methodNameToSearch = null;
-			methodReturnTypeToSearch = null;
-			fullMethodSignature = null;
-			for (int row = 0; row < labelRow.size(); row++) {
-				String label = (String)labelRow.get(row);
-				if (label != null) { 
-					if (label.equalsIgnoreCase(ColumnNames.METHOD_NAME_TO_SEARCH.toString())) {
-						methodNameToSearch = (String)columns.get(1).get(row);
+			List<Object> methodColumn = columns.get(0);
+			List<Object> callsColumn = columns.get(1);
+			for (int  i = 1; i < methodColumn.size(); i++) {
+				String methodName = methodColumn.get(i).toString();
+				if (methodName != null && methodName.length() > 0) {
+					if (callsColumn.size() > i) {
+						Set<String> callsToFind = new HashSet<String>();
+						List<String> callList = SimpleUtils.breakUpCommaList(callsColumn.get(i));
+						for (String call : callList) {
+							callsToFind.add(call);
+						}
+						stringsToFind.put(methodName, callsToFind);
 					}
-					else if (label.equalsIgnoreCase(ColumnNames.METHOD_RETURN_TYPE_TO_SEARCH.toString())) {
-						methodReturnTypeToSearch = (String)columns.get(1).get(row);
-					}
-					else if (label.equalsIgnoreCase(ColumnNames.STRINGS_TO_FIND.toString())) {
-						stringsToFind = SimpleUtils.breakUpCommaList(columns.get(1).get(row));
-					}
-					else if (label.equalsIgnoreCase(ColumnNames.FULL_METHOD_SIGNATURE.toString())) {
-						fullMethodSignature = (String)columns.get(1).get(row);
+					else {
+						Rubric.showLoadError("Missing list of calls to find for " + methodName);
 					}
 				}
 			}
-			if (methodNameToSearch == null || fullMethodSignature == null || methodReturnTypeToSearch == null || stringsToFind == null || stringsToFind.size() == 0) {
-				Rubric.showLoadError("Missing data for entry: \"" + entryName + "\"");
-			}
 		}
-
 
 	}
 

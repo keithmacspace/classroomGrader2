@@ -27,14 +27,15 @@ import net.cdonald.googleClassroom.googleClassroomInterface.CourseFetcher;
 import net.cdonald.googleClassroom.listenerCoordinator.ChooseGradeFileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ExitFiredListener;
+import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchGuidedSetupListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchNewRubricDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricEditorDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricFileDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.LoadTestFileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryListener;
 import net.cdonald.googleClassroom.listenerCoordinator.PublishGradesListener;
-import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricFileValidListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.RunJPLAGListener;
@@ -96,6 +97,8 @@ public class MainMenu extends JMenuBar {
 		publishGrades.setToolTipText("Pushes grades back up to google classroom for the students to see");
 		publishSelectedGrades = new JMenuItem("Publish Selected Grades");
 		publishSelectedGrades.setToolTipText("Pushes grades of the selected students back up to google classroom");
+		JMenuItem loadTestFile = new JMenuItem("Load Test File...");
+		loadTestFile.setToolTipText("Useful for testing a new rubric, load a file off of disk to run against");
 
 		syncGrades.setEnabled(false);
 		publishGrades.setEnabled(false);
@@ -109,6 +112,8 @@ public class MainMenu extends JMenuBar {
 		file.addSeparator();
 		file.add(publishGrades);
 		file.add(publishSelectedGrades);
+		file.addSeparator();
+		file.add(loadTestFile);
 		file.addSeparator();
 		file.add(exit);
 		file.setMnemonic(KeyEvent.VK_F);
@@ -163,6 +168,13 @@ public class MainMenu extends JMenuBar {
 
 			}
 		});
+		
+		loadTestFile.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ListenerCoordinator.fire(LoadTestFileListener.class);				
+			}			
+		});
 		exit.addActionListener(new ActionListener() {
 
 			@Override
@@ -183,17 +195,17 @@ public class MainMenu extends JMenuBar {
 	}
 
 	private void fillEditMenu() {
-//		JMenuItem removeInstrumentation = new JMenuItem("Remove All Instrumentation");
-//		edit.add(removeInstrumentation);
-//		removeInstrumentation.addActionListener(new ActionListener() {
-//
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				ListenerCoordinator.fire(RemoveInstrumentationListener.class, null, null);
-//			}
-//
-//		});
-//		add(edit);
+		JMenuItem removeInstrumentation = new JMenuItem("Find/Replace");
+		edit.add(removeInstrumentation);
+		removeInstrumentation.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ListenerCoordinator.fire(LaunchFindReplaceDialogListener.class);
+			}
+
+		});
+		add(edit);
 	}
 
 	private void fillRunMenu() {

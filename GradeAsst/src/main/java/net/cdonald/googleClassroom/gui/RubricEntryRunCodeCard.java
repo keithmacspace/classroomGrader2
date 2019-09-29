@@ -24,6 +24,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.text.DefaultCaret;
 
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.LoadSourceQuery;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntryRunCode;
@@ -162,6 +164,8 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 			fileToUseModel.addFile(file);
 		}			
 		fillMethodCombo();
+		fileToUseModel.fireTableDataChanged();
+		associatedEntry.setDescription("Automated.  After you run rubrics, if no value is filled in for a student, check the rubric tab for more information");
 
 	}
 
@@ -228,7 +232,7 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 	}
 	
 	private void addFile() {
-		List<FileData> allFiles = dialogOwner.loadSource();
+		List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
 		if (allFiles != null) {
 			for (FileData fileData : allFiles) {
 				if (dialogOwner.getRubricToModify().getFileDataMap().containsKey(fileData.getName()) == false) {

@@ -10,39 +10,31 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
-import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.LoadSourceQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.RunRubricSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.SaveRubricListener;
-import net.cdonald.googleClassroom.listenerCoordinator.SetFileDirListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.MyPreferences;
@@ -241,6 +233,12 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 
 		pack();
 	}
+	
+	public void fireTableDataChanged() {
+		int entryNum = entriesTable.getSelectedRow();
+		entriesTable.fireTableDataChanged();
+		entriesTable.setRowSelectionInterval(entryNum, entryNum);
+	}
 
 	public void preOKSaveTest() {
 		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {			
@@ -318,7 +316,6 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			}
 			if (validSelection) {
 				if (priorSelectedIndex != entriesTable.getSelectedRow()) {
-
 					priorSelectedIndex = entriesTable.getSelectedRow();
 					for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
 						if (card.isActive()) {
@@ -337,6 +334,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 
 					if (cardInterfaces.get(automationType) != null) {
 						if (cardInterfaces.get(automationType).isActive() == false) {
+							cardInterfaces.get(automationType).addItems();
 							c1.show(automationPanel,  entry.getAutomationType().toString());
 						}
 					}
@@ -380,41 +378,13 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 
 
 	public void loadreferenceSource() {
-		List<FileData> allFiles = loadSource();
+		List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
 		if (allFiles != null & allFiles.size() != 0) {
 			rubricToModify.setReferenceSource(allFiles);
 			possiblyLoadReferenceSource();
 		}	
 	}
 	
-	public List<FileData> loadSource() {
-		JFileChooser fileChooser = null;
-		String currentWorkingDir = (String)ListenerCoordinator.runQuery(GetFileDirQuery.class);
-		if (currentWorkingDir != null) {
-			fileChooser = new JFileChooser(currentWorkingDir);
-		} else {
-			fileChooser = new JFileChooser();
-		}
-		fileChooser.setMultiSelectionEnabled(true);
-		List<FileData> allFiles = new ArrayList<FileData>();
-		if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-			for (File file : fileChooser.getSelectedFiles()) { 
-				Path path = Paths.get(file.getAbsolutePath());
-				ListenerCoordinator.fire(SetFileDirListener.class, path.getParent().toString());
-				String fileName = path.getFileName().toString();
-				
-				try {
-					String text = new String(Files.readAllBytes(path));
-					FileData fileData = new FileData(fileName, text, FileData.REFERENCE_SOURCE_ID, null);
-					allFiles.add(fileData);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}						
-			}
-		}
-		return allFiles;
-	}
 	
 	private void possiblyLoadReferenceSource() {
 		boolean enable = (rubricToModify != null && rubricToModify.getReferenceSource() != null && rubricToModify.getReferenceSource().size() != 0);

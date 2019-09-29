@@ -1,14 +1,25 @@
 package net.cdonald.googleClassroom.model;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.swing.JFileChooser;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
+
+import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.SetFileDirListener;
 
 public class FileData extends ClassroomData {
 	public static final String REFERENCE_SOURCE_ID = "ReferenceSource";
@@ -188,8 +199,6 @@ public class FileData extends ClassroomData {
 		return false;
 	}
 	
-
-
 	
 
 	public static void main(String[] args) {

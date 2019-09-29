@@ -33,10 +33,10 @@ import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerMessageQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
-import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
@@ -401,9 +401,19 @@ public class ConsoleAndSourcePanel extends JPanel {
 				setWindowData(idToDisplay);
 			}
 		});
-		
 
-
+	}
+	
+	public JTextArea getCurrentSource() {
+		if (currentID != null) {
+			overallTabbedPane.setSelectedIndex(0);
+			int currentTab = sourceTabbedPane.getSelectedIndex();			
+			if (currentTab < currentSourceTextAreas.size()) {
+				JTextArea currentSourceArea = currentSourceTextAreas.get(currentTab);
+				return currentSourceArea;
+			}
+		}
+		return null;
 	}
 	
 	private void clearPanel(JPanel panel) {

@@ -4,12 +4,20 @@ import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -22,12 +30,16 @@ import net.cdonald.googleClassroom.listenerCoordinator.ChooseGradeFileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ExitFiredListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDebugDialogQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
+import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchGuidedSetupListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchNewRubricDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricEditorDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricFileDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.LoadSourceQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.LoadTestFileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.PublishGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
@@ -37,7 +49,9 @@ import net.cdonald.googleClassroom.listenerCoordinator.RubricFileSelectedListene
 import net.cdonald.googleClassroom.listenerCoordinator.RunRubricSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.RunSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.SaveGradesListener;
+import net.cdonald.googleClassroom.listenerCoordinator.SetFileDirListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
+import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.MyPreferences;
 import net.cdonald.googleClassroom.model.Rubric;
 
@@ -306,6 +320,15 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 			}
 		});
 		
+		ListenerCoordinator.addQueryResponder(LoadSourceQuery.class, new LoadSourceQuery() {
+			@Override
+			public List<FileData> fired() {
+				// TODO Auto-generated method stub
+				return loadSource();
+			}
+			
+		});
+		
 		ListenerCoordinator.addListener(ChooseGradeFileListener.class, new ChooseGradeFileListener() {
 			@Override
 			public void fired() {
@@ -351,7 +374,61 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 				consoleAndSourcePanel.refreshInfo();
 			}
 		});
+		
+		ListenerCoordinator.addListener(LaunchFindReplaceDialogListener.class, new LaunchFindReplaceDialogListener() {
+
+			@Override
+			public void fired() {
+				JTextArea source = consoleAndSourcePanel.getCurrentSource();
+				if (source != null) {
+					ReplaceDialog dlg = new ReplaceDialog(MainGoogleClassroomFrame.this, source);					
+				}				
+			}
+			
+		});
+		
+		ListenerCoordinator.addListener(LoadTestFileListener.class, new LoadTestFileListener() {
+			@Override
+			public void fired() {
+				List<FileData> files = loadSource();
+				if (files != null) {
+					dataController.setTestFile(files);
+					structureChanged();
+					enableRuns();
+				}
+				
+			}			
+		});
 	
+	}
+	
+	public List<FileData> loadSource() {
+		JFileChooser fileChooser = null;
+		String currentWorkingDir = (String)ListenerCoordinator.runQuery(GetFileDirQuery.class);
+		if (currentWorkingDir != null) {
+			fileChooser = new JFileChooser(currentWorkingDir);
+		} else {
+			fileChooser = new JFileChooser();
+		}
+		fileChooser.setMultiSelectionEnabled(true);
+		List<FileData> allFiles = new ArrayList<FileData>();
+		if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+			for (File file : fileChooser.getSelectedFiles()) { 
+				Path path = Paths.get(file.getAbsolutePath());
+				ListenerCoordinator.fire(SetFileDirListener.class, path.getParent().toString());
+				String fileName = path.getFileName().toString();
+				
+				try {
+					String text = new String(Files.readAllBytes(path));
+					FileData fileData = new FileData(fileName, text, FileData.REFERENCE_SOURCE_ID, null);
+					allFiles.add(fileData);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}						
+			}
+		}
+		return allFiles;
 	}
 	
 	private void saveGrades() {
