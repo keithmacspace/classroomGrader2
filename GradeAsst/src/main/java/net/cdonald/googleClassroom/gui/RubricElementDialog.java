@@ -359,6 +359,9 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		RubricEntry entry = getCurrentEntry();
 		if (entry != null) {
 			String currentDescription = entry.getDescription();
+			if (currentDescription == null) {
+				currentDescription = "";
+			}
 			if (currentDescription.indexOf(description) == -1) {
 				currentDescription += description;
 				entry.setDescription(currentDescription);
