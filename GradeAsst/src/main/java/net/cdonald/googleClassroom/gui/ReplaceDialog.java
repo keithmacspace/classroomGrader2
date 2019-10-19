@@ -1,14 +1,31 @@
 package net.cdonald.googleClassroom.gui;
-import javax.swing.*;  
-import java.awt.*;
-import java.awt.event.*;
-import java.util.regex.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.JTextComponent;  
+import javax.swing.text.JTextComponent;
+
+import net.cdonald.googleClassroom.utils.HighlightText;  
    
 public class ReplaceDialog extends JDialog implements ActionListener 
 {  
+
     //private JPanel findPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));  
     private JPanel wordPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));  
     private JPanel casePanel = new JPanel(new FlowLayout(FlowLayout.LEADING));  
@@ -30,12 +47,12 @@ public class ReplaceDialog extends JDialog implements ActionListener
     private JFrame owner;
     private JTextArea pane;
     private HashMap<Object, Action> actions;
+    private int currentLocation = 0;
        
-    public ReplaceDialog(JFrame owner, JTextArea pane)  
+    public ReplaceDialog(JFrame owner)  
     {
         super(owner, "Find & Replace", true);       
-        this.owner = owner;
-        this.pane = pane;
+        this.owner = owner;        
         initComponents();  
         //setSize(360, 135);  
         Container c = getContentPane();  
@@ -43,7 +60,11 @@ public class ReplaceDialog extends JDialog implements ActionListener
         c.add(inputs, "Center");  
         c.add(buttons, "East");  
         pack();  
-        setLocationRelativeTo(owner);  
+    }
+    
+    public void showDialog(JTextArea pane) {
+        setLocationRelativeTo(owner);
+        this.pane = pane;
         setVisible(true);
     }
      
@@ -55,87 +76,97 @@ public class ReplaceDialog extends JDialog implements ActionListener
         }  
         if(e.getSource() == find)  
         {
-            if(!word.isSelected() && !matchCase.isSelected())  
-            {
-            }  
-            else if(!word.isSelected() && matchCase.isSelected())  
-            {
-            }  
-            else if(word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(word.isSelected() && matchCase.isSelected())  
-            { 
-            }
+        	int index = findNext(currentLocation);
+        	if (index != -1) {
+        		HighlightText.moveCursorAndHighlight(pane, index, index + what.getText().length(), true);
+        	}
         }
         if(e.getSource() == findAll)  
-        { 
-           if(!word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(!word.isSelected() && matchCase.isSelected())  
-            {
-                Pattern p = Pattern.compile(what.getText());
-                Matcher m = p.matcher(pane.getText());
-                while (m.find())
-                {
-                    //select that portion of the text
-                     Action action = getActionByName(DefaultEditorKit.selectionForwardAction);
-                     action.actionPerformed(null);
-                }
-            }  
-            else if(word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(word.isSelected() && matchCase.isSelected())  
-            { 
-            }       
+        {
+        	int index = -1;
+        	pane.getHighlighter().removeAllHighlights();
+        	currentLocation = 0;
+
+        	do {
+        		index = findNext(currentLocation);
+        		if (index != -1) {
+        			HighlightText.moveCursorAndHighlight(pane, index, index + what.getText().length(), false);
+        		}
+        	}while (index != -1);
         }
         else if(e.getSource() == replace)  
         {
-           if(!word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(!word.isSelected() && matchCase.isSelected())  
-            {
-            }  
-            else if(word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(word.isSelected() && matchCase.isSelected())  
-            { 
-            }       
+        	int index = findNext(currentLocation);
+        	if (index != -1) {
+        		replaceText(index);
+        	}      
         }  
         else if(e.getSource() == replaceAll)  
         {  
-            if(!word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(!word.isSelected() && matchCase.isSelected())  
-            {  
-                String toReplace = what.getText();  
-                String replacement = with.getText();  
-                String text = pane.getText();  
-                text = text.replaceAll(toReplace, replacement);  
-                pane.setText(text);  
-            }  
-            else if(word.isSelected() && !matchCase.isSelected())  
-            {  
-            }  
-            else if(word.isSelected() && matchCase.isSelected())  
-            {  
-                String toReplace = "\\b" + what.getText() + "\\b";  
-                String replacement = with.getText();  
-                String text = pane.getText();  
-                text = text.replaceAll(toReplace, replacement);  
-                pane.setText(text);  
-            }  
+        	int index = -1;
+        	currentLocation = 0;
+        	do {
+        		index = findNext(currentLocation);
+        		if (index != -1) {
+        			replaceText(index);
+        		}
+        	}while (index != -1);
         }  
         else if(e.getSource() == close)  
         {  
-            dispose();  
+        	pane.getHighlighter().removeAllHighlights();
+            setVisible(false);  
         }  
-    }     
+    }
+    private void replaceText(int index) {
+    	int whatLen = what.getText().length();
+        String text = pane.getText();
+        String replacement = with.getText();
+    	pane.setSelectionStart(index);
+    	pane.setSelectionEnd(index + whatLen);
+    	pane.replaceSelection(replacement);
+		currentLocation = index + replacement.length();    	
+    }
+    private int findNext(int startLocation) {
+    	if (startLocation == -1) {
+    		startLocation = 0;
+    	}
+        String toFind = what.getText();
+        String text = pane.getText();
+        if (startLocation >= text.length()) {
+        	return -1;
+        }
+        String searchText = text;
+        if (!matchCase.isSelected()) {
+        	toFind = toFind.toLowerCase();
+        	searchText = text.toLowerCase();
+        }
+        int index = searchText.indexOf(toFind, startLocation);
+    	if (word.isSelected()) {
+    		while (index != -1) {
+    			boolean found = true;
+        		if (index != 0) {
+        			found = Character.isWhitespace(searchText.charAt(index - 1));        			
+        		}
+        		if (found && index + toFind.length() < searchText.length()) {
+        			found = Character.isWhitespace(searchText.charAt(index + toFind.length()));
+        		}
+        		if (found == false) {
+        			index = searchText.indexOf(toFind, index + 1);
+        		}
+        		else {
+        			break;
+        		}
+        	}
+        }
+    	if (index != -1) {
+    		currentLocation = index + 1;
+    	}
+    	else {
+    		currentLocation = 0;
+    	}
+    	return index;
+    }
      
     private void initComponents()  
     {  

@@ -400,7 +400,8 @@ public class Rubric implements SheetAccessorInterface {
 
 	@Override
 	public SaveSheetData getSheetSaveState() {
-		SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.RAW, sheetData.getName());
+		SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.RAW, sheetData.getName(), true);
+		
 		List<List<Object>> columnData = new ArrayList<List<Object>>();
 		Map<String, List<Object>> fileData = new HashMap<String, List<Object>>();
 
@@ -414,7 +415,7 @@ public class Rubric implements SheetAccessorInterface {
 		}
 
 		int currentColumn = RubricEntry.HeadingNames.values().length + 1;
-		
+		saveState.setAutoSizeColumnStart(currentColumn);
 		for (List<Object> column : columnData) {
 			saveState.writeFullColumn(column, currentColumn);
 			currentColumn++;
@@ -609,6 +610,23 @@ public class Rubric implements SheetAccessorInterface {
 		}
 		columnData.add(values);
 		columnData.add(descriptions);
+	}
+
+	public List<FileData> getTestCode() {
+		List<FileData> files = new ArrayList<FileData>();
+		for (RubricEntry entry : entries) {
+			entry.getTestCode(files);
+		}
+		if (files.size() == 0) {
+			return null;
+		}
+		return files;
+	}
+	
+	public void modifyTestCode(String fileName, String fileContents) {
+		for (RubricEntry entry : entries) {
+			entry.modifyTestCode(fileName, fileContents);
+		}		
 	}
 
 

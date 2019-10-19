@@ -602,7 +602,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 */
 	@Override
 	public SaveSheetData getSheetSaveState() {
-		SaveSheetData saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName());
+		SaveSheetData saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName(), false);
 		int maxColumn = computeMaxColumn();
 		fillStudentRowsToSave(saveData, maxColumn, null);
 		// Fill these after the student rows so that the graded by is correct
@@ -800,7 +800,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 			do {
 				changedData = false;			
 				LoadSheetData loadData = communicator.readSheet(this);
-				saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName());			
+				saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName(), false);			
 				int maxColumn = computeMaxColumn();
 				changedData = fillStudentRowsToSave(saveData, maxColumn, loadData); 
 				if (changedData) {

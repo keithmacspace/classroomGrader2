@@ -165,7 +165,7 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 		}			
 		fillMethodCombo();
 		fileToUseModel.fireTableDataChanged();
-		associatedEntry.setDescription("Automated.  After you run rubrics, if no value is filled in for a student, check the rubric tab for more information");
+		dialogOwner.appendDescription("Automated.  After you run rubrics, if no value is filled in for a student, check the rubric tab for more information");
 
 	}
 

@@ -47,9 +47,19 @@ public class ExcelAdapter implements ActionListener {
 	 * The Excel Adapter is constructed with a JTable on which it enables Copy-Paste
 	 * and acts as a Clipboard listener.
 	 */
-	public ExcelAdapter(JTable myJTable, boolean expandRows) {
+	public ExcelAdapter(JTable myJTable, boolean expandRows, boolean addPopup) {
 		jTable1 = myJTable;
 		this.expandRows = expandRows;
+		system = Toolkit.getDefaultToolkit().getSystemClipboard();
+		if (addPopup) {
+			JPopupMenu popupMenu = new JPopupMenu();
+			addPopupOptions(popupMenu);
+			myJTable.setComponentPopupMenu(popupMenu);
+		}
+
+	}
+	
+	public void addPopupOptions(JPopupMenu popupMenu) {
 		KeyStroke copy = KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false);
 		// Identifying the copy KeyStroke user can modify this
 		// to copy on some other Key combination.
@@ -60,7 +70,9 @@ public class ExcelAdapter implements ActionListener {
 		jTable1.registerKeyboardAction(this, "Copy", copy, JComponent.WHEN_FOCUSED);
 		jTable1.registerKeyboardAction(this, "Paste", paste, JComponent.WHEN_FOCUSED);
 		jTable1.registerKeyboardAction(this, "Delete", delete, JComponent.WHEN_FOCUSED);
-		JPopupMenu popupMenu = new JPopupMenu();
+		if (popupMenu == null) {
+			popupMenu = new JPopupMenu();
+		}
 		Action copy1 = new DefaultEditorKit.CopyAction();
 		copy1.putValue(Action.NAME, "Copy");
 		copy1.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control C"));
@@ -71,6 +83,7 @@ public class ExcelAdapter implements ActionListener {
 				copyAction();				
 			}						
 		});
+		
 		popupMenu.add(copyMenu);
 		
 
@@ -86,8 +99,6 @@ public class ExcelAdapter implements ActionListener {
 		});
 		popupMenu.add(pasteMenu);
 		
-		jTable1.setComponentPopupMenu(popupMenu);
-		system = Toolkit.getDefaultToolkit().getSystemClipboard();
 	}
 
 	/**
@@ -132,7 +143,7 @@ public class ExcelAdapter implements ActionListener {
 		}
 	}
 	
-	private void copyAction() {
+	public void copyAction() {
 		StringBuffer sbf = new StringBuffer();
 		// Check to ensure we have selected only a contiguous block of
 		// cells
@@ -161,7 +172,7 @@ public class ExcelAdapter implements ActionListener {
 		system.setContents(stsel, stsel);
 	}
 	
-	private void pasteAction() {
+	public void pasteAction() {
 		int[] rows = jTable1.getSelectedRows();
 		int[] cols = jTable1.getSelectedColumns();
 

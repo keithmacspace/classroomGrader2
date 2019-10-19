@@ -49,12 +49,12 @@ public abstract class RubricAutomation {
 		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n");
 	}
 
+	public void getTestCode(List<FileData> files) {}
+	public void modifyTestCode(String fileName, String fileContents) {}
 	public abstract RubricAutomation newCopy();
-	public abstract void removeFileData(FileData fileData);
+	public abstract void removeFileData(FileData fileData);	
 	protected abstract Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData);
 	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData, Map<String, List<Object>> fileData);
 	protected abstract void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData,	Map<String, FileData> fileDataMap);
-
-
 
 }

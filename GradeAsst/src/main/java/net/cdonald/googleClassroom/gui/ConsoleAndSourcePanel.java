@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.DefaultEditorKit;
+import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
@@ -33,7 +34,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerMessageQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
@@ -54,16 +54,20 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private JPopupMenu popupSource;
 	private JPopupMenu popupInput;
 	private JPopupMenu popupDisplays;
+	private JPopupMenu popupRubricSource;
 	private SplitOutErrPanel outputWrapperPanel;
 	private JPanel inputHistorWrapperPanel;
 	private Map<String, SplitOutErrPanel> rubricPanels;
 	private static Semaphore pauseSemaphore = new Semaphore(1);
 	private JTextArea currentInputHistory;
 	private String currentID;
-	private List<JTextArea> currentSourceTextAreas;	
+	private List<JTextArea> currentSourceTextAreas;
+	private Map<String, JTextArea> modifiedRubricTestCodeMap;
+	private UndoManager undoManager;
 
 
-	public ConsoleAndSourcePanel() {
+	public ConsoleAndSourcePanel(UndoManager undoManager) {
+		this.undoManager = undoManager;
 		setMinimumSize(new Dimension(400, 400));
 		createPopupMenu();
 		createLayout();
@@ -71,6 +75,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		setVisible(true);
 		currentSourceTextAreas = new ArrayList<JTextArea>();
 		rubricPanels = new HashMap<String, SplitOutErrPanel>();
+		modifiedRubricTestCodeMap = new HashMap<String, JTextArea>();
 
 	}
 
@@ -119,6 +124,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		JTextArea sourceArea = new JTextArea();
 		sourceArea.setText(text);
 		sourceArea.setComponentPopupMenu(popupSource);
+		sourceArea.getDocument().addUndoableEditListener(undoManager);
 		sourcePanel.add(new JScrollPane(sourceArea));
 		currentSourceTextAreas.add(sourceArea);
 		sourceTabbedPane.addTab(title, sourcePanel);
@@ -129,12 +135,14 @@ public class ConsoleAndSourcePanel extends JPanel {
 		popupSource = new JPopupMenu();
 		popupDisplays = new JPopupMenu();
 		popupInput = new JPopupMenu();
+		popupRubricSource = new JPopupMenu();
 
 		Action cut = new DefaultEditorKit.CutAction();
 		cut.putValue(Action.NAME, "Cut");
 		cut.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control X"));
 		popupSource.add(cut);
 		popupInput.add(cut);
+		popupRubricSource.add(cut);
 
 		Action copy = new DefaultEditorKit.CopyAction();
 		copy.putValue(Action.NAME, "Copy");
@@ -142,12 +150,15 @@ public class ConsoleAndSourcePanel extends JPanel {
 		popupSource.add(copy);
 		popupInput.add(cut);
 		popupDisplays.add(copy);
+		popupRubricSource.add(copy);
 
 		Action paste = new DefaultEditorKit.PasteAction();
 		paste.putValue(Action.NAME, "Paste");
 		paste.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
 		popupSource.add(paste);
 		popupInput.add(paste);
+		popupRubricSource.add(paste);
+		
 		
 //		JMenuItem removeInstrumentation = new JMenuItem("Remove Instrumentation");
 //		popupSource.add(removeInstrumentation);
@@ -340,6 +351,37 @@ public class ConsoleAndSourcePanel extends JPanel {
 									referenceSourceTabs.addTab(file.getName(), new JScrollPane(goldSource));
 								}
 							}
+							List<FileData> rubricTestCode = rubric.getTestCode();
+							if (rubricTestCode != null && rubricTestCode.size() > 0) {
+								JTabbedPane rubricTestPane = new JTabbedPane();
+								rubricTabbedPane.addTab("Test Code Source", rubricTestPane);
+								for (FileData file : rubricTestCode) {
+									JTextArea goldSource = new JTextArea();
+									goldSource.setComponentPopupMenu(popupSource);
+									goldSource.setEditable(true);
+									goldSource.setText(file.getFileContents());
+									goldSource.getDocument().addDocumentListener(new DocumentListener() {
+
+										@Override
+										public void insertUpdate(DocumentEvent e) {
+											modifiedRubricTestCodeMap.put(file.getName(), goldSource);
+										}
+
+										@Override
+										public void removeUpdate(DocumentEvent e) {
+											modifiedRubricTestCodeMap.put(file.getName(), goldSource);
+										}
+
+										@Override
+										public void changedUpdate(DocumentEvent e) {
+											// TODO Auto-generated method stub
+											
+										}
+										
+									});
+									rubricTestPane.addTab(file.getName(), new JScrollPane(goldSource));
+								}
+							}							
 
 							List<String> tabNames = rubric.getRubricTabs();					
 							for (String rubricName : tabNames) {
@@ -449,6 +491,13 @@ public class ConsoleAndSourcePanel extends JPanel {
 				rubricPanel.clearPanels();
 			}
 		}
+	}
+	
+	public void updateRubricTestCode(Rubric rubric) {
+		for (String file : modifiedRubricTestCodeMap.keySet()) {
+			rubric.modifyTestCode(file, modifiedRubricTestCodeMap.get(file).getText());
+		}
+		modifiedRubricTestCodeMap.clear();
 	}
 
 

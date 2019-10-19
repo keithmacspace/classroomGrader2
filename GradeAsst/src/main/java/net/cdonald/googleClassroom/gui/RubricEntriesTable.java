@@ -44,6 +44,7 @@ public class RubricEntriesTable extends JTable {
 	private RubricEntryTableModel rubricEntryTableModel;
 	private Rubric associatedRubric;
 	private int defaultHeight;
+	private ExcelAdapter excelAdapter;
 
 
 	public RubricEntriesTable(RubricElementListener listener) {
@@ -72,13 +73,13 @@ public class RubricEntriesTable extends JTable {
 			default:
 				break;
 			}
-		}
-		setComponentPopupMenu(createPopupMenu());
+		}		
 		setSelectionBackground(getSelectionBackground());
 		setCellSelectionEnabled(true);
 		addListeners();
 		defaultHeight = -1;
-		new ExcelAdapter(this, true);
+		excelAdapter = new ExcelAdapter(this, true, false);
+		setComponentPopupMenu(createPopupMenu());
 	}
 	
 	private void addListeners() {
@@ -127,6 +128,7 @@ public class RubricEntriesTable extends JTable {
 		JMenuItem insertAbove = new JMenuItem("Add Entry Above");
 		JMenuItem insertBelow = new JMenuItem("Add Entry Below");
 		JMenuItem delete = new JMenuItem("Delete");
+		excelAdapter.addPopupOptions(rightClickPopup);
 		rightClickPopup.add(moveUpItem);
 		rightClickPopup.add(moveDownItem);
 		rightClickPopup.add(insertAbove);
@@ -329,7 +331,7 @@ public class RubricEntriesTable extends JTable {
 			scrollPane = new JScrollPane(textarea);
 			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-			textarea.setComponentPopupMenu(createPopupMenu());
+			//textarea.setComponentPopupMenu(createPopupMenu());
 			textarea.getDocument().addDocumentListener(new DocumentListener() {
 
 				@Override
@@ -406,10 +408,11 @@ public class RubricEntriesTable extends JTable {
 
 		@Override
 		public int getRowCount() {
-			int min = 3;
+			int min = 30;
 			if (associatedRubric != null) {
 				min = Math.max(min, associatedRubric.getEntryCount());
 				min++;
+				System.err.println(min);
 			}
 			return min;
 		}
@@ -473,6 +476,8 @@ public class RubricEntriesTable extends JTable {
 			if (entry != null) {
 				entry.setTableValue(getColumnHeading(column), aValue);
 				if (row == getRowCount() - 1) {
+					Object [] rowData = {null, null, null, null};
+					this.addRow(rowData);
 					//associatedRubric.addNewEntry();
 				}
 			}
@@ -481,6 +486,7 @@ public class RubricEntriesTable extends JTable {
 		@Override
 		public void fireTableDataChanged() {
 			super.fireTableDataChanged();
+			updateRowHeights(-1);
 
 		}
 

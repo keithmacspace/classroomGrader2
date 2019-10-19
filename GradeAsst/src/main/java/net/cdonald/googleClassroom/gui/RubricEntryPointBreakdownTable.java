@@ -36,9 +36,11 @@ public class RubricEntryPointBreakdownTable extends JTable {
 	private Rubric associatedRubric;
 	private boolean isEditable;
 	private static final String enterActionKey = "Enter_Action";
+	private ExcelAdapter excelAdapter;
 	public RubricEntryPointBreakdownTable(boolean isEditable) {
 		super();
 		this.isEditable = isEditable;
+		excelAdapter = new ExcelAdapter(this, true, false);
 		setDefaultRenderer(String.class, new MultiLineCellRenderer());
 		setDefaultEditor(String.class, new TextAreaEditor());
 		setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
@@ -53,8 +55,8 @@ public class RubricEntryPointBreakdownTable extends JTable {
 			setBackground(val.getBackground());
 		}
 		setSelectionBackground(getSelectionBackground());
-		setCellSelectionEnabled(true);
-		new ExcelAdapter(this, true);
+		setCellSelectionEnabled(true);		
+		setComponentPopupMenu(createPopupMenu());
 	}
 	
 	private JPopupMenu createPopupMenu() {
@@ -70,6 +72,7 @@ public class RubricEntryPointBreakdownTable extends JTable {
 		rightClickPopup.add(insertAbove);
 		rightClickPopup.add(insertBelow);
 		rightClickPopup.add(delete);
+		excelAdapter.addPopupOptions(rightClickPopup);
 		
 		delete.addActionListener(new ActionListener() {
 			@Override

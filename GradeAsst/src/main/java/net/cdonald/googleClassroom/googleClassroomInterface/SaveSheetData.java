@@ -13,6 +13,8 @@ public class SaveSheetData {
 	private int maxColumn;
 	private int maxRow;
 	private ValueType valueType;
+	private boolean resetDataOnSave;
+	private int autoSizeColumnStart = - 1;
 	private class ColumnEntries {
 		private List<Object> columnValues;
 		private int columnNumber;
@@ -52,12 +54,17 @@ public class SaveSheetData {
 	}
 
 
-	public SaveSheetData(ValueType valueType, String sheetName) {
+	public SaveSheetData(ValueType valueType, String sheetName, boolean resetDataOnSave) {
 		this.valueType = valueType;
 		columns = new ArrayList<ColumnEntries>();
 		maxColumn = 0;
 		this.sheetName = sheetName;
+		this.resetDataOnSave = resetDataOnSave;
 		saveState = new ArrayList<ValueRange>();
+	}
+	
+	public boolean getResetDataOnSave() {
+		return resetDataOnSave;
 	}
 	
 	public String getValueType() {
@@ -74,6 +81,14 @@ public class SaveSheetData {
 	
 
 	
+	public int getAutoSizeColumnStart() {
+		return autoSizeColumnStart;
+	}
+
+	public void setAutoSizeColumnStart(int autoSizeColumnStart) {
+		this.autoSizeColumnStart = autoSizeColumnStart;
+	}
+
 	// This method will overwrite the data in a single column, it doesn't matter if only one
 	// value is written, everything below that value will be overwritten with empty data
 	public void writeFullColumn(List<Object> column, int currentColumn) {

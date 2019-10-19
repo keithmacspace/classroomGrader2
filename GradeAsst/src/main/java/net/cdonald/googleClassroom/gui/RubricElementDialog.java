@@ -355,6 +355,20 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		return rubricToModify.getEntry(entryNum);
 	}
 	
+	public void appendDescription(String description) {
+		RubricEntry entry = getCurrentEntry();
+		if (entry != null) {
+			String currentDescription = entry.getDescription();
+			if (currentDescription.indexOf(description) == -1) {
+				currentDescription += description;
+				entry.setDescription(currentDescription);
+				fireTableDataChanged();
+
+			}
+		}
+
+	}
+	
 	public boolean validateTextField(String name, JTextField field) {
 		String text = field.getText();
 		return validateText(name, text);

@@ -33,6 +33,8 @@ public class RubricEntryCallMethod extends RubricAutomation {
 		
 	}
 	
+	
+	
 	public RubricEntryCallMethod(RubricEntryCallMethod other) {
 		this.paramTypes = new Class<?>[other.paramTypes.length];
 		
@@ -212,4 +214,5 @@ public class RubricEntryCallMethod extends RubricAutomation {
 	public void removeFileData(FileData fileData) {
 		
 	}
+	
 }

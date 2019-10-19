@@ -173,8 +173,7 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 			String description = "Automated. Checks the following:\n";
 			description += associatedAutomation.createCompleteCallList();
 			description += "If the automation does not set a grade, see the rubric tab for more info.";
-			dialogOwner.getCurrentEntry().setDescription(description);
-			dialogOwner.fireTableDataChanged();
+			dialogOwner.appendDescription(description);
 		}			
 	}
 

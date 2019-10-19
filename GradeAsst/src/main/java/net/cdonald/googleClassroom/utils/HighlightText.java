@@ -32,14 +32,14 @@ public class HighlightText {
 						}
 						if (nextWord.equals(methodName)) {
 							int finalIndex = searchText.indexOf(nextWord, index) + methodName.length();
-							moveCursorAndHighlight( textArea, index, finalIndex);
+							moveCursorAndHighlight( textArea, index, finalIndex, true);
 						}
 					}
 				}
 			}
 		}
 	}
-	public static void moveCursorAndHighlight(JTextArea textArea, int index, int finalIndex) {
+	public static void moveCursorAndHighlight(JTextArea textArea, int index, int finalIndex, boolean removeAll) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				int position = 0;
@@ -51,7 +51,9 @@ public class HighlightText {
 				}
 				
 				Highlighter highlighter = textArea.getHighlighter();
-				highlighter.removeAllHighlights();
+				if (removeAll == true) {
+					highlighter.removeAllHighlights();
+				}
 				HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
 				try {
 					highlighter.addHighlight(index, finalIndex, painter);

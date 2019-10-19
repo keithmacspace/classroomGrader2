@@ -37,6 +37,7 @@ public class InfoPanel extends JPanel {
 		ListenerCoordinator.addBlockingListener(AddProgressBarListener.class, new AddProgressBarListener() {
 			@Override
 			public void fired(String progressBarName) {
+				removeProgressBar(progressBarName);
 				JProgressBar progress = new JProgressBar();
 				progress.setString(progressBarName);	
 				progress.setIndeterminate(true);
@@ -47,16 +48,15 @@ public class InfoPanel extends JPanel {
 				repaint();
 			}
 		});
+		
+		
 		ListenerCoordinator.addBlockingListener(RemoveProgressBarListener.class, new RemoveProgressBarListener() {
 			@Override
 			public void fired(String progressBarName) {
-				JProgressBar progress = progressBars.remove(progressBarName);
-				if (progress != null) {
-					progress.setVisible(false);
-					remove(progress);
-					revalidate();
-					repaint();
-				}
+				removeProgressBar(progressBarName);
+				revalidate();
+				repaint();
+
 			}
 		});
 		
@@ -76,6 +76,14 @@ public class InfoPanel extends JPanel {
 			}			
 		});
 
+		
+	}
+	private void removeProgressBar(String progressBarName) {
+		JProgressBar progress = progressBars.remove(progressBarName);
+		if (progress != null) {
+			progress.setVisible(false);
+			remove(progress);
+		}
 		
 	}
 

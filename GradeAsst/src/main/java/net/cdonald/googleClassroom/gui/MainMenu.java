@@ -22,6 +22,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.text.DefaultEditorKit;
+import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.googleClassroomInterface.CourseFetcher;
 import net.cdonald.googleClassroom.listenerCoordinator.ChooseGradeFileListener;
@@ -67,9 +68,11 @@ public class MainMenu extends JMenuBar {
 	private JMenuItem publishSelectedGrades;
 	private Map<Integer, JMenu> classByYear;
 	private List<Integer> years;
+	private UndoManager undoManager;
 
-	public MainMenu(JFrame owner) {
+	public MainMenu(JFrame owner, UndoManager undoManager) {
 		this.owner = owner;
+		this.undoManager = undoManager;
 		classByYear = new HashMap<Integer, JMenu>();
 		years = new ArrayList<Integer>();
 		file = new JMenu("File");
@@ -206,6 +209,32 @@ public class MainMenu extends JMenuBar {
 
 		});
 		add(edit);
+		JMenuItem undo = new JMenuItem("Undo");
+		undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, ActionEvent.CTRL_MASK));
+
+
+		edit.add(undo);
+		undo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (undoManager.canUndo()) {
+					undoManager.undo();
+				}
+			}
+		});
+		JMenuItem redo = new JMenuItem("Redo");
+		redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, ActionEvent.CTRL_MASK));
+		edit.add(redo);
+		redo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (undoManager.canRedo()) {
+					undoManager.redo();
+				}
+			}
+		});
+		
+		
 	}
 
 	private void fillRunMenu() {

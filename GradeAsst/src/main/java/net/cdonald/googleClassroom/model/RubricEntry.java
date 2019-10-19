@@ -404,4 +404,17 @@ public class RubricEntry {
 		}
 
 	}
+
+	public void getTestCode(List<FileData> files) {
+		if (automation != null) {
+			automation.getTestCode(files);
+		}		
+	}
+	
+	public void modifyTestCode(String fileName, String fileContents) {
+		if (automation != null) {
+			automation.modifyTestCode(fileName, fileContents);
+		}
+		
+	}
 }

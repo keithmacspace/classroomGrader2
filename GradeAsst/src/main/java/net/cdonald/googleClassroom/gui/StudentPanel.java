@@ -110,7 +110,7 @@ public class StudentPanel extends JPanel{
 		studentTable.setCellSelectionEnabled(true);
 		studentTable.getTableHeader().setReorderingAllowed(false);
 		studentListRenderer = new StudentListRenderer();
-		new ExcelAdapter(studentTable, false);
+		new ExcelAdapter(studentTable, false, true);
 
 		verticalHeaderRenderer = new VerticalTableHeaderCellRenderer();
 		studentTable.setDefaultRenderer(FileData.class, studentListRenderer);

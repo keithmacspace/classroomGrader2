@@ -68,6 +68,23 @@ public class RubricEntryRunCode extends  RubricAutomation {
 
 	}
 	
+	@Override
+	public void getTestCode(List<FileData> files) {
+		for (FileData sourceFile : sourceFiles) {
+			files.add(sourceFile);
+		}
+	}
+	
+	@Override
+	public void modifyTestCode(String fileName, String contents) {
+		for (FileData source : sourceFiles ) {
+			if (source.getName().equals(fileName) ) {
+				source.setFileContents(contents);
+			}
+		}
+	}
+	
+	
 	
 	@Override
 	public void removeFileData(FileData fileData) {
@@ -170,7 +187,8 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			}
 			catch (Exception e) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
-				addOutput(studentId, e.getMessage());					
+				addOutput(studentId, e.getMessage());
+				addOutput(studentId, "The parameters may not match in the automation.  Try modifying the test code's parameter order & re-running the automation.");
 				System.out.println("\0");					
 				return null;
 			}

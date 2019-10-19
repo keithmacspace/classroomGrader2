@@ -58,12 +58,14 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.AddSheetRequest;
 import com.google.api.services.sheets.v4.model.AppendDimensionRequest;
+import com.google.api.services.sheets.v4.model.AutoResizeDimensionsRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.Border;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
+import com.google.api.services.sheets.v4.model.DeleteSheetRequest;
 import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
@@ -74,6 +76,7 @@ import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.TextFormat;
 import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
+import com.google.api.services.sheets.v4.model.UpdateCellsRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -561,36 +564,43 @@ public class GoogleClassroomCommunicator {
 
 	}
 	
-	private Sheet createIfNeeded(GoogleSheetData sheetInfo) throws IOException {
+	private Sheet createIfNeeded(GoogleSheetData sheetInfo, boolean eraseAllData) throws IOException {
 		DebugLogDialog.startMethod();
 		String id = sheetInfo.getSpreadsheetId();
 		String sheetName = sheetInfo.getName();
 		
+		// Create requestList and set it on the batchUpdateSpreadsheetRequest
+		List<Request> requestsList = new ArrayList<Request>();
 
 		Sheet current = getSheet(sheetInfo, sheetName);
-
+		if (current != null && eraseAllData) {
+			DeleteSheetRequest deleteRequest = new DeleteSheetRequest();
+			deleteRequest.setSheetId(current.getProperties().getSheetId());
+			Request request = new Request();
+			request.setDeleteSheet(deleteRequest);
+			requestsList.add(request);
+			current = null;
+		}
+		
 		if (current == null) {
 			AddSheetRequest addRequest = new AddSheetRequest();
 			SheetProperties sheetProperties = new SheetProperties();
 			addRequest.setProperties(sheetProperties);
 			addRequest.setProperties(sheetProperties.setTitle(sheetName));
-
-			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
-
-			// Create requestList and set it on the batchUpdateSpreadsheetRequest
-			List<Request> requestsList = new ArrayList<Request>();
-
 			// Create a new request with containing the addSheetRequest and add it to the
 			// requestList
 			Request request = new Request();
 			request.setAddSheet(addRequest);
 			requestsList.add(request);
-
+		}
+		if (requestsList.size() != 0) {
+			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 			// Add the requestList to the batchUpdateSpreadsheetRequest
 			batchUpdateSpreadsheetRequest.setRequests(requestsList);
 			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
 			current = getSheet(sheetInfo, sheetName);
 		}
+		
 		DebugLogDialog.endMethod();
 		return current;		
 	}
@@ -759,8 +769,10 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.startMethod();
 		int currentColumns = current.getProperties().getGridProperties().getColumnCount();
 		int currentRows = current.getProperties().getGridProperties().getRowCount();
-
 		List<Request> requestsList = new ArrayList<Request>();
+
+
+
 		if (currentColumns < maxColumn) {
 			AppendDimensionRequest appendDimension = new AppendDimensionRequest();
 			appendDimension.setDimension("COLUMNS");
@@ -781,6 +793,8 @@ public class GoogleClassroomCommunicator {
 			request.setAppendDimension(appendDimension);
 			requestsList.add(request);
 		}
+
+
 		if (requestsList.size() != 0) {
 			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 			batchUpdateSpreadsheetRequest.setRequests(requestsList);
@@ -794,13 +808,36 @@ public class GoogleClassroomCommunicator {
 		initServices();
 		String id = sheetWriter.getSheetInfo().getSpreadsheetId();
 
-		Sheet current = createIfNeeded(sheetWriter.getSheetInfo());
 		SaveSheetData saveData = sheetWriter.getSheetSaveState();
+		Sheet current = createIfNeeded(sheetWriter.getSheetInfo(), saveData.getResetDataOnSave());
+		
+
+		
 		
 		expandIfNeeded(id, current, saveData.getMaxColumn(), saveData.getMaxRow());
 		
+		
 		BatchUpdateValuesRequest body = new BatchUpdateValuesRequest().setValueInputOption(saveData.getValueType()).setData(saveData.getSaveState());
 		BatchUpdateValuesResponse result = sheetsService.spreadsheets().values().batchUpdate(id, body).execute();
+		
+		if (saveData.getAutoSizeColumnStart() != -1) {
+			List<Request> requestsList = new ArrayList<Request>();
+			AutoResizeDimensionsRequest autoResize = new AutoResizeDimensionsRequest();
+			DimensionRange dimensions = new DimensionRange();
+			dimensions.setSheetId(current.getProperties().getSheetId());
+			dimensions.setDimension("COLUMNS");
+			dimensions.setStartIndex(saveData.getAutoSizeColumnStart());
+			dimensions.setEndIndex(saveData.getMaxColumn() + 1);
+			autoResize.setDimensions(dimensions);
+			Request request = new Request();
+			request.setAutoResizeDimensions(autoResize);
+			requestsList.add(request);		
+			if (requestsList.size() != 0) {
+				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+				batchUpdateSpreadsheetRequest.setRequests(requestsList);
+				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+			}
+		}
 		DebugLogDialog.endMethod();
 		return result.toString();
 	}
@@ -847,79 +884,12 @@ public class GoogleClassroomCommunicator {
 		return results;
 	}
 	
-	public void testWrite() throws IOException {
-		initServices();
-		GoogleSheetData temp = new GoogleSheetData("TestStuff2", "1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY", "PageTest");
-		String id = temp.getSpreadsheetId();
-		String sheetName = temp.getName();
-		
 
-		Sheet current = getSheet(temp, sheetName);
-
-		if (current == null) {
-			AddSheetRequest addRequest = new AddSheetRequest();
-			SheetProperties sheetProperties = new SheetProperties();
-			addRequest.setProperties(sheetProperties);
-			addRequest.setProperties(sheetProperties.setTitle(sheetName));
-
-			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
-
-			// Create requestList and set it on the batchUpdateSpreadsheetRequest
-			List<Request> requestsList = new ArrayList<Request>();
-
-			// Create a new request with containing the addSheetRequest and add it to the
-			// requestList
-			Request request = new Request();
-			request.setAddSheet(addRequest);
-			requestsList.add(request);
-
-			// Add the requestList to the batchUpdateSpreadsheetRequest
-			batchUpdateSpreadsheetRequest.setRequests(requestsList);
-			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
-			current = getSheet(temp, sheetName);
-		}
-		List<ValueRange> data = new ArrayList<ValueRange>();
-		ValueRange one = new ValueRange();
-		one.setRange("A1:C2");
-		List<List<Object>> values = new ArrayList<List<Object>>();
-		int uniqueValue = 0;
-		for (int r = 0; r < 2; r++) {
-			List<Object> row = new ArrayList<Object>();
-			for (int c = 0; c < 3; c++) {
-				row.add((Integer)uniqueValue);
-				uniqueValue++;
-			}
-			values.add(row);
-		}
-		one.setValues(values);
-		data.add(one);
-		values = new ArrayList<List<Object>>();
-		ValueRange two = new ValueRange();
-		two.setRange("E1:E25");
-		for (int r = 0; r < 25; r++) {
-			List<Object> row = new ArrayList<Object>();
-			row.add((Integer)uniqueValue);
-			uniqueValue++;
-			values.add(row);
-		}
-		two.setValues(values);
-		data.add(two);
-		
-		BatchUpdateValuesRequest requestBody = new BatchUpdateValuesRequest();
-	    requestBody.setValueInputOption("RAW");
-	    requestBody.setData(data);
-	    BatchUpdateValuesResponse result = sheetsService.spreadsheets().values().batchUpdate(id, requestBody).execute();
-	    System.out.println(result);
-	    System.out.println("done");
-		
-		
-
-	}
 	
-	public class TestReader implements SheetAccessorInterface{
+	public static class TestAccessor implements SheetAccessorInterface{
 
 		GoogleSheetData sheetData;
-		public TestReader() {
+		public TestAccessor() {
 			sheetData = new GoogleSheetData("TestStuff2", "1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY", "PageTest");
 			
 		}
@@ -934,29 +904,39 @@ public class GoogleClassroomCommunicator {
 
 		@Override
 		public SaveSheetData getSheetSaveState() {
-			SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.RAW, "TestStuff2");
+			SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, "TestStuff2", true);
+			saveState.setAutoSizeColumnStart(3);
 			
-			List<Object> values = new ArrayList<Object>();
+			
+			List<Object> sums = new ArrayList<Object>();
 			for (int i = 1; i < 20; i++) {
-				values.add("=SUM(B"  + i + ":Z" + i + ")");
+				sums.add("=SUM(B"  + i + ":D" + i + ")");
 			}
-			saveState.writeFullColumn(values, 0);
+			saveState.writeFullColumn(sums, 0);
+			for (int i= 1; i < 3; i++) {
+				List<Object> values = new ArrayList<Object>();
+				for (int j = 0; j < 20; j++ ) {
+					values.add((Double)(Math.random()));
+				}
+				saveState.writeFullColumn(values, i);
+			}
+			for (int i = 3; i < 6; i++) {
+				List<Object> strings = new ArrayList<Object>();
+				for (int j = 0; j < 20; j++ ) {
+					int numToRepeat = (int)(Math.random() * 10);
+					String test = "Test ";
+					for (int x = 0; x < numToRepeat; x++) {
+						test += "More ";
+					}
+					strings.add(test);
+				}
+				saveState.writeFullColumn(strings, i);
+				
+			}
 			return saveState;
 			
 		}
-//		@Override
-//		public String getSheetSaveState(List<List<Object>> saveState) {
-//			saveState.add(new ArrayList<Object>());
-//			saveState.add(new ArrayList<Object>());
-//			saveState.add(new ArrayList<Object>());
-//			saveState.get(0).add("1");
-//			saveState.get(1).add("2");
-//			saveState.get(1).add("3");
-//			saveState.get(2).add(null);
-//			saveState.get(2).add(null);
-//			saveState.get(2).add("4");
-//			return "A1:C3";
-//		}
+
 
 
 		
@@ -965,21 +945,10 @@ public class GoogleClassroomCommunicator {
 	public static void main(String[] args) throws IOException, GeneralSecurityException {
 
 		GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
-		//communicator.insertRow(communicator.new TestReader(), 0);
-//      communicator.writeSheet( );
-//		communicator.testWrite();
-//		LoadSheetData sheetData = communicator.readSheet(communicator.new TestReader());
-//		for (int row = 0; row < sheetData.getNumRows(); row++) {
-//			System.err.println(sheetData.readRow(row));
-//		}
-//		System.err.println("done");
-		communicator.setHeaderRows(communicator.new TestReader().getSheetInfo(), 3, 2, 30);
-	
-		
-		//GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
-//		communicator.listFoldersInRoot();
-		//System.out.println();
-		
+		TestAccessor test = new TestAccessor();
+
+		communicator.writeSheet(test);
+
 		System.err.println("done");
 
 	}

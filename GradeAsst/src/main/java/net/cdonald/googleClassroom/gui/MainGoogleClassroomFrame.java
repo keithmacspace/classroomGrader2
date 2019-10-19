@@ -22,6 +22,7 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
+import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.control.DataController;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompileListener;
@@ -71,17 +72,19 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 	private InfoPanel infoPanel;
 	private DebugLogDialog dbg;
 	private GuidedSetupDialog guidedSetup;
-
+	private ReplaceDialog replaceDialog;
+	private UndoManager undoManager;
 
 
 	public MainGoogleClassroomFrame() throws InterruptedException {
 		super(APP_NAME);
+		undoManager = new UndoManager();
 		dbg = new DebugLogDialog(this);
 		dataController = new DataController(this);		
 		rubricElementDialog = new RubricElementDialog(this, dataController.getPrefs(), dataController.getStudentWorkCompiler());
 		newRubricDialog = new NewRubricDialog(this);
 		guidedSetup = new GuidedSetupDialog(this, dataController);
-
+		replaceDialog = new ReplaceDialog(this);
 		
 		setLayout();		
 
@@ -149,10 +152,10 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		MyPreferences prefs = dataController.getPrefs();
 		this.setSize(prefs.getDimension(MyPreferences.Dimensions.MAIN, 800, 700));
 		setLayout(new BorderLayout());
-		consoleAndSourcePanel = new ConsoleAndSourcePanel();
+		consoleAndSourcePanel = new ConsoleAndSourcePanel(undoManager);
 		mainToolBar = new MainToolBar();
 		studentPanel = new StudentPanel(dataController, prefs.getSplitLocation(MyPreferences.Dividers.STUDENT_NOTES));
-		mainMenu = new MainMenu(this);
+		mainMenu = new MainMenu(this, undoManager);
 		infoPanel = new InfoPanel();
 		setJMenuBar(mainMenu);
 
@@ -264,9 +267,11 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 
 			@Override
 			public void fired(boolean runAll) {
-				if (dataController.getRubric() == null) {
+				Rubric rubric = dataController.getRubric(); 
+				if (rubric == null) {					
 					return;
 				}
+				consoleAndSourcePanel.updateRubricTestCode(rubric);
 				runRubricOrCode(false, runAll);
 			}
 		});
@@ -381,7 +386,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 			public void fired() {
 				JTextArea source = consoleAndSourcePanel.getCurrentSource();
 				if (source != null) {
-					ReplaceDialog dlg = new ReplaceDialog(MainGoogleClassroomFrame.this, source);					
+					replaceDialog.showDialog(source);					
 				}				
 			}
 			
