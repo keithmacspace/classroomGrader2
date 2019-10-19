@@ -81,13 +81,31 @@ public class ConsoleAndSourcePanel extends JPanel {
 
 	public void assignmentSelected() {
 		sourceTabbedPane.removeAll();
-		consoleInput.setText("");		
+		consoleInput.setText("");
 	}
+	
+	public void syncSource() {
+		if (currentID != null) {
+			List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, currentID);			
+			if (fileDataList != null) {
+				for (FileData fileData : fileDataList) {
+					String name = fileData.getName();
+					for (int i = 0; i < sourceTabbedPane.getTabCount(); i++) {
+						if (sourceTabbedPane.getTitleAt(i).equals(name)) {						
+							fileData.setFileContents(currentSourceTextAreas.get(i).getText());
+						}
+					}
+				}
+			}
+		}
+	}
+
 
 	public void setWindowData(String idToDisplay) {
 		SwingUtilities.invokeLater(new Runnable() {			
 			@Override
 			public void run() {
+				syncSource();
 				currentSourceTextAreas.clear();
 				sourceTabbedPane.removeAll();
 				currentID = idToDisplay;
@@ -178,8 +196,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		JMenuItem recompile = new JMenuItem("Recompile");
 		popupSource.add(recompile);
 		
-		JMenuItem removeSource = new JMenuItem("Remove Source");
-		popupSource.add(removeSource);
+
 		recompile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -196,6 +213,8 @@ public class ConsoleAndSourcePanel extends JPanel {
 			}
 		});
 		
+		JMenuItem removeSource = new JMenuItem("Remove Source");
+		popupSource.add(removeSource);		
 		removeSource.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -493,7 +512,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		}
 	}
 	
-	public void updateRubricTestCode(Rubric rubric) {
+	public void updateRubricTestCode(Rubric rubric) {		
 		for (String file : modifiedRubricTestCodeMap.keySet()) {
 			rubric.modifyTestCode(file, modifiedRubricTestCodeMap.get(file).getText());
 		}

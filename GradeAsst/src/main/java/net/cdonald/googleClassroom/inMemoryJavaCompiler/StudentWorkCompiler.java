@@ -205,6 +205,7 @@ public class StudentWorkCompiler {
 			try {
 				for (FileData file : studentFiles) {					
 					compiler.addSource(file.getClassName(), file.getFileContents());
+					DebugLogDialog.appendln(file.getFileContents());
 				}
 				Map<String, Class<?>> compiled = compiler.compileAll();				
 				studentBuildInfo.setStudentCompilerMap(compiled);			

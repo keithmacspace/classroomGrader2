@@ -475,6 +475,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 			}
 			@Override
 			protected Void doInBackground() throws Exception {
+				consoleAndSourcePanel.syncSource();
 				disableRuns();				
 				List<String> ids = null;
 				if (runAll == false) {
@@ -490,6 +491,7 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 				try {
 					mainToolBar.setStopEnabled(true);
 					for (String id : ids) {
+						
 						if (runSource == true) {
 							dataController.run(id);												
 						}

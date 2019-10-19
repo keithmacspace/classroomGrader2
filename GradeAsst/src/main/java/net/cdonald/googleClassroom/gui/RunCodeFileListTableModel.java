@@ -29,7 +29,6 @@ public class RunCodeFileListTableModel extends AbstractTableModel {
 	
 	@Override
 	public int getRowCount() {
-		DebugLogDialog.appendln("" + files.size());
 		return files.size();		
 	}
 

@@ -514,7 +514,7 @@ public class DataController implements StudentListInfo {
 	
 	
 	public void run(String id) {
-
+		studentWorkCompiler.compile(id);
 		if (studentWorkCompiler.isRunnable(id)) {
 			consoleData.runStarted(id, "");
 			StudentData student = studentMap.get(id);
@@ -527,6 +527,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	public void runRubric(String studentId, Set<String> rubricElementNames) {
+		studentWorkCompiler.compile(studentId);
 		StudentData student = null;
 		if (rubricBeingEditedStudent != null && rubricBeingEditedStudent.getId().equals(studentId)) {
 			student = rubricBeingEditedStudent;
