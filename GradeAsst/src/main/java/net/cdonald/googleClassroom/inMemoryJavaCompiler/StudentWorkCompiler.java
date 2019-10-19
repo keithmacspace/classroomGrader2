@@ -421,6 +421,7 @@ public class StudentWorkCompiler {
 	public void removeSource(String studentID, String fileName) {
 		if (studentBuildInfoMap.containsKey(studentID)) {
 			studentBuildInfoMap.get(studentID).removeSource(fileName);
+			compile(studentID);
 		}		
 	}
 

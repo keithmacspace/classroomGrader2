@@ -11,7 +11,9 @@ public class StudentConsoleAreas {
 		private JTextArea errorArea;
 		public OutputAreas() {
 			outputArea = new JTextArea();
+			outputArea.setEditable(false);
 			errorArea = new JTextArea();
+			errorArea.setEditable(false);
 		}
 		
 		public JTextArea getOutputArea() {
