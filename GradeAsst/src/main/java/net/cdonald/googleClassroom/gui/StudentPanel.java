@@ -109,13 +109,14 @@ public class StudentPanel extends JPanel{
 		studentTable.setAutoCreateRowSorter(false);
 		studentTable.setCellSelectionEnabled(true);
 		studentTable.getTableHeader().setReorderingAllowed(false);
-		studentListRenderer = new StudentListRenderer();
+		studentListRenderer = new StudentListRenderer(studentListInfo);
 		new ExcelAdapter(studentTable, false, true);
 
 		verticalHeaderRenderer = new VerticalTableHeaderCellRenderer();
 		studentTable.setDefaultRenderer(FileData.class, studentListRenderer);
 		studentTable.setDefaultRenderer(CompilerMessage.class, studentListRenderer);
 		studentTable.setDefaultRenderer(java.util.Date.class, studentListRenderer);
+		studentTable.setDefaultRenderer(String.class, studentListRenderer);
 
 		notesAndCommentsTextArea = new HashMap<String, JTextArea>();
 
@@ -337,17 +338,6 @@ public class StudentPanel extends JPanel{
 			}
 		});
 
-		ListenerCoordinator.addListener(AssignmentSelected.class, new AssignmentSelected() {
-			@Override
-			public void fired(ClassroomData data) {
-				if (data != null) {
-					studentListRenderer.setDueDate(data.getDate());
-				} else {
-					studentListRenderer.setDueDate(null);
-				}
-
-			}
-		});
 
 		studentTable.addKeyListener(new KeyListener() {
 			@Override

@@ -26,6 +26,7 @@ import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 
+import net.cdonald.googleClassroom.gui.DataUpdateListener;
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -37,14 +38,14 @@ public class StudentWorkCompiler {
 
 	private Map<String, StudentBuildInfo> studentBuildInfoMap;
 	private SwingWorker<Void, CompilerMessage> compilerWorker;
-	private CompileListener listener;
+	private DataUpdateListener listener;
 	private RunCore runCore;
 	private static Semaphore stopSemaphore = new Semaphore(1);
 	
 	
 	
 
-	public StudentWorkCompiler(CompileListener listener) {
+	public StudentWorkCompiler(DataUpdateListener listener) {
 		this.listener = listener;
 		studentBuildInfoMap = new HashMap<String, StudentBuildInfo>();
 		ListenerCoordinator.addListener(StopRunListener.class, new StopRunListener() {
@@ -94,11 +95,11 @@ public class StudentWorkCompiler {
 		}
 	}
 
-	public CompileListener getListener() {
+	public DataUpdateListener getListener() {
 		return listener;
 	}
 
-	public void setListener(CompileListener listener) {
+	public void setListener(DataUpdateListener listener) {
 		this.listener = listener;
 	}
 	
@@ -186,9 +187,7 @@ public class StudentWorkCompiler {
 
 			@Override
 			protected void done() {
-				if (listener != null) {
-					listener.compileDone();
-				}
+
 			}
 
 		};

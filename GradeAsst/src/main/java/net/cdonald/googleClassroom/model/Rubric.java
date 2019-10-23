@@ -2,6 +2,7 @@ package net.cdonald.googleClassroom.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -269,15 +270,22 @@ public class Rubric implements SheetAccessorInterface {
 		return null;
 	}
 
-	public void runAutomation(DataUpdateListener updateListener, Set<String> rubricElementNames, String studentName,
+	public Set<String> runAutomation(DataUpdateListener updateListener, Set<String> rubricElementNames, String studentName,
 			String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
 
+		Set<String> entriesSkipped = null;
 		for (RubricEntry entry : entries) {
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getName())) {
-				entry.runAutomation(studentName, studentId, message, compiler, consoleData);
+				if (entry.runAutomation(studentName, studentId, message, compiler, consoleData) == false) {
+					if (entriesSkipped == null) {
+						entriesSkipped = new HashSet<String>();						
+					}
+					entriesSkipped.add(entry.getName());
+				}
 				updateListener.dataUpdated();
 			}
 		}
+		return entriesSkipped;
 
 	}
 

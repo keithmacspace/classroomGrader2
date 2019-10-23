@@ -244,18 +244,18 @@ public class RubricEntry {
 				+ ", automationType=" + automationType + "]";
 	}
 
-	void runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
+	boolean runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
 			ConsoleData consoleData) {
 		// Don't change the value of already graded rubrics
 		StudentScore studentScore = studentScores.get(studentId);
 		if (studentScore != null && studentScore.score != null) {
-			return;
+			return false;
 		}
 		// If they haven't turned anything in, don't run any automation, Even for "Turn something in"
 		// it is better to wait since we won't reassign the grade later
 		List<FileData> files = compiler.getSourceCode(studentId);
 		if (files == null) {
-			return;
+			return true;
 		}
 		if (studentScore == null) {
 			studentScore = new StudentScore();
@@ -301,6 +301,7 @@ public class RubricEntry {
 				break;
 			}
 		}
+		return true;
 	}
 
 	public void clearStudentData() {

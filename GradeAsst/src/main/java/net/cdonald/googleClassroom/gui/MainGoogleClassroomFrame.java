@@ -10,7 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JFileChooser;
@@ -25,7 +27,6 @@ import javax.swing.WindowConstants;
 import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.control.DataController;
-import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ChooseGradeFileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
@@ -56,7 +57,7 @@ import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.MyPreferences;
 import net.cdonald.googleClassroom.model.Rubric;
 
-public class MainGoogleClassroomFrame extends JFrame implements CompileListener {
+public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListener {
 	private static final long serialVersionUID = 7452928818734325088L;
 	public static final String APP_NAME = "Google Classroom Grader";
 	private StudentPanel studentPanel;
@@ -476,6 +477,8 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 			@Override
 			protected Void doInBackground() throws Exception {
 				consoleAndSourcePanel.syncSource();
+				Map<String, Set<String>> entriesSkipped = null;
+				
 				disableRuns();				
 				List<String> ids = null;
 				if (runAll == false) {
@@ -497,7 +500,14 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 						}
 						else {
 
-							dataController.runRubric(id, selectedRubricNames);
+							Set<String> skipped = dataController.runRubric(id, selectedRubricNames);
+							if (skipped != null && skipped.size() != 0) {
+								if (entriesSkipped == null) {
+									entriesSkipped = new HashMap<String, Set<String> >();
+								}
+								entriesSkipped.put(id, skipped);				
+							}
+
 						}
 						publish(id);
 					}
@@ -506,6 +516,14 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 							JOptionPane.ERROR_MESSAGE);
 					e.printStackTrace();					
 					System.out.println("\0");
+				}
+				if (entriesSkipped != null) {
+					dataController.setShowRedMap(entriesSkipped);
+					dataUpdated();
+					JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, "Entries shown in red were not updated because they already had a score.\nDelete the score if you want automation to change the value.\nThe red will be removed when you close this dialog.", "Some Entries Not Updated",
+							JOptionPane.OK_OPTION);
+					dataController.setShowRedMap(null);
+					dataUpdated();					
 				}
 				return null;
 			}
@@ -525,7 +543,8 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		mainMenu.disableConditionalMenus();
 	}
 	
-	private void enableRuns() {
+	@Override
+	public void enableRuns() {
 		boolean rubricSelected = (dataController.getRubric() != null);
 		mainToolBar.enableRunButton(rubricSelected);
 		mainMenu.enableConditionalMenuItems(studentPanel.isAnyStudentSelected(), rubricSelected);
@@ -541,9 +560,4 @@ public class MainGoogleClassroomFrame extends JFrame implements CompileListener 
 		studentPanel.structureChanged();
 	}
 
-
-	@Override
-	public void compileDone() {
-		enableRuns();
-	}	
 }

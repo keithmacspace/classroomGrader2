@@ -92,6 +92,8 @@ public class DataController implements StudentListInfo {
 	private Map<String, Map<String, String> > notesCommentsMap;
 	private Rubric rubricBeingEdited;
 	private StudentData rubricBeingEditedStudent;
+	private Map<String, Set<String>> showRedMap;
+	private Date dueDate;
 
 	public DataController(MainGoogleClassroomFrame mainFrame) {
 		prefs = new MyPreferences();
@@ -102,6 +104,7 @@ public class DataController implements StudentListInfo {
 		currentCourse = null;
 		updateListener = mainFrame;
 		notesCommentsMap = new HashMap<String, Map<String, String>>();
+		showRedMap = null;
 		initGoogle();		
 		notesCommentsMap.put(prefs.getUserName(), new HashMap<String, String>());
 		registerListeners();
@@ -176,7 +179,8 @@ public class DataController implements StudentListInfo {
 					}
 					@Override
 					public void done() {						
-						studentWorkCompiler.compileAll();
+						//studentWorkCompiler.compileAll();
+						updateListener.enableRuns();
 					}
 					@Override
 					public void remove(Set<String> removeList) {
@@ -375,6 +379,17 @@ public class DataController implements StudentListInfo {
 				runJPLAG();				
 			}			
 		});
+		
+		ListenerCoordinator.addListener(AssignmentSelected.class, new AssignmentSelected() {
+			@Override
+			public void fired(ClassroomData data) {
+				dueDate = null;
+				if (data != null) {
+					dueDate = data.getDate();
+				} 
+
+			}
+		});
 				
 	}
 
@@ -526,9 +541,10 @@ public class DataController implements StudentListInfo {
 		}
 	}
 	
-	public void runRubric(String studentId, Set<String> rubricElementNames) {
+	public  Set<String>  runRubric(String studentId, Set<String> rubricElementNames) {
 		studentWorkCompiler.compile(studentId);
 		StudentData student = null;
+		Set<String>  skipped = null;
 		if (rubricBeingEditedStudent != null && rubricBeingEditedStudent.getId().equals(studentId)) {
 			student = rubricBeingEditedStudent;
 		}
@@ -541,9 +557,10 @@ public class DataController implements StudentListInfo {
 		}
 		if (currentRubric != null) {
 			CompilerMessage message = studentWorkCompiler.getCompilerMessage(studentId);			
-			currentRubric.runAutomation(updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);						
+			skipped = currentRubric.runAutomation(updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);
 		}
 		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
+		return skipped;
 	}
 	
 
@@ -700,11 +717,33 @@ public class DataController implements StudentListInfo {
 		}
 		return "";
 	}
-	
-	private int getRubricIndex(int columnIndex) {
-		return columnIndex - NUM_DEFAULT_COLUMNS;
+	@Override
+	public boolean showRed(int row, int col, Object value) {
+		if (col == DATE_COLUMN) {
+			if (value instanceof Date) {
+				Date date = (Date)value;			
+				if (dueDate != null && date.compareTo(dueDate) > 0) {
+					return true;
+				}
+			}
+		}
+		else if (showRedMap != null) {
+			String studentId = getStudentId(row);
+			if (showRedMap.containsKey(studentId)) {
+				if (currentRubric != null) {
+					RubricEntry entry = currentRubric.getEntry(getRubricIndex(col));
+					if (entry != null) {
+						
+						if (showRedMap.get(studentId).contains(entry.getName())) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
-	
+		
 	@Override
 	public String getColumnName(int columnIndex) {		
 		if (columnIndex < NUM_DEFAULT_COLUMNS) {
@@ -725,6 +764,17 @@ public class DataController implements StudentListInfo {
 	public String getUserName() {
 		return prefs.getUserName();
 	}
+	
+	private int getRubricIndex(int columnIndex) {
+		return columnIndex - NUM_DEFAULT_COLUMNS;
+	}
+
+
+	public void setShowRedMap(Map<String, Set<String>> showRedMap) {
+		this.showRedMap = showRedMap;		
+	}
+
+
 
 	public String getStudentId(int row) {
 		if (rubricBeingEdited != null || rubricBeingEditedStudent != null) {

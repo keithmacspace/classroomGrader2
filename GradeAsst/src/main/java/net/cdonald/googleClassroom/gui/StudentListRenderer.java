@@ -13,7 +13,11 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class StudentListRenderer extends DefaultTableCellRenderer {
 	private static final long serialVersionUID = -7082168845923165249L;
-	private Date dueDate = null;
+	private StudentListInfo studentListInfo;
+	
+	public StudentListRenderer(StudentListInfo studentListInfo) {
+		this.studentListInfo = studentListInfo;
+	}
 
 	@Override
 	public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
@@ -23,18 +27,13 @@ public class StudentListRenderer extends DefaultTableCellRenderer {
 		boolean makeRed = false;
 
 		if (value != null) {
-
-			
+			makeRed = studentListInfo.showRed(row, column, value);
 			String valueString = null;
 
 			switch (column) {
 			case StudentListInfo.DATE_COLUMN:				
 				Date date = (Date)value;
 				valueString = SimpleUtils.formatDate(date);
-
-				if (dueDate != null && date.compareTo(dueDate) > 0) {
-					makeRed = true;
-				}
 				break;
 			case StudentListInfo.COMPILER_COLUMN:
 				if (value != null) {
@@ -62,14 +61,5 @@ public class StudentListRenderer extends DefaultTableCellRenderer {
 		}
 		return c;
 	}
-
-	public Date getDueDate() {
-		return dueDate;
-	}
-
-	public void setDueDate(Date dueDate) {
-		this.dueDate = dueDate;
-	}
-
 
 }
