@@ -35,20 +35,16 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableColumnModelEvent;
 import javax.swing.event.TableColumnModelListener;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
-import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
+import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearNotesModifiedFlag;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.SetInfoLabelListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
-import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.StudentData;
@@ -73,17 +69,16 @@ public class StudentPanel extends JPanel{
 	private JSplitPane splitPane;
 	private RubricEntryPointBreakdownTable rubricEntryPointBreakdown;
 	private String NOTES_APPEND = ": Notes";
-	private StudentListInfo studentListInfo;
 	private JTextArea descriptionArea;
 	private int lastKeyboardCol;
 	private boolean keyPressed;
+	private boolean notesModified;
 
-	public StudentPanel(StudentListInfo studentListInfo, int dividerLocation) {
-		this.studentListInfo = studentListInfo;
+	public StudentPanel(StudentListInfo studentListInfo, int dividerLocation) {		
 		this.otherComments = studentListInfo.getNotesCommentsMap();
 		this.currentGrader = studentListInfo.getUserName();
 		this.notesAndCommentsMap = studentListInfo.getNotesCommentsMap().get(currentGrader);
-
+		notesModified = false;
 		lastKeyboardCol = -1;
 		keyPressed = false;
 		studentModel = new StudentListModel(studentListInfo);
@@ -160,6 +155,7 @@ public class StudentPanel extends JPanel{
 			@Override
 			public void insertUpdate(DocumentEvent e) {
 				if (currentStudent != null) {
+					notesModified = true;
 					notesAndCommentsMap.put(currentStudent, userComments.getText());
 				}
 			}
@@ -167,6 +163,7 @@ public class StudentPanel extends JPanel{
 			@Override
 			public void removeUpdate(DocumentEvent e) {
 				if (currentStudent != null) {
+					notesModified = true;
 					notesAndCommentsMap.put(currentStudent, userComments.getText());
 				}
 			}
@@ -337,7 +334,15 @@ public class StudentPanel extends JPanel{
 				structureChanged();
 			}
 		});
-
+		
+		ListenerCoordinator.addQueryResponder(GetAndClearNotesModifiedFlag.class, new GetAndClearNotesModifiedFlag() {
+			@Override
+			public Boolean fired() {
+				Boolean value = notesModified;
+				notesModified = false;
+				return value;
+			}
+		});
 
 		studentTable.addKeyListener(new KeyListener() {
 			@Override

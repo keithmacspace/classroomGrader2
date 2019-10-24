@@ -1,13 +1,16 @@
 package net.cdonald.googleClassroom.googleClassroomInterface;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryResponder;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.SQLDataBase;
@@ -21,7 +24,7 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 	private Class<? extends Enum<?>> tableLabelEnum;
 	private SQLDataBase dataBase;
 
-	protected IOException communicationException;
+	protected Exception communicationException;
 	private SQLException databaseException;
 	private Exception miscException;
 
@@ -96,6 +99,23 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 
 	@Override
 	protected void done() {
+		try {
+			get();
+		}catch(Exception e) {
+			communicationException = e;
+			e.printStackTrace();
+		}
+		if (shouldPossiblyRetry()) {
+			if (JOptionPane.showConfirmDialog(null, communicationException.getMessage() + "\n\nRetry?",  "Error Communicating With The Classroom",
+					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+				LongQueryResponder<?> responder = newInstance();
+				responder.setListener(this.getListener());
+				responder.execute();
+				return;
+			}
+				
+			
+		}
 
 		if (communicationException != null) {
 			System.err.println("google classroom error " + communicationException.getMessage());
@@ -133,7 +153,7 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 		super.done();
 	}
 
-	public IOException getCommunicationException() {
+	public Exception getCommunicationException() {
 		return communicationException;
 	}
 
@@ -144,4 +164,9 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 	public Exception getMiscException() {
 		return miscException;
 	}
+	
+	public boolean shouldPossiblyRetry() {
+		return (communicationException != null);
+	}
+	
 }

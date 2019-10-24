@@ -36,8 +36,12 @@ public abstract class LongQueryResponder<V> extends SwingWorker<Void, V> {
 		listener.remove(removeList);
 	}
 	
+
+	
 	
 	public abstract LongQueryResponder<V> newInstance();
+	public abstract boolean shouldPossiblyRetry();
+
 	
 
 

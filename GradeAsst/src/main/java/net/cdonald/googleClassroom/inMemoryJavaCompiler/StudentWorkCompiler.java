@@ -516,4 +516,19 @@ public class StudentWorkCompiler {
 			buildInfo.removeInstrumentation(new InstrumentaionRemover(),  null);
 		}
 	}
+
+
+	public List<String> checkForDuplicates() {
+		List<String> duplicate = null;	
+		for (String student : studentBuildInfoMap.keySet()) {
+			if (studentBuildInfoMap.get(student).hasDuplicateFileNames()) {
+				if (duplicate == null) {
+					duplicate = new ArrayList<String>();
+				}
+				duplicate.add(student);
+			}
+		}
+		return duplicate;
+		
+	}
 }

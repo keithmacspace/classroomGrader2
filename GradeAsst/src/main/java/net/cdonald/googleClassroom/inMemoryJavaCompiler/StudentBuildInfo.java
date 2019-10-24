@@ -99,4 +99,16 @@ public class StudentBuildInfo {
 	}
 
 
+	public boolean hasDuplicateFileNames() {
+		for (int i = 0; i < studentFileData.size(); i++) {
+			for (int j = i + 1; j < studentFileData.size(); j++) {
+				if (studentFileData.get(i).getName().equals(studentFileData.get(j).getName())) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+
 }

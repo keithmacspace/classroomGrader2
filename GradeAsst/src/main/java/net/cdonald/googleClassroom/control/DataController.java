@@ -38,13 +38,14 @@ import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.EnableRunRubricQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearNotesModifiedFlag;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerMessageQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentAssignmentQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricURL;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetWorkingDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
@@ -178,8 +179,36 @@ public class DataController implements StudentListInfo {
 						}
 					}
 					@Override
-					public void done() {						
-						//studentWorkCompiler.compileAll();
+					public void done() {
+
+						List<String> duplicates = studentWorkCompiler.checkForDuplicates();
+						if (duplicates != null) {
+							String message = "";
+							for (int i = 0; i < duplicates.size(); i++) {
+								StudentData student = DataController.this.studentMap.get(duplicates.get(i));
+								message += student.getFirstName() + " " + student.getName();
+								if (i != duplicates.size() - 1) {
+									message += ", ";
+								}
+							}
+							String have;
+							String those;
+							String students;
+							if (duplicates.size() > 1) {
+								have = " have ";
+								those = "those ";
+								students = "students' ";
+							}
+							else {
+								have =  " has ";
+								those = "that ";
+								students = "student's ";
+							}
+							message += have + "two files with the same name.\nSelect " + those + students + " source, determine which is the right source, and delete the other source.";
+							JOptionPane.showMessageDialog(null, message,  "Duplicate Source",
+									JOptionPane.ERROR_MESSAGE);
+							
+						}
 						updateListener.enableRuns();
 					}
 					@Override
@@ -867,9 +896,10 @@ public class DataController implements StudentListInfo {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
+				boolean notesModified = (Boolean)ListenerCoordinator.runQuery(GetAndClearNotesModifiedFlag.class);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
-				if (currentRubric.areGradesModified()) {
+				if (currentRubric.areGradesModified() || notesModified) {
 					for (StudentData student : studentData) {
 						String studentID = student.getId();
 						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);

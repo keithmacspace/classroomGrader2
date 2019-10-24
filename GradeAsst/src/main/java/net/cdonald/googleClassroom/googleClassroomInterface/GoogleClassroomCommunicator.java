@@ -378,12 +378,33 @@ public class GoogleClassroomCommunicator {
 						}
 						DriveFile driveFile = attachment.getDriveFile();
 						String title = driveFile.getTitle();
-						if (title.contains(".java")) {
+						String fileContents = "";
+						if (/*title.contains(".java") == */ true) {
 
 							ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-							driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(outputStream);
-							String fileContents = outputStream.toString("US-ASCII");
-							ClassroomData data = new FileData(driveFile.getTitle(), fileContents, studentNameKey,
+							File file = driveService.files().get(driveFile.getId()).execute();
+							String type = file.getMimeType();
+							
+							String fileName = driveFile.getTitle();
+							if (type.contains("text")) {
+								driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(outputStream);
+								fileContents = outputStream.toString("US-ASCII");
+							}
+							else if (type.contains("google-apps.document")) {
+								driveService.files().export(driveFile.getId(), "text/plain").executeMediaAndDownloadTo(outputStream);
+								 
+								fileName.replace('.', '_');
+								fileName.replace(' ', '_');
+								fileName += ".java";
+								fileContents = "// Student uploaded this as a google document, delete any weird characters and\n" +
+											   "//rename the class to have the same name as the file (without the .java).\n" + 
+											   outputStream.toString("US-ASCII");
+							} 
+							else {
+								fileContents = "Student uploaded file in unsupported format, nothing downloaded";								
+							}
+							
+							ClassroomData data = new FileData(fileName, fileContents, studentNameKey,
 									submission.getUpdateTime());
 							data.setRetrievedFromGoogle(true);
 							fetchListener.retrievedInfo(data);
