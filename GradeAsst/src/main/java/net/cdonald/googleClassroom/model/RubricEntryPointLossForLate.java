@@ -106,7 +106,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		
 		long dueDateTime = dueDate.getTime();
 		long submitDateTime = submitDate.getTime();
-		long difference = submitDateTime - dueDateTime;
+		double difference = submitDateTime - dueDateTime;
 		switch(timeUnit) {
 
 		case DAY:
@@ -122,15 +122,27 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 			difference = 0;
 			break;
 		}
-		if (difference == 0) {
-			addOutput(studentId, "Submitted before the first " + timeUnit.name().toLowerCase() + " had elapsed.");
-			return 1.0;
+		double reportDifference = difference;
+		reportDifference *= 10;
+		reportDifference = (long)reportDifference;
+		reportDifference /= 10;
+		double numToSubtract = 0.0;
+		String timeMessage;
+		if (reportDifference == 0.0) {
+			timeMessage = "Essentially on time. Only late by: " + difference;
 		}
-		addOutput(studentId, "Late by " + difference + " " + timeUnit.name().toLowerCase() + "s");
-		double numToSubtract = pointsLostPerTimeUnit * difference;
+		else {
+			timeMessage = "Late by " + reportDifference;
+			numToSubtract = pointsLostPerTimeUnit * reportDifference;
+		}
+		timeMessage +=  " " + timeUnit.name().toLowerCase();
+		if (reportDifference != 1.0) {
+			timeMessage += "s";
+		}
+		addOutput(studentId, timeMessage);
+		
 		if (numToSubtract >= owner.getValue()) {
 			addOutput(studentId, "Submitted too late to get any points");
-			return 0.0;
 		}
 		return (double)(owner.getValue() - numToSubtract)/(double)owner.getValue();		
 	}
@@ -184,7 +196,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 
 				}
 			}
-			if (timeUnit == null || pointsLostPerTimeUnit == -1.0) {
+			if (timeUnit == null || pointsLostPerTimeUnit <= 0.0 || timeUnit == TimeUnit.NONE ) {
 				Rubric.showLoadError("Missing data for entry: \"" + entryName + "\"");
 				timeUnit = TimeUnit.NONE;
 			}

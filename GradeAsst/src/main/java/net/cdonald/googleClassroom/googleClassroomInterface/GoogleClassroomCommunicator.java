@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -322,18 +323,25 @@ public class GoogleClassroomCommunicator {
 				}
 
 				Date date = courseWork.getDueDate();
+				
 			
 				TimeOfDay timeOfDay = courseWork.getDueTime();
 				
 				if (date != null && timeOfDay != null) {					
 					Integer hours = timeOfDay.getHours();
 					Integer minutes = timeOfDay.getMinutes();
+					
 					Integer month = date.getMonth();
 					Integer year = date.getYear();
 					Integer day = date.getDay();
 					
+					
 					Calendar temp = new GregorianCalendar(year, month - 1, day,
 							(hours == null) ? 0 : hours, (minutes == null) ? 0 : minutes);
+					long timeInMS = temp.getTimeInMillis();
+					long offset = TimeZone.getDefault().getOffset(timeInMS);
+					timeInMS += offset;
+					temp.setTimeInMillis(timeInMS);
 					java.util.Date dueDate = temp.getTime();					
 					ClassroomData data = new ClassroomData(courseWork.getTitle(), courseWork.getId(), dueDate);
 					data.setRetrievedFromGoogle(true);

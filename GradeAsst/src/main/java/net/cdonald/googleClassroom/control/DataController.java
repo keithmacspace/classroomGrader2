@@ -779,7 +779,10 @@ public class DataController implements StudentListInfo {
 			return defaultColumnNames[columnIndex];
 		}
 		if (currentRubric != null) {
-			return currentRubric.getEntry(getRubricIndex(columnIndex)).getName();
+			RubricEntry entry = currentRubric.getEntry(getRubricIndex(columnIndex));
+			if (entry != null) {
+				return entry.getColumnName();
+			}
 		}
 		return null;
 	}

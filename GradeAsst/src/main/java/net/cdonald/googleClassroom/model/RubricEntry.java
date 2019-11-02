@@ -418,4 +418,9 @@ public class RubricEntry {
 		}
 		
 	}
+
+	public String getColumnName() {
+		// TODO Auto-generated method stub
+		return getValue() + "-" + getName();
+	}
 }

@@ -275,12 +275,12 @@ public class Rubric implements SheetAccessorInterface {
 
 		Set<String> entriesSkipped = null;
 		for (RubricEntry entry : entries) {
-			if (rubricElementNames == null || rubricElementNames.contains(entry.getName())) {
+			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
 				if (entry.runAutomation(studentName, studentId, message, compiler, consoleData) == false) {
 					if (entriesSkipped == null) {
 						entriesSkipped = new HashSet<String>();						
 					}
-					entriesSkipped.add(entry.getName());
+					entriesSkipped.add(entry.getColumnName());
 				}
 				updateListener.dataUpdated();
 			}
@@ -305,7 +305,7 @@ public class Rubric implements SheetAccessorInterface {
 
 	public void deleteEntry(String elementName) {
 		for (int i = 0; i < entries.size(); i++) {
-			if (entries.get(i).getName().equals(elementName)) {
+			if (entries.get(i).getName().equals(elementName) || entries.get(i).getColumnName().equals(elementName)) {
 				entries.remove(i);
 				break;
 			}
