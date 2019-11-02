@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.swing.JOptionPane;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -129,6 +131,8 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		try {
 			compiled = compiler.compile(rubricFiles);
 		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, e.getMessage(), "Error compiling the test code",
+					JOptionPane.ERROR_MESSAGE);
 			return null;
 		}
 		List<Method> methods = new ArrayList<Method>();
