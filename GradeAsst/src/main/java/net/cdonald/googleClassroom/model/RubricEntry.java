@@ -272,10 +272,12 @@ public class RubricEntry {
 				studentScore.modifiedByUser = true;
 				double score = result;
 				score *= rubricValue;
-				// Just truncate below two digits of precision
-				score *= 100.0;
+
+				// Just truncate below one digits of precision
+				score *= 10.0;
+				score = Math.round(score);
 				score = (int) score;
-				score /= 100.0;
+				score /= 10.0;
 				studentScore.score = score;
 			}
 		}

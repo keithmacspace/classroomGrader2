@@ -944,7 +944,7 @@ public class GoogleClassroomCommunicator {
 			
 			List<Object> sums = new ArrayList<Object>();
 			for (int i = 1; i < 20; i++) {
-				sums.add("=SUM(B"  + i + ":D" + i + ")");
+				sums.add("=ROUND(SUM(B"  + i + ":D" + i + "))");
 			}
 			saveState.writeFullColumn(sums, 0);
 			for (int i= 1; i < 3; i++) {

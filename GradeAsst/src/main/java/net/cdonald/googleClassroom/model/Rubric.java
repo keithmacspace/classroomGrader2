@@ -145,9 +145,11 @@ public class Rubric implements SheetAccessorInterface {
 				value += studentValue.getScore();
 			}
 		}
-		value *= 100;
+		// Keep 1 unit of precision
+		value *= 10;
+		value = Math.round(value);
 		value = (int) value;
-		value /= 100;
+		value /= 10;
 		return value;
 
 	}

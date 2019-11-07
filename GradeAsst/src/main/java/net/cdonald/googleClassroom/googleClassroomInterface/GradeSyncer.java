@@ -683,7 +683,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 		}
 		String startColumnName = GoogleClassroomCommunicator.getColumnName(minRubricColumn);
 		String endColumnName = GoogleClassroomCommunicator.getColumnName(maxRubricColumn);
-		String sumString = "=SUM(" + startColumnName + (row  + 1) + ":" + endColumnName + (row + 1) + ")";
+		String sumString = "=ROUND(SUM(" + startColumnName + (row  + 1) + ":" + endColumnName + (row + 1) + "))";
 		studentRowData.set(getColumnLocation(TOTAL_STRING), sumString);
 		return changedData;
 	}
