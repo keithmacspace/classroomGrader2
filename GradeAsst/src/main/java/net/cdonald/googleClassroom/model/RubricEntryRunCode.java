@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.swing.JOptionPane;
 
@@ -71,9 +72,12 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	}
 	
 	@Override
-	public void getTestCode(List<FileData> files) {
+	public void getTestCode(List<FileData> files, Set<String> names) {
 		for (FileData sourceFile : sourceFiles) {
-			files.add(sourceFile);
+			if (names.contains(sourceFile.getName()) == false){
+				files.add(sourceFile);
+				names.add(sourceFile.getName());
+			}
 		}
 	}
 	

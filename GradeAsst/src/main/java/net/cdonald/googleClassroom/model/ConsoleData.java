@@ -293,7 +293,7 @@ public class ConsoleData {
 					additionalTextArea.append(debugTemp);
 					additionalTextArea.revalidate();
 				}
-				DebugLogDialog.append(debugTemp);
+				//DebugLogDialog.append(debugTemp);
 			}
 			if (done == true) {				
 				if (done == true) {

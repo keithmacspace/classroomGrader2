@@ -1,6 +1,8 @@
 package net.cdonald.googleClassroom.model;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.AppendOutputTextListener;
@@ -49,7 +51,7 @@ public abstract class RubricAutomation {
 		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n");
 	}
 
-	public void getTestCode(List<FileData> files) {}
+	public void getTestCode(List<FileData> files, Set<String> names) {}
 	public void modifyTestCode(String fileName, String fileContents) {}
 	public abstract RubricAutomation newCopy();
 	public abstract void removeFileData(FileData fileData);	

@@ -403,6 +403,11 @@ public class GoogleClassroomCommunicator {
 								 
 								fileName.replace('.', '_');
 								fileName.replace(' ', '_');
+								for (int i = 0; i < fileName.length(); i++) {
+									if (Character.isAlphabetic(fileName.charAt(i)) == false) {
+										fileName = fileName.replace(fileName.charAt(i), '_');
+									}
+								}
 								fileName += ".java";
 								fileContents = "// Student uploaded this as a google document, delete any weird characters and\n" +
 											   "//rename the class to have the same name as the file (without the .java).\n" + 

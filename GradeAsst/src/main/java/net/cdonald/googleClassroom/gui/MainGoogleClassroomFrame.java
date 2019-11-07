@@ -1,5 +1,10 @@
 package net.cdonald.googleClassroom.gui;
-
+/**
+ * To build the release version. Open a cmd prompt.  Go to the GradeAsst directory in the repro
+ * run gradle fatJar this will put a new jar in the libs section
+ * Then open NSIS and go to the ExportStuff directory & run the build script
+ * That will create a new install.exe in the ExportStuff directory
+ */
 import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;

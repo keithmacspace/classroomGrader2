@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
@@ -406,9 +407,9 @@ public class RubricEntry {
 
 	}
 
-	public void getTestCode(List<FileData> files) {
+	public void getTestCode(List<FileData> files, Set<String> names) {
 		if (automation != null) {
-			automation.getTestCode(files);
+			automation.getTestCode(files, names);
 		}		
 	}
 	

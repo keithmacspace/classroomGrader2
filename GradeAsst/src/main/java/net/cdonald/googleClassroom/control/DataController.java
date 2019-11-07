@@ -763,7 +763,7 @@ public class DataController implements StudentListInfo {
 					RubricEntry entry = currentRubric.getEntry(getRubricIndex(col));
 					if (entry != null) {
 						
-						if (showRedMap.get(studentId).contains(entry.getName())) {
+						if (showRedMap.get(studentId).contains(entry.getColumnName())) {
 							return true;
 						}
 					}

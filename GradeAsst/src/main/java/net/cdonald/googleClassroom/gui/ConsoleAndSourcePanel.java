@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.gui;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.Element;
 import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
@@ -134,16 +136,83 @@ public class ConsoleAndSourcePanel extends JPanel {
 			setWindowData(currentID);
 		}
 	}
+	
+	private static String getLineNumber(int number, int lastNumber) {
+		String lineNum = "" + number;
+		int stopPoint = (int)Math.log10(number);
+		for (int i = (int)Math.log10(10000); i > stopPoint; i--) {		
+			lineNum += " ";
+		}
+		if (number < lastNumber - 1) {
+			lineNum += System.getProperty("line.separator");
+		}
+		return lineNum;
+	}
+	
+	private void addLineNumbers(JScrollPane jsp, JTextArea jta) {		
+		JTextArea lines = new JTextArea(getLineNumber(1, 1));
+		Font font = new Font("monospaced", Font.PLAIN, jta.getFont().getSize());
+		jta.setFont(font);
+		lines.setFont(jta.getFont());
+		
+ 
+		lines.setEditable(false);
+ 
+		jta.getDocument().addDocumentListener(new DocumentListener(){
+			private int lastLineNumber = 0;
+			private void changeLineNumbers() {
+				int caretPosition = jta.getDocument().getLength();
+				Element root = jta.getDocument().getDefaultRootElement();
+				int lastNumber = root.getElementIndex( caretPosition ) + 2;
+				if (lastNumber != lastLineNumber) {
+					caretPosition = lines.getCaretPosition();
+					lines.setText(getText(lastNumber));				
+					lines.setCaretPosition(caretPosition);
+					lastLineNumber = lastNumber;
+				}
+			}
+			public String getText(int lastNumber){
+				String text = getLineNumber(1, lastNumber);
+
+				for(int i = 2; i < lastNumber; i++){
+					text += getLineNumber(i, lastNumber);
+				}
+				return text;
+			}
+			@Override
+			public void changedUpdate(DocumentEvent de) {
+				changeLineNumbers();
+			}
+ 
+			@Override
+			public void insertUpdate(DocumentEvent de) {
+				changeLineNumbers();
+			}
+ 
+			@Override
+			public void removeUpdate(DocumentEvent de) {
+				changeLineNumbers();
+			}
+ 
+		});
+		
+		jsp.getViewport().add(jta);
+		jsp.setRowHeaderView(lines);
+		jsp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+	}
 		
 	private void setSourceContents(String title, String text) {
 		JPanel sourcePanel = new JPanel();
 		sourcePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 		sourcePanel.setLayout(new BorderLayout());
 		JTextArea sourceArea = new JTextArea();
+		JScrollPane jsp = new JScrollPane();
+		addLineNumbers(jsp, sourceArea);
 		sourceArea.setText(text);
 		sourceArea.setComponentPopupMenu(popupSource);
 		sourceArea.getDocument().addUndoableEditListener(undoManager);
-		sourcePanel.add(new JScrollPane(sourceArea));
+		
+		sourcePanel.add(jsp);
 		currentSourceTextAreas.add(sourceArea);
 		sourceTabbedPane.addTab(title, sourcePanel);
 		sourceArea.setCaretPosition(0);		

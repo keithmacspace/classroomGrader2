@@ -622,8 +622,10 @@ public class Rubric implements SheetAccessorInterface {
 
 	public List<FileData> getTestCode() {
 		List<FileData> files = new ArrayList<FileData>();
+		Set<String> names = new HashSet<String>();
 		for (RubricEntry entry : entries) {
-			entry.getTestCode(files);
+			
+			entry.getTestCode(files, names);
 		}
 		if (files.size() == 0) {
 			return null;
