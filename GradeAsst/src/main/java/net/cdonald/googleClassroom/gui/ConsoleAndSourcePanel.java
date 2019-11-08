@@ -26,9 +26,14 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Element;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
+import javax.swing.undo.UndoableEdit;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
@@ -40,6 +45,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
+import net.cdonald.googleClassroom.listenerCoordinator.SelectStudentListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
@@ -66,15 +72,20 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private List<JTextArea> currentSourceTextAreas;
 	private Map<String, JTextArea> modifiedRubricTestCodeMap;
 	private UndoManager undoManager;
+	private Map<String, Map<String, JPanel>> sourceContentPanelMap;
+	private Map<String, Map<String, JTextArea>> sourceContentTextMap;
 
 
 	public ConsoleAndSourcePanel(UndoManager undoManager) {
 		this.undoManager = undoManager;
+		
 		setMinimumSize(new Dimension(400, 400));
 		createPopupMenu();
 		createLayout();
 		registerListeners();
 		setVisible(true);
+		sourceContentTextMap = new HashMap<String, Map<String, JTextArea>>();
+		sourceContentPanelMap = new HashMap<String, Map<String, JPanel>>();
 		currentSourceTextAreas = new ArrayList<JTextArea>();
 		rubricPanels = new HashMap<String, SplitOutErrPanel>();
 		modifiedRubricTestCodeMap = new HashMap<String, JTextArea>();
@@ -84,6 +95,12 @@ public class ConsoleAndSourcePanel extends JPanel {
 	public void assignmentSelected() {
 		sourceTabbedPane.removeAll();
 		consoleInput.setText("");
+		sourceContentTextMap.clear();
+		sourceContentPanelMap.clear();
+		currentSourceTextAreas.clear();
+		rubricPanels.clear();
+		modifiedRubricTestCodeMap.clear();
+		
 	}
 	
 	public void syncSource() {
@@ -104,31 +121,33 @@ public class ConsoleAndSourcePanel extends JPanel {
 
 
 	public void setWindowData(String idToDisplay) {
-		SwingUtilities.invokeLater(new Runnable() {			
-			@Override
-			public void run() {
-				syncSource();
-				currentSourceTextAreas.clear();
-				sourceTabbedPane.removeAll();
-				currentID = idToDisplay;
-				if (idToDisplay != null) {
-					@SuppressWarnings("unchecked")
-					List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, idToDisplay);
-					CompilerMessage compilerMessage = (CompilerMessage)ListenerCoordinator.runQuery(GetCompilerMessageQuery.class, idToDisplay);					
-					if (fileDataList != null) {
-						for (FileData fileData : fileDataList) {
-							setSourceContents(fileData.getName(), fileData.getFileContents());
-						}
-						if (compilerMessage != null && compilerMessage.getCompilerMessage() != null && compilerMessage.getCompilerMessage().length() > 2) {
-								setSourceContents("Compiler Message", compilerMessage.getCompilerMessage());
-						}
+		if (currentID == null || !currentID.equals(idToDisplay)) {
+			SwingUtilities.invokeLater(new Runnable() {			
+				@Override
+				public void run() {
+					syncSource();
+					currentSourceTextAreas.clear();
+					sourceTabbedPane.removeAll();
+					currentID = idToDisplay;
+					if (idToDisplay != null) {
+						@SuppressWarnings("unchecked")
+						List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, idToDisplay);
+						CompilerMessage compilerMessage = (CompilerMessage)ListenerCoordinator.runQuery(GetCompilerMessageQuery.class, idToDisplay);					
+						if (fileDataList != null) {
+							for (FileData fileData : fileDataList) {
+								setSourceContents(currentID, fileData.getName(), fileData.getFileContents(), true);
+							}
+							if (compilerMessage != null && compilerMessage.getCompilerMessage() != null && compilerMessage.getCompilerMessage().length() > 2) {
+								setSourceContents(currentID, "Compiler Message", compilerMessage.getCompilerMessage(), false);
+							}
 
+						}
 					}
+					bindStudentAreas(idToDisplay);
 				}
-				bindStudentAreas(idToDisplay);
-			}
 
-		});
+			});
+		}
 	}
 	
 	public void refreshInfo() {
@@ -201,21 +220,37 @@ public class ConsoleAndSourcePanel extends JPanel {
 		jsp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 	}
 		
-	private void setSourceContents(String title, String text) {
-		JPanel sourcePanel = new JPanel();
-		sourcePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-		sourcePanel.setLayout(new BorderLayout());
-		JTextArea sourceArea = new JTextArea();
-		JScrollPane jsp = new JScrollPane();
-		addLineNumbers(jsp, sourceArea);
-		sourceArea.setText(text);
-		sourceArea.setComponentPopupMenu(popupSource);
-		sourceArea.getDocument().addUndoableEditListener(undoManager);
+	private void setSourceContents(String studentId, String title, String text, boolean editable) {
+		if (sourceContentPanelMap.containsKey(studentId) == false) {
+			sourceContentPanelMap.put(studentId, new HashMap<String, JPanel>());
+			sourceContentTextMap.put(studentId, new HashMap<String, JTextArea>());
+		}
+		Map<String, JPanel> panelMap = sourceContentPanelMap.get(studentId);
+		Map<String, JTextArea> textMap = sourceContentTextMap.get(studentId);
+		if (panelMap.containsKey(title) == false) {
+			JPanel sourcePanel = new JPanel();
+			sourcePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+			sourcePanel.setLayout(new BorderLayout());
+			JTextArea sourceArea = new JTextArea();
+			JScrollPane jsp = new JScrollPane();
+			addLineNumbers(jsp, sourceArea);
+			sourceArea.setEditable(editable);
+			sourceArea.setText(text);
+			if (editable) {
+				sourceArea.setComponentPopupMenu(popupSource);
+				sourceArea.getDocument().addUndoableEditListener(new MyUndoableEditListener(title));
+			}
+			sourcePanel.add(jsp);
+			sourceArea.setCaretPosition(0);
+			panelMap.put(title, sourcePanel);
+			textMap.put(title, sourceArea);
+		}
+		JPanel sourcePanel = panelMap.get(title);
+		JTextArea sourceArea = textMap.get(title);				
 		
-		sourcePanel.add(jsp);
 		currentSourceTextAreas.add(sourceArea);
 		sourceTabbedPane.addTab(title, sourcePanel);
-		sourceArea.setCaretPosition(0);		
+				
 	}
 
 	private void createPopupMenu() {
@@ -246,22 +281,6 @@ public class ConsoleAndSourcePanel extends JPanel {
 		popupInput.add(paste);
 		popupRubricSource.add(paste);
 		
-		
-//		JMenuItem removeInstrumentation = new JMenuItem("Remove Instrumentation");
-//		popupSource.add(removeInstrumentation);
-//		removeInstrumentation.addActionListener(new ActionListener() {
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				if (currentID != null) {
-//					int currentTab = sourceTabbedPane.getSelectedIndex();
-//					String fileName = sourceTabbedPane.getTitleAt(currentTab);
-//					if (currentTab < currentSourceTextAreas.size()) {
-//						ListenerCoordinator.fire(RemoveInstrumentationListener.class, currentID, fileName);
-//					}
-//				}				
-//			}			
-//		});
-
 		JMenuItem recompile = new JMenuItem("Recompile");
 		popupSource.add(recompile);
 		
@@ -344,27 +363,34 @@ public class ConsoleAndSourcePanel extends JPanel {
 
 		JPanel ioPanel = new JPanel();
 		ioPanel.setLayout(new BorderLayout());
-		JPanel inputWrapper = new JPanel();
-		inputWrapper.setLayout(new BorderLayout());
+
+		JPanel consoleInputPanel = new JPanel();
+		consoleInputPanel.setLayout(new BorderLayout());
 		
-		inputWrapper.setBorder(BorderFactory.createTitledBorder("Console Input"));		
-		inputWrapper.add(consoleInput);
-
-		outputWrapperPanel = new SplitOutErrPanel();
-
-
+		consoleInputPanel.setBorder(BorderFactory.createTitledBorder("Console Input"));		
+		consoleInputPanel.add(consoleInput, BorderLayout.CENTER);
 		inputHistorWrapperPanel = new JPanel();
 		inputHistorWrapperPanel.setLayout(new BorderLayout());
 		
 		inputHistorWrapperPanel.setBorder(BorderFactory.createTitledBorder("Input History"));
+		
+		JPanel inputWrapper = new JPanel();
+		inputWrapper.setLayout(new BorderLayout());
+		inputWrapper.add(consoleInputPanel, BorderLayout.NORTH);
+		inputWrapper.add(inputHistorWrapperPanel, BorderLayout.CENTER);
 
 
+		outputWrapperPanel = new SplitOutErrPanel();
 
-		JSplitPane ioSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, outputWrapperPanel.getSplitPane(), inputHistorWrapperPanel);
-		ioSplit.setResizeWeight(0.9);
+
+		
+
+
+		JSplitPane ioSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, outputWrapperPanel.getSplitPane(), inputWrapper);
+		ioSplit.setResizeWeight(0.5);
 
 		ioPanel.add(ioSplit, BorderLayout.CENTER);
-		ioPanel.add(inputWrapper, BorderLayout.SOUTH);
+		//ioPanel.add(inputWrapper, BorderLayout.SOUTH);
 		setVisible(true);
 		rubricTabbedPane = new JTabbedPane();
 
@@ -587,6 +613,109 @@ public class ConsoleAndSourcePanel extends JPanel {
 		}
 		modifiedRubricTestCodeMap.clear();
 	}
+    //This one listens for edits that can be undone.
+    protected class MyUndoableEditListener
+                    implements UndoableEditListener {
+    	private String tabTitle;
+        public MyUndoableEditListener(String string) {
+        	tabTitle = string;
+		}
+
+		public void undoableEditHappened(UndoableEditEvent e) {
+            //Remember the edit and update the menus.
+            undoManager.addEdit(new UndoableTabEvent(e.getEdit(), tabTitle));
+
+        }
+		private class UndoableTabEvent  implements UndoableEdit {
+			UndoableEdit actualEdit;
+			String tabTitle;
+			String currentStudent;
+
+			public UndoableTabEvent(UndoableEdit actualEdit, String tabTitle) {
+				super();
+				this.currentStudent = currentID;
+				this.actualEdit = actualEdit;
+				this.tabTitle = tabTitle;
+			}
+			
+			private void selectTab() {
+				if (!currentID.equals(currentStudent)) {
+					setWindowData(currentStudent);
+					ListenerCoordinator.fire(SelectStudentListener.class, currentStudent);
+				}
+				if (!sourceTabbedPane.getTitleAt(sourceTabbedPane.getSelectedIndex()).equals(tabTitle)) {
+					for (int i = 0; i < sourceTabbedPane.getTabCount(); i++) {
+						if (sourceTabbedPane.getTitleAt(i).equals(tabTitle)) {
+							sourceTabbedPane.setSelectedIndex(i);
+							break;
+						}
+					}
+				}				
+			}
+
+			@Override
+			public void undo() throws CannotUndoException {
+				selectTab();
+				actualEdit.undo();
+				
+			}
+
+			@Override
+			public boolean canUndo() {
+				return actualEdit.canUndo();
+			}
+
+			@Override
+			public void redo() throws CannotRedoException {
+				selectTab();
+				actualEdit.redo();
+				
+			}
+
+			@Override
+			public boolean canRedo() {
+				return actualEdit.canRedo();
+			}
+
+			@Override
+			public void die() {
+				actualEdit.die();				
+			}
+
+			@Override
+			public boolean addEdit(UndoableEdit anEdit) {
+				return actualEdit.addEdit(anEdit);
+			}
+
+			@Override
+			public boolean replaceEdit(UndoableEdit anEdit) {
+				return actualEdit.replaceEdit(anEdit);
+			}
+
+			@Override
+			public boolean isSignificant() {
+				return actualEdit.isSignificant();
+			}
+
+			@Override
+			public String getPresentationName() {
+				return actualEdit.getPresentationName();
+			}
+
+			@Override
+			public String getUndoPresentationName() {
+				return actualEdit.getUndoPresentationName();
+			}
+
+			@Override
+			public String getRedoPresentationName() {
+				return actualEdit.getRedoPresentationName();
+			}
+			
+		}
+    }
+	
+
 
 
 }

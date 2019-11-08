@@ -160,10 +160,10 @@ public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardI
 
 
 		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), explanation, 0);
-		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
-		SimpleUtils.addLabelAndComponent(namePanel, methodToSearchLabel, methodToSearchCombo, 2);
-		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 3);
-		SimpleUtils.addLabelAndComponent(namePanel, stringToSearchFor, valuesToSearchForTable, 4);
+//		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
+		SimpleUtils.addLabelAndComponent(namePanel, methodToSearchLabel, methodToSearchCombo, 1);
+		//SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 3);
+		SimpleUtils.addLabelAndComponent(namePanel, stringToSearchFor, valuesToSearchForTable, 2);
 		return namePanel;
 
 	}

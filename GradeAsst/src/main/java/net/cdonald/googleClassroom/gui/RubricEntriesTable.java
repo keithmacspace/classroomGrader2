@@ -32,14 +32,13 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
-import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
-import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
+
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntry.HeadingNames;
-import net.cdonald.googleClassroom.model.StudentData;
 
+
+@SuppressWarnings("serial")
 public class RubricEntriesTable extends JTable {
 	private RubricEntryTableModel rubricEntryTableModel;
 	private Rubric associatedRubric;

@@ -198,9 +198,11 @@ public class MainMenu extends JMenuBar {
 	}
 
 	private void fillEditMenu() {
-		JMenuItem removeInstrumentation = new JMenuItem("Find/Replace");
-		edit.add(removeInstrumentation);
-		removeInstrumentation.addActionListener(new ActionListener() {
+		JMenuItem findReplace = new JMenuItem("Find/Replace");
+		findReplace.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
+		edit.add(findReplace);
+		
+		findReplace.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {

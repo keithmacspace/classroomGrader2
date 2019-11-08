@@ -78,7 +78,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	private InfoPanel infoPanel;
 	private DebugLogDialog dbg;
 	private GuidedSetupDialog guidedSetup;
-	private ReplaceDialog replaceDialog;
+	private FindReplaceDialog replaceDialog;
 	private UndoManager undoManager;
 
 
@@ -90,7 +90,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		rubricElementDialog = new RubricElementDialog(this, dataController.getPrefs(), dataController.getStudentWorkCompiler());
 		newRubricDialog = new NewRubricDialog(this);
 		guidedSetup = new GuidedSetupDialog(this, dataController);
-		replaceDialog = new ReplaceDialog(this);
+		replaceDialog = new FindReplaceDialog(this);
 		
 		setLayout();		
 

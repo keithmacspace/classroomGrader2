@@ -224,9 +224,9 @@ public class RubricEntryRunCodeCard implements RunCodeFileListTableModelListener
 		filePanel.add(fileScroll, BorderLayout.CENTER);
 		filePanel.setPreferredSize(new Dimension(0, fileToUseList.getRowHeight() * 5 + 1));
 		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), explanation, 0);
-		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
-		SimpleUtils.addLabelAndComponent(namePanel, fileToUseLabel, filePanel, 2);
-		SimpleUtils.addLabelAndComponent(namePanel, methodToCallLabel, methodToCallCombo, 3);
+		//SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
+		SimpleUtils.addLabelAndComponent(namePanel, fileToUseLabel, filePanel, 1);
+		SimpleUtils.addLabelAndComponent(namePanel, methodToCallLabel, methodToCallCombo, 2);
 		return namePanel;
 
 	}

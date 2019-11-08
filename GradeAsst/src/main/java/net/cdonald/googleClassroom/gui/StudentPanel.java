@@ -42,6 +42,7 @@ import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearNotesModifiedFlag;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.SelectStudentListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
@@ -200,6 +201,26 @@ public class StudentPanel extends JPanel{
 			public void componentHidden(ComponentEvent e) {
 			}
 		});
+		
+		ListenerCoordinator.addListener(SelectStudentListener.class, new SelectStudentListener() {
+
+			@Override
+			public void fired(String studentID) {
+				if (!currentStudent.equals(studentID) ) {
+					for (int i = 0; i < studentTable.getRowCount(); i++) {						
+						Object student = studentModel.getValueAt(i, StudentListInfo.LAST_NAME_COLUMN);
+						if (student != null) {
+							StudentData studentInfo = (StudentData) student;
+							String testID = studentInfo.getId();
+							if (testID.equals(studentID)) {
+								selectStudent(i);
+								break;
+							}
+						}
+					}					
+				}
+			}			
+		});
 
 		studentTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 
@@ -242,6 +263,9 @@ public class StudentPanel extends JPanel{
 				});
 			}
 		});
+		
+		
+		
 		studentTable.addMouseListener(new MouseListener() {
 
 			@Override
@@ -342,6 +366,17 @@ public class StudentPanel extends JPanel{
 				notesModified = false;
 				return value;
 			}
+		});
+		
+		ListenerCoordinator.addListener(StudentSelectedListener.class, new StudentSelectedListener() {
+
+			@Override
+			public void fired(String idToDisplay) {
+				
+				// TODO Auto-generated method stub
+				
+			}
+			
 		});
 
 		studentTable.addKeyListener(new KeyListener() {

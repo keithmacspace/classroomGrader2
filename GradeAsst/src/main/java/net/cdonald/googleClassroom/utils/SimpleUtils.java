@@ -1,6 +1,7 @@
 package net.cdonald.googleClassroom.utils;
 
 import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public class SimpleUtils {
 	}
 	
 	public static void addLabel(JPanel parent, JLabel label, int y) {
-		GridBagConstraints l = new GridBagConstraints();
+		GridBagConstraints l = new GridBagConstraints();		
 		l.weightx = 0;
 		l.weighty = 0;
 		l.gridx = 0;
@@ -55,6 +56,7 @@ public class SimpleUtils {
 	public static void addLabelAndComponent(JPanel parent, JLabel label, JComponent component, int y) {
 		addLabel(parent, label, y);
 		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(3, 3, 3, 0);
 		c.weightx = 1.0;
 		c.weighty = 0.0;
 		c.fill = GridBagConstraints.HORIZONTAL;
