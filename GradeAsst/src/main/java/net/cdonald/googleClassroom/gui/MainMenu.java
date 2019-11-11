@@ -31,6 +31,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.ExitFiredListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchGuidedSetupListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchNewRubricDialogListener;
+import net.cdonald.googleClassroom.listenerCoordinator.LaunchOptionsDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricEditorDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricFileDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -201,7 +202,7 @@ public class MainMenu extends JMenuBar {
 		JMenuItem findReplace = new JMenuItem("Find/Replace");
 		findReplace.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
 		edit.add(findReplace);
-		
+		edit.addSeparator();
 		findReplace.addActionListener(new ActionListener() {
 
 			@Override
@@ -210,7 +211,7 @@ public class MainMenu extends JMenuBar {
 			}
 
 		});
-		add(edit);
+
 		JMenuItem undo = new JMenuItem("Undo");
 		undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, ActionEvent.CTRL_MASK));
 
@@ -235,8 +236,19 @@ public class MainMenu extends JMenuBar {
 				}
 			}
 		});
-		
-		
+		edit.addSeparator();
+		JMenuItem options = new JMenuItem("Options...");
+		options.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ListenerCoordinator.fire(LaunchOptionsDialogListener.class);
+			}
+		});
+		edit.add(options);
+
+	
+		add(edit);
+	
 	}
 
 	private void fillRunMenu() {

@@ -10,11 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
-
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.StudentConsoleAreas;
 import net.cdonald.googleClassroom.listenerCoordinator.AppendOutputTextListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
@@ -26,7 +23,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.SystemOutListener;
 
 
 public class ConsoleData {
-	public static final boolean CAPTURE_STDERR = true;
+	public static final boolean CAPTURE_STDERR =  true;
 	private PipedInputStream inPipe;
 	private final PipedInputStream outPipe = new PipedInputStream();
 	private final PipedInputStream errPipe = new PipedInputStream();

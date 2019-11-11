@@ -15,9 +15,10 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntryPointLossForLate;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardInterface {
-	private JComboBox<RubricEntryPointLossForLate.TimeUnit> timeUnitCombo;
+	private JComboBox<SimpleUtils.TimeUnit> timeUnitCombo;
 	private JTextField pointsLost;
 	private RubricEntryPointLossForLate associatedAutomation;
 	private RubricElementDialog dialogOwner;
@@ -28,7 +29,7 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardIn
 		valuePanel.setLayout(new FlowLayout());
 		pointsLost = new JTextField();
 		pointsLost.setColumns(5);
-		timeUnitCombo = new  JComboBox<RubricEntryPointLossForLate.TimeUnit>(RubricEntryPointLossForLate.TimeUnit.values());
+		timeUnitCombo = new  JComboBox<SimpleUtils.TimeUnit>(SimpleUtils.TimeUnit.values());
 		valuePanel.add(pointsLost);
 		JLabel perLabel = new JLabel(" points lost per ");
 		valuePanel.add(perLabel);
@@ -76,7 +77,7 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardIn
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (associatedAutomation != null) {
-					associatedAutomation.setTimeUnit((RubricEntryPointLossForLate.TimeUnit)timeUnitCombo.getSelectedItem());
+					associatedAutomation.setTimeUnit((SimpleUtils.TimeUnit)timeUnitCombo.getSelectedItem());
 				}				
 			}
 			

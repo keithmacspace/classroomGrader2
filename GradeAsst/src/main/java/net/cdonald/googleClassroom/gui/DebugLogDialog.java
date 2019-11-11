@@ -20,9 +20,11 @@ import net.cdonald.googleClassroom.model.ConsoleData;
 
 public class DebugLogDialog extends JDialog {
 	private static DebugLogDialog dbg = null;
+	private static boolean enable = true;
 	private Map<Long, JTextArea> checkPointAreaMap; 
 	private JTabbedPane checkPointPane;
 	private JTextArea debugInfoArea;
+
 	public DebugLogDialog(Frame parent) {
 		super(parent, "Debug Logs", Dialog.ModalityType.MODELESS);
 		setLayout(new BorderLayout());
@@ -44,18 +46,20 @@ public class DebugLogDialog extends JDialog {
 	}
 	
 	public static void showDebugInfo() {
-		dbg.setVisible(true);		
+		if (enable) {
+			dbg.setVisible(true);
+		}
 	}
 		
 	
 	public static void append(String text) {
-		if (dbg != null) {
+		if (dbg != null && enable) {
 			dbg.debugInfoArea.append(text);
 		}
 
 	}
 	public static void appendln(String text) {
-		if (dbg != null) {
+		if (dbg != null && enable) {
 			dbg.debugInfoArea.append(text + "\n");
 		}
 		// When we aren't capturing stderr, then we want to just print errors to the screen
@@ -78,7 +82,7 @@ public class DebugLogDialog extends JDialog {
 	}
 	
 	public static void appendCheckPoint(String text, int depthBack) {
-		if (dbg != null) {
+		if (dbg != null && enable) {
 			Long id = Thread.currentThread().getId();
 			if (dbg.checkPointAreaMap.containsKey(id) == false) {
 				dbg.addThread(id);
@@ -98,12 +102,23 @@ public class DebugLogDialog extends JDialog {
 	}
 	
 	private void addThread(Long id) {
-		JTextArea checkPointArea = new JTextArea();
-		JPanel checkPointPanel = new JPanel();
-		checkPointPanel.setLayout(new BorderLayout());
-		checkPointPanel.add(new JScrollPane(checkPointArea), BorderLayout.CENTER);
-		checkPointPane.addTab("" + id, checkPointPanel);
-		checkPointAreaMap.put(id, checkPointArea);
+		if (enable) {
+			JTextArea checkPointArea = new JTextArea();
+			JPanel checkPointPanel = new JPanel();
+			checkPointPanel.setLayout(new BorderLayout());
+			checkPointPanel.add(new JScrollPane(checkPointArea), BorderLayout.CENTER);
+			checkPointPane.addTab("" + id, checkPointPanel);
+			checkPointAreaMap.put(id, checkPointArea);
+		}
 		
+	}
+
+	public static void setEnableDBG(boolean val) {
+		enable = val;
+		
+	}
+	
+	public static boolean getEnableDBG() {
+		return enable;
 	}
 }

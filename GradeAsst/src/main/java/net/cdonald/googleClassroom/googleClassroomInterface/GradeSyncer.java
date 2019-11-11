@@ -37,10 +37,12 @@ public class GradeSyncer implements SheetAccessorInterface {
 	}
 	private static final int SUBMIT_DATA_COLUMN = 2;
 	private static final String SUBMIT_DATE_STRING = "Submit Date";
+	private static final String LATE_INFO_COLUMN_KEY = "Late By";
 	private static final String TOTAL_STRING = "Total";
 	private static final String NOTES_APPEND = ": Notes";
 	private static final String LAST_NAME_COLUMN_KEY = "Last Name";
 	private static final String FIRST_NAME_COLUMN_KEY = "First Name";
+
 	private boolean updateBorders;
 	private Rubric rubric;
 	private List<StudentRow> studentRowList;	
@@ -80,6 +82,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 			processRows(data, students);
 			processColumnNames(data);
 			loadDataIntoDisplayStructures(data);
+			rubric.setLoadedFromFile(true);
 		}
 		else {
 			// There was no grade sheet out there, so when we save also change the formatting
@@ -123,6 +126,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 		addColumnLocation(LAST_NAME_COLUMN_KEY, col++);
 		addColumnLocation(FIRST_NAME_COLUMN_KEY, col++);
 		addColumnLocation(SUBMIT_DATE_STRING, col++);
+		addColumnLocation(LATE_INFO_COLUMN_KEY, col++);
 		addColumnLocation(TOTAL_STRING, col++);	
 		for (int i = 0; i < rubric.getEntryCount(); i++) {
 			addColumnLocation(rubric.getEntry(i).getName(), col++);
@@ -448,6 +452,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 				}
 				int col = SUBMIT_DATA_COLUMN;
 				possiblyInsertColumn(SUBMIT_DATE_STRING, col++);
+				possiblyInsertColumn(LATE_INFO_COLUMN_KEY, col++);
 				possiblyInsertColumn(TOTAL_STRING, col++);
 				for (int i = 0; i < rubric.getEntryCount(); i++) {
 					possiblyInsertColumn(rubric.getEntry(i).getName(), col++);
@@ -635,10 +640,12 @@ public class GradeSyncer implements SheetAccessorInterface {
 				}
 				studentRowData.set(getColumnLocation(LAST_NAME_COLUMN_KEY), studentData.getName());
 				studentRowData.set(getColumnLocation(FIRST_NAME_COLUMN_KEY), studentData.getFirstName());
-				studentRowData.set(getColumnLocation(SUBMIT_DATE_STRING), SimpleUtils.formatDate(studentData.getDate()));
 				Date date = studentRow.getDate();
-				if (date != null) {
+				if (date != null) {					
 					studentRowData.set(getColumnLocation(SUBMIT_DATE_STRING), SimpleUtils.formatDate(date));
+					if (assignment != null) {
+						studentRowData.set(getColumnLocation(LATE_INFO_COLUMN_KEY), SimpleUtils.formatLate(date, assignment.getDate()));
+					}
 				}
 				changedData |= fillStudentGradeColumns(studentID, studentRowData, row, currentRow);
 
@@ -657,6 +664,8 @@ public class GradeSyncer implements SheetAccessorInterface {
 		}
 		return changedData;
 	}
+	
+	
 	/**
 	 * Go through the rubric entries for a single student, and fill in their scores & notes
 	 * returns true if we changed anything. 
@@ -763,6 +772,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 		columnNameRow.set(0, RowTypes.RUBRIC_NAME.getSearchString());
 		columnNameRow.set(getColumnLocation(TOTAL_STRING), TOTAL_STRING);
 		columnNameRow.set(getColumnLocation(SUBMIT_DATE_STRING), SUBMIT_DATE_STRING);
+		columnNameRow.set(getColumnLocation(LATE_INFO_COLUMN_KEY), LATE_INFO_COLUMN_KEY);
 
 		String graderNotes = graderName + NOTES_APPEND;
 		Integer noteLocation = getColumnLocation(graderNotes);

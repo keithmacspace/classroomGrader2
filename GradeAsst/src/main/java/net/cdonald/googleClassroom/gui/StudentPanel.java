@@ -142,7 +142,8 @@ public class StudentPanel extends JPanel{
 		descriptionArea.setEditable(false);
 		descriptionArea.setWrapStyleWord(true);
 		descriptionArea.setLineWrap(true);
-		notesAndCommentsTextArea.put(currentGrader, new JTextArea());
+		JTextArea notesArea = new JTextArea();
+		notesAndCommentsTextArea.put(currentGrader, notesArea);
 		addListeners(studentListInfo);
 		resizeColumns();
 

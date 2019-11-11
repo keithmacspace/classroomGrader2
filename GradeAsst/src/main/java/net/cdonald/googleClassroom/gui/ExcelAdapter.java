@@ -1,6 +1,7 @@
 package net.cdonald.googleClassroom.gui;
 
 import java.awt.Toolkit;
+
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -8,10 +9,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
-
+import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
@@ -22,11 +22,9 @@ import javax.swing.KeyStroke;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.DefaultEditorKit;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;  
 /**
  * pulled from
@@ -36,7 +34,7 @@ import org.jsoup.select.Elements;
  * format used by Excel. This provides for clipboard interoperability between
  * enabled JTables and Excel.
  */
-public class ExcelAdapter implements ActionListener {
+public class ExcelAdapter  {
 	private String rowstring, value;
 	private Clipboard system;
 	private StringSelection stsel;
@@ -58,7 +56,12 @@ public class ExcelAdapter implements ActionListener {
 		}
 
 	}
+	private void registerKeyboardAction(String name, KeyStroke key, AbstractAction action) {
+		jTable1.getInputMap(JComponent.WHEN_FOCUSED).put(key, name);
+		jTable1.getActionMap().put(name, action);
+	}
 	
+	@SuppressWarnings("serial")
 	public void addPopupOptions(JPopupMenu popupMenu) {
 		KeyStroke copy = KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false);
 		// Identifying the copy KeyStroke user can modify this
@@ -67,9 +70,28 @@ public class ExcelAdapter implements ActionListener {
 		// Identifying the Paste KeyStroke user can modify this
 		// to copy on some other Key combination.
 		KeyStroke delete = KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0, false);
-		jTable1.registerKeyboardAction(this, "Copy", copy, JComponent.WHEN_FOCUSED);
-		jTable1.registerKeyboardAction(this, "Paste", paste, JComponent.WHEN_FOCUSED);
-		jTable1.registerKeyboardAction(this, "Delete", delete, JComponent.WHEN_FOCUSED);
+		KeyStroke backSpace = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0, false);
+		
+		registerKeyboardAction("Copy", copy, new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				copyAction();				
+			}			
+		});
+		registerKeyboardAction("Paste", paste, new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				pasteAction();				
+			}			
+		});
+		AbstractAction deleteAction = new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				deleteAction();				
+			}			
+		};
+		registerKeyboardAction("Delete", delete, deleteAction);
+		registerKeyboardAction("Backspace", backSpace, deleteAction);
 		if (popupMenu == null) {
 			popupMenu = new JPopupMenu();
 		}
@@ -126,21 +148,25 @@ public class ExcelAdapter implements ActionListener {
 		if (e.getActionCommand().compareTo("Paste") == 0) {
 			pasteAction();
 		}
-		if (e.getActionCommand().compareTo("Delete") == 0) {
-			int[] rows = jTable1.getSelectedRows();
-			int[] cols = jTable1.getSelectedColumns();
-			if (rows != null && cols != null && rows.length > 0 && cols.length > 0) {
-				for (int row : rows) {
-					for (int col : cols) {
-						if (jTable1.isCellEditable(row, col)) {
-							jTable1.setValueAt(null, row, col);
-						}
+		if ((e.getActionCommand().compareTo("Delete") == 0) || (e.getActionCommand().compareTo("Backspace") == 0)){
+		}
+	}
+	
+	public void deleteAction() {
+		int[] rows = jTable1.getSelectedRows();
+		int[] cols = jTable1.getSelectedColumns();
+		if (rows != null && cols != null && rows.length > 0 && cols.length > 0) {
+			for (int row : rows) {
+				for (int col : cols) {
+					if (jTable1.isCellEditable(row, col)) {
+						jTable1.setValueAt(null, row, col);
 					}
 				}
 			}
-			AbstractTableModel model = (AbstractTableModel)jTable1.getModel();
-			model.fireTableDataChanged();
 		}
+		AbstractTableModel model = (AbstractTableModel)jTable1.getModel();
+		model.fireTableDataChanged();
+		
 	}
 	
 	public void copyAction() {

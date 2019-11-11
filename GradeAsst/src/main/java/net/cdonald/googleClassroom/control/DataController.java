@@ -18,6 +18,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.text.DefaultEditorKit;
+import javax.swing.undo.AbstractUndoableEdit;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
+import javax.swing.undo.UndoableEdit;
 
 import net.cdonald.googleClassroom.googleClassroomInterface.AssignmentFetcher;
 import net.cdonald.googleClassroom.googleClassroomInterface.CourseFetcher;
@@ -63,6 +68,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.SetRunRubricEnableStateLi
 import net.cdonald.googleClassroom.listenerCoordinator.SetWorkingDirListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
+import net.cdonald.googleClassroom.listenerCoordinator.OptionsDialogUpdated;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.CompileErrorListener;
 import net.cdonald.googleClassroom.model.ConsoleData;
@@ -72,7 +78,9 @@ import net.cdonald.googleClassroom.model.JPLAGInvoker;
 import net.cdonald.googleClassroom.model.MyPreferences;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
+import net.cdonald.googleClassroom.model.RubricEntry.StudentScore;
 import net.cdonald.googleClassroom.model.StudentData;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 
 
@@ -95,9 +103,20 @@ public class DataController implements StudentListInfo {
 	private StudentData rubricBeingEditedStudent;
 	private Map<String, Set<String>> showRedMap;
 	private Date dueDate;
+	private Boolean addEdits;
+	private UndoManager undoManager;
+	private boolean markLateRed;
+	private int lateTime;
+	private MyPreferences.LateType lateType;
+	
 
-	public DataController(MainGoogleClassroomFrame mainFrame) {
+
+	public DataController(MainGoogleClassroomFrame mainFrame, UndoManager undoManager) {
+		this.undoManager = undoManager;
 		prefs = new MyPreferences();
+		markLateRed = prefs.getLateDatesInRed();
+		lateTime = prefs.getLateDateTime();
+		lateType = prefs.getLateType();
 		studentWorkCompiler = new StudentWorkCompiler(mainFrame);
 		studentData = new ArrayList<StudentData>();
 		studentMap = new HashMap<String, StudentData>();
@@ -106,6 +125,7 @@ public class DataController implements StudentListInfo {
 		updateListener = mainFrame;
 		notesCommentsMap = new HashMap<String, Map<String, String>>();
 		showRedMap = null;
+		addEdits = false;
 		initGoogle();		
 		notesCommentsMap.put(prefs.getUserName(), new HashMap<String, String>());
 		registerListeners();
@@ -167,8 +187,9 @@ public class DataController implements StudentListInfo {
 		ListenerCoordinator.addListener(AssignmentSelected.class, new AssignmentSelected() {
 			@Override
 			public void fired(ClassroomData data) {
-
+				addEdits = false;
 				studentWorkCompiler.clearData();
+				undoManager.discardAllEdits();
 				ListenerCoordinator.runLongQuery(FileFetcher.class, new LongQueryListener<ClassroomData>() {
 					@Override
 					public void process(List<ClassroomData> list) {
@@ -341,6 +362,7 @@ public class DataController implements StudentListInfo {
 		ListenerCoordinator.addListener(RubricSelected.class, new RubricSelected() {
 			@Override
 			public void fired(GoogleSheetData data) {
+				undoManager.discardAllEdits();
 				if (data != null && data.isEmpty() == false) {
 					if (primaryRubric == null || primaryRubric.getName().equals(data.getName()) == false) {
 						Rubric rubric = new Rubric(data);
@@ -418,6 +440,19 @@ public class DataController implements StudentListInfo {
 				} 
 
 			}
+		});
+		
+		ListenerCoordinator.addListener(OptionsDialogUpdated.class, new OptionsDialogUpdated() {
+			@Override
+			public void fired(Boolean anonymous) {
+				StudentData.setAnonymousNames(anonymous);
+				markLateRed = prefs.getLateDatesInRed();
+				lateTime = prefs.getLateDateTime();
+				lateType = prefs.getLateType();
+				updateListener.dataUpdated();
+				
+			}
+			
 		});
 				
 	}
@@ -585,8 +620,12 @@ public class DataController implements StudentListInfo {
 			studentName = student.getFirstName() + " " + student.getName();
 		}
 		if (currentRubric != null) {
-			CompilerMessage message = studentWorkCompiler.getCompilerMessage(studentId);			
-			skipped = currentRubric.runAutomation(updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);
+			CompilerMessage message = studentWorkCompiler.getCompilerMessage(studentId);
+			List<RubricEntry.RubricUndoInfo> undoInfo = new ArrayList<RubricEntry.RubricUndoInfo>();
+			skipped = currentRubric.runAutomation(undoInfo, updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);
+			if (undoInfo.size() != 0) {
+				undoManager.addEdit(new RubricUndoableEdit(undoInfo));
+			}
 		}
 		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 		return skipped;
@@ -597,6 +636,8 @@ public class DataController implements StudentListInfo {
 		if (currentCourse != null) {
 			studentData.clear();
 			studentMap.clear();
+			boolean saveAnonymous = StudentData.isAnonymousNames();
+			StudentData.setAnonymousNames(false);
 			ListenerCoordinator.runLongQuery(StudentFetcher.class,  new LongQueryListener<ClassroomData>() {
 
 				@Override
@@ -608,7 +649,9 @@ public class DataController implements StudentListInfo {
 				}
 				@Override
 				public void done() {
+					StudentData.setAnonymousNames(saveAnonymous);
 					updateListener.structureChanged();
+
 				}
 				@Override
 				public void remove(Set<String> removeList) {					
@@ -723,11 +766,34 @@ public class DataController implements StudentListInfo {
 		if (Rubric.getModifiableState() == Rubric.ModifiableState.LOCK_USER_MODIFICATIONS) {
 			return;
 		}
-		int index = getRubricIndex(columnIndex);		
-		if (index >= 0 && currentRubric != null) {
-			currentRubric.getEntry(index).setStudentValue(getStudentId(rowIndex), (String)value);
-		}
+		int index = getRubricIndex(columnIndex);
 		
+		if (index >= 0 && currentRubric != null) {
+			RubricEntry entry = currentRubric.getEntry(index);
+			String studentID = getStudentId(rowIndex);
+			StudentScore preChange = entry.getStudentScore(studentID);
+			if (preChange != null) {
+				preChange = new StudentScore(preChange);
+			}
+			if (!(value == null && (preChange == null || preChange.getScore() == null))) {
+				entry.setStudentValue(studentID, (String)value);
+				addUndo(index, studentID, preChange);
+			}
+		}		
+	}
+	
+	private void addUndo(int index, String studentID, StudentScore preChange) {
+		RubricEntry entry = currentRubric.getEntry(index);
+		if (entry != null) {
+			StudentScore postChange = entry.getStudentScore(studentID);
+			boolean bothNull = ((preChange == null || preChange.getScore() == null) && (postChange == null || postChange.getScore() == null));
+			if (!bothNull) {
+				boolean sameValue = preChange != null && postChange != null && preChange.getScore().equals(postChange.getScore()); 
+				if (!sameValue) {
+					undoManager.addEdit(new RubricUndoableEdit(index, studentID, preChange, postChange));
+				}
+			}
+		}
 	}
 	
 	@Override
@@ -749,10 +815,17 @@ public class DataController implements StudentListInfo {
 	@Override
 	public boolean showRed(int row, int col, Object value) {
 		if (col == DATE_COLUMN) {
+			
+			
+
+			lateTime = prefs.getLateDateTime();
+			lateType = prefs.getLateType();
 			if (value instanceof Date) {
-				Date date = (Date)value;			
-				if (dueDate != null && date.compareTo(dueDate) > 0) {
-					return true;
+				if (markLateRed) {
+					Date submitDate = (Date)value;				
+					if (SimpleUtils.calculateDifference(submitDate, dueDate, lateType) > lateTime) {
+						return true;
+					}
 				}
 			}
 		}
@@ -771,6 +844,11 @@ public class DataController implements StudentListInfo {
 			}
 		}
 		return false;
+	}
+	
+	@Override
+	public void addEdits(boolean addEdits) {
+		this.addEdits = addEdits;
 	}
 		
 	@Override
@@ -895,6 +973,8 @@ public class DataController implements StudentListInfo {
 	
 	public boolean syncGrades() {
 		boolean worked = true;
+		boolean saveAnonymous = StudentData.isAnonymousNames();
+		StudentData.setAnonymousNames(false);
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null && rubricBeingEditedStudent == null) {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
@@ -902,7 +982,7 @@ public class DataController implements StudentListInfo {
 				boolean notesModified = (Boolean)ListenerCoordinator.runQuery(GetAndClearNotesModifiedFlag.class);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
-				if (currentRubric.areGradesModified() || notesModified) {
+				if (currentRubric.areGradesModified() || notesModified || currentRubric.isLoadedFromFile() == false) {
 					for (StudentData student : studentData) {
 						String studentID = student.getId();
 						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);
@@ -914,6 +994,7 @@ public class DataController implements StudentListInfo {
 					}
 					grades.saveData(assignment);
 				}
+				StudentData.setAnonymousNames(saveAnonymous);
 				updateListener.dataUpdated();				
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
@@ -923,6 +1004,7 @@ public class DataController implements StudentListInfo {
 			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
 			
 		}
+		StudentData.setAnonymousNames(saveAnonymous);
 		return worked;
 	}
 	
@@ -1025,7 +1107,72 @@ public class DataController implements StudentListInfo {
 			studentWorkCompiler.removeInstrumentation(studentID, fileName);
 		}
 	}
+
+
 	
+	private class RubricUndoableEdit extends AbstractUndoableEdit {
+		
+		private static final long serialVersionUID = 1L;
+
+		List<RubricEntry.RubricUndoInfo> undoInfo;
+		public RubricUndoableEdit(int rubricEntry, String studentID, StudentScore preChange, StudentScore postChange) {
+			undoInfo = new ArrayList<RubricEntry.RubricUndoInfo>();
+			undoInfo.add(new RubricEntry.RubricUndoInfo(rubricEntry, studentID, preChange, postChange));
+		}
+		public RubricUndoableEdit(List<RubricEntry.RubricUndoInfo> undoInfo) {
+			this.undoInfo = undoInfo;
+		}
+
+		@Override
+		public void undo() throws CannotUndoException {
+			for (RubricEntry.RubricUndoInfo entryInfo : undoInfo) {
+				currentRubric.getEntry(entryInfo.getRubricEntryIndex()).setStudentScore(entryInfo.getStudentID(), entryInfo.getStudentScorePreChange());	
+			}
+			updateListener.dataUpdated();
+		}
+
+		@Override
+		public boolean canUndo() {
+			return true;
+		}
+
+		@Override
+		public void redo() throws CannotRedoException {
+			for (RubricEntry.RubricUndoInfo entryInfo : undoInfo) {
+				currentRubric.getEntry(entryInfo.getRubricEntryIndex()).setStudentScore(entryInfo.getStudentID(), entryInfo.getStudentScorePostChange());	
+			}
+			updateListener.dataUpdated();
+		}
+
+		@Override
+		public boolean canRedo() {
+			return true;
+		}
+
+		@Override
+		public boolean addEdit(UndoableEdit anEdit) {
+			if (addEdits && anEdit instanceof RubricUndoableEdit) {
+				RubricUndoableEdit other = (RubricUndoableEdit)anEdit;
+				for (RubricEntry.RubricUndoInfo entryInfo : other.undoInfo) {
+					undoInfo.add(entryInfo);	
+				}
+				return true;
+			}
+			//addEdits = true;
+			return false;
+		}
+
+		@Override
+		public boolean replaceEdit(UndoableEdit anEdit) {
+			return false;
+		}
+
+		@Override
+		public boolean isSignificant() {
+			return true;
+		}
+		
+	}
 }
 
 

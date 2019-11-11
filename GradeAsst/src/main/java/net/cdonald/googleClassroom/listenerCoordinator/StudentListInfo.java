@@ -20,4 +20,5 @@ public interface StudentListInfo {
 	public Map<String, Map<String, String> > getNotesCommentsMap();
 	public String getUserName();
 	public boolean showRed(int row, int col, Object value);
+	public void addEdits(boolean addEdits);
 }

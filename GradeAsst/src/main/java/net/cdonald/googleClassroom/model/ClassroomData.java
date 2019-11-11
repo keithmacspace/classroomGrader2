@@ -95,7 +95,7 @@ public class ClassroomData implements Comparable<ClassroomData> {
 	}
 
 	public String toString() {
-		return name;
+		return getName();
 	}
 
 	@Override
