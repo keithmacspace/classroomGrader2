@@ -16,13 +16,14 @@ import net.cdonald.googleClassroom.utils.FileUtils;
  *
  */
 public class MyPreferences {
+	public enum LateType{Minutes, Hours, Days}
 	public enum Dimensions {MAIN, RUBRIC_EDIT}
 	public enum Dividers {STUDENT_SOURCE, STUDENT_NOTES, RUBRIC_SPLIT}
 	// We store a few global preferences in java's prefs, but the rest we store
 	// for individual classes in a per-class db
 	private Preferences preferences;
 	
-	private enum GlobalPrefs {WORKING_DIR, CLASS_ID, CLASS_NAME, FILE_DIR, GRADED_BY_NAME, RUBRIC_URL, RUBRIC_FILE}
+	private enum GlobalPrefs {WORKING_DIR, CLASS_ID, CLASS_NAME, FILE_DIR, GRADED_BY_NAME, RUBRIC_URL, RUBRIC_FILE, LATE_DATES_IN_RED, LATE_DATE_TIME, LATE_DATE_TYPE, COLLECT_DEBUG_INFO}
 	
 	private enum ClassPrefs {CLASS_RUBRIC_URL, CLASS_RUBRIC_FILE, GRADE_URL, GRADE_FILE};	
 
@@ -132,6 +133,49 @@ public class MyPreferences {
 	public void setUserName(String name) {
 		preferences.put(GlobalPrefs.GRADED_BY_NAME.toString(), name);
 	}
+	
+	public boolean getLateDatesInRed() {
+		return getBooleanType(GlobalPrefs.LATE_DATES_IN_RED);
+	}
+	
+	public void setLateDatesInRed(boolean set) {
+		setBooleanType(GlobalPrefs.LATE_DATES_IN_RED, set);
+	}
+	
+	public int getLateDateTime() {
+		return Integer.parseInt(preferences.get(GlobalPrefs.LATE_DATE_TIME.toString(), "0"));
+	}
+	
+	public LateType getLateType() {
+		String type = preferences.get(GlobalPrefs.LATE_DATE_TYPE.toString(), LateType.Minutes.toString());
+		return LateType.valueOf(type);
+		
+	}
+	
+	public void setLateDateTypeAndTime(LateType lateType, int time) {
+		preferences.put(GlobalPrefs.LATE_DATE_TYPE.toString(), lateType.toString());
+		preferences.put(GlobalPrefs.LATE_DATE_TIME.toString(), "" + time);		
+	}
+	
+	public boolean getCollectDebugInfo() {
+		return getBooleanType(GlobalPrefs.COLLECT_DEBUG_INFO);
+	}
+	
+	public void setCollectDebugInfo(boolean set) {
+		setBooleanType(GlobalPrefs.COLLECT_DEBUG_INFO, set);
+	}
+	
+	private boolean getBooleanType(GlobalPrefs prefType) {
+		return getBooleanType(prefType, Boolean.TRUE);
+	}
+	private boolean getBooleanType(GlobalPrefs prefType, Boolean defaultVal) {
+		return Boolean.parseBoolean(preferences.get(prefType.toString(), defaultVal.toString()));
+	}
+	
+	private void setBooleanType(GlobalPrefs prefType, boolean val) {
+		preferences.put(prefType.toString(), (val == true)?Boolean.TRUE.toString() : Boolean.FALSE.toString());
+	}
+		
 	
 	public ClassroomData getClassroom() {
 		String id = preferences.get(GlobalPrefs.CLASS_ID.toString(), null);

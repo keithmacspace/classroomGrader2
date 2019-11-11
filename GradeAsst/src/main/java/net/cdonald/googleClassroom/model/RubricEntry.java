@@ -19,7 +19,20 @@ public class RubricEntry {
 		NONE, TURN_IN_SOMETHING, POINT_LOSS_FOR_LATE, COMPILES, RUN_CODE, CODE_CONTAINS_METHOD
 	}
 
-	public class StudentScore {
+	public static class StudentScore {
+		public StudentScore() {
+			score = null;
+			modifiedByUser = false;
+		}
+		public StudentScore(StudentScore orig) {
+			score = null;
+			if (orig.score != null) {
+				double value = orig.score;
+				score = value;
+			}
+			modifiedByUser = orig.modifiedByUser;
+			
+		}
 		public Double getScore() {
 			return score;
 		}
@@ -31,13 +44,57 @@ public class RubricEntry {
 		private Double score;
 		private boolean modifiedByUser;
 	}
+	public static class RubricUndoInfo {
+		public RubricUndoInfo(int rubricEntryIndex, String studentID, StudentScore studentScorePreChange,
+				StudentScore studentScorePostChange) {
+			super();
+			this.rubricEntryIndex = rubricEntryIndex;
+			this.studentID = studentID;
+			this.studentScorePostChange = null;
+			this.studentScorePostChange = null;
+			if (studentScorePreChange != null) {
+				this.studentScorePreChange = new StudentScore(studentScorePreChange);
+			}
+			if (studentScorePostChange != null) {
+				this.studentScorePostChange = new StudentScore(studentScorePostChange);
+			}
+		}
+		public String getStudentID() {
+			return studentID;
+		}
+		public void setStudentID(String studentID) {
+			this.studentID = studentID;
+		}
+		public int getRubricEntryIndex() {
+			return rubricEntryIndex;
+		}
+		public void setRubricEntryIndex(int rubricEntryIndex) {
+			this.rubricEntryIndex = rubricEntryIndex;
+		}
+		public RubricEntry.StudentScore getStudentScorePreChange() {
+			return studentScorePreChange;
+		}
+		public void setStudentScorePreChange(RubricEntry.StudentScore studentScorePreChange) {
+			this.studentScorePreChange = studentScorePreChange;
+		}
+		public RubricEntry.StudentScore getStudentScorePostChange() {
+			return studentScorePostChange;
+		}
+		public void setStudentScorePostChange(RubricEntry.StudentScore studentScorePostChange) {
+			this.studentScorePostChange = studentScorePostChange;
+		}
+		private String studentID;
+		private int rubricEntryIndex;
+		private RubricEntry.StudentScore studentScorePreChange;
+		private RubricEntry.StudentScore studentScorePostChange;
+	}
 	private String id;
 	private String name;
 	private String description;
 	private int rubricValue;
 	private AutomationTypes automationType;
 	private Map<String, StudentScore> studentScores;
-	private RubricAutomation automation;
+	private RubricAutomation automation;	
 
 
 	public RubricEntry(List<String> headings, List<Object> entries) {
@@ -90,7 +147,7 @@ public class RubricEntry {
 		}
 
 		try {
-			if (stringValue == null) {
+			if (stringValue == null || stringValue.length() == 0) {
 				score.score = null;
 			} else if (stringValue.length() > 0) {
 				Double test = Double.parseDouble(stringValue);
@@ -109,6 +166,10 @@ public class RubricEntry {
 			return studentScores.get(studentID);
 		}
 		return null;
+	}
+	
+	public void setStudentScore(String studentID, StudentScore score) {
+		studentScores.put(studentID, score);
 	}
 
 	public String getStudentValue(String studentID) {
@@ -245,7 +306,7 @@ public class RubricEntry {
 				+ ", automationType=" + automationType + "]";
 	}
 
-	boolean runAutomation(String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
+	boolean runAutomation(List<RubricUndoInfo> undoInfo, int elementIndex, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
 			ConsoleData consoleData) {
 		// Don't change the value of already graded rubrics
 		StudentScore studentScore = studentScores.get(studentId);
@@ -262,6 +323,7 @@ public class RubricEntry {
 			studentScore = new StudentScore();
 			studentScores.put(studentId, studentScore);
 		}
+		StudentScore oldScore = new StudentScore(studentScores.get(studentId));
 
 		// No need to check the Rubric.ModifiableState, if we're running automation,
 		// we're changing the value
@@ -304,9 +366,9 @@ public class RubricEntry {
 				break;
 			}
 		}
+		undoInfo.add(new RubricUndoInfo(elementIndex, studentId, oldScore, studentScore));
 		return true;
 	}
-
 	public void clearStudentData() {
 		studentScores.clear();
 	}
@@ -426,4 +488,6 @@ public class RubricEntry {
 		// TODO Auto-generated method stub
 		return getValue() + "-" + getName();
 	}
+
+
 }

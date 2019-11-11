@@ -10,6 +10,7 @@ public class StudentData extends ClassroomData {
 		ID, LAST, FIRST
 	};
 	public static final String DB_TABLE_NAME = "Students";
+	public static boolean anonymousNames;
 
 	public StudentData(String firstName, String lastName, String id, Date creationTime) {
 		super(lastName, id, creationTime);
@@ -26,8 +27,23 @@ public class StudentData extends ClassroomData {
 		}
 	}
 
+	public StudentData(StudentData student) {
+		super(student);
+		firstName = student.firstName;
+	}
+	@Override
+	public String getName() {
+		if (anonymousNames == false) {
+			return super.getName();
+		}
+		return "Student";
+	}
+
 	public String getFirstName() {
-		return firstName;
+		if (anonymousNames == false) {
+			return firstName;
+		}
+		return "Name";
 	}
 
 	public void setFirstName(String firstName) {
@@ -56,6 +72,14 @@ public class StudentData extends ClassroomData {
 		default:
 			throw new IllegalArgumentException();
 		}
+	}
+
+	public static boolean isAnonymousNames() {
+		return anonymousNames;
+	}
+
+	public static void setAnonymousNames(boolean anonymousNames) {
+		StudentData.anonymousNames = anonymousNames;
 	}
 
 }

@@ -42,6 +42,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchFindReplaceDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchGuidedSetupListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchNewRubricDialogListener;
+import net.cdonald.googleClassroom.listenerCoordinator.LaunchOptionsDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricEditorDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LaunchRubricFileDialogListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -80,18 +81,20 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	private GuidedSetupDialog guidedSetup;
 	private FindReplaceDialog replaceDialog;
 	private UndoManager undoManager;
+	private OptionsDialog optionsDialog;
 
 
 	public MainGoogleClassroomFrame() throws InterruptedException {
 		super(APP_NAME);
 		undoManager = new UndoManager();
+
 		dbg = new DebugLogDialog(this);
-		dataController = new DataController(this);		
+		dataController = new DataController(this, undoManager);		
 		rubricElementDialog = new RubricElementDialog(this, dataController.getPrefs(), dataController.getStudentWorkCompiler());
 		newRubricDialog = new NewRubricDialog(this);
 		guidedSetup = new GuidedSetupDialog(this, dataController);
 		replaceDialog = new FindReplaceDialog(this);
-		
+		optionsDialog = new OptionsDialog(this,dataController.getPrefs());		
 		setLayout();		
 
 		
@@ -410,6 +413,12 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				
 			}			
 		});
+		
+		ListenerCoordinator.addListener(LaunchOptionsDialogListener.class, new LaunchOptionsDialogListener() {
+			public void fired() {
+				optionsDialog.setVisible(true);
+			}
+		});
 	
 	}
 	
@@ -498,6 +507,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				}
 				try {
 					mainToolBar.setStopEnabled(true);
+					dataController.addEdits(true);
 					for (String id : ids) {
 						
 						if (runSource == true) {
@@ -522,6 +532,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 					e.printStackTrace();					
 					System.out.println("\0");
 				}
+				dataController.addEdits(false);
 				if (entriesSkipped != null) {
 					dataController.setShowRedMap(entriesSkipped);
 					dataUpdated();

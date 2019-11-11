@@ -9,15 +9,15 @@ import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentAssignmentQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
+import net.cdonald.googleClassroom.utils.SimpleUtils.TimeUnit;
 
 public class RubricEntryPointLossForLate extends RubricAutomation {
-	public static enum TimeUnit{NONE, WEEK, DAY, HOUR};
+
 	private double pointsLostPerTimeUnit;
-	private TimeUnit timeUnit;
+	private SimpleUtils.TimeUnit timeUnit;
 	private enum ColumnNames {TIME_UNIT, POINTS_LOST_PER_TIME_UNIT}
-	private static final long MS_PER_HOUR = 3600000;
-	private static final long MS_PER_DAY = MS_PER_HOUR * 24;
-	private static final long MS_PER_WEEK = MS_PER_DAY * 7;
+	
 
 	public RubricEntryPointLossForLate() {
 		timeUnit = TimeUnit.NONE;
@@ -70,6 +70,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 
 	}
 
+
 	@Override
 	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message,
 			StudentWorkCompiler compiler, ConsoleData consoleData) {
@@ -103,25 +104,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 			return 1.0;
 		}
 		
-		
-		long dueDateTime = dueDate.getTime();
-		long submitDateTime = submitDate.getTime();
-		double difference = submitDateTime - dueDateTime;
-		switch(timeUnit) {
-
-		case DAY:
-			difference /= MS_PER_DAY;
-			break;
-		case HOUR:
-			difference /= MS_PER_HOUR;
-			break;
-		case WEEK:
-			difference /= MS_PER_WEEK;
-			break;
-		default:
-			difference = 0;
-			break;
-		}
+		double difference = SimpleUtils.calculateDifference(submitDate, dueDate, timeUnit);
 		double reportDifference = difference;
 		reportDifference *= 10;
 		reportDifference = (long)reportDifference;

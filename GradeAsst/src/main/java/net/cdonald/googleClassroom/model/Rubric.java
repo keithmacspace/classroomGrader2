@@ -62,6 +62,7 @@ public class Rubric implements SheetAccessorInterface {
 	private List<FileData> referenceSource;
 	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";
 	private List<PointBreakdown> pointBreakdown;
+	private boolean loadedFromFile = false;
 
 	public static ModifiableState getModifiableState() {
 		return modifiableState;
@@ -74,6 +75,7 @@ public class Rubric implements SheetAccessorInterface {
 	public Rubric(GoogleSheetData sheetData) {
 		super();
 		this.sheetData = sheetData;
+		loadedFromFile = false;
 		entries = new ArrayList<RubricEntry>();
 		fileDataMap = new HashMap<String, FileData>();
 		referenceSource = new ArrayList<FileData>();
@@ -83,6 +85,7 @@ public class Rubric implements SheetAccessorInterface {
 	public Rubric(Rubric other) {
 		sheetData = new GoogleSheetData(other.sheetData);
 		entries = new ArrayList<RubricEntry>();
+		loadedFromFile = other.loadedFromFile;
 		for (RubricEntry otherEntry : other.entries) {
 			entries.add(new RubricEntry(otherEntry));
 		}
@@ -104,6 +107,7 @@ public class Rubric implements SheetAccessorInterface {
 	// This form is used when we are creating a new rubric from scratch
 	public Rubric() {
 		inModifiedState = true;
+		loadedFromFile = false;
 		entries = new ArrayList<RubricEntry>();
 		fileDataMap = new HashMap<String, FileData>();
 		referenceSource = new ArrayList<FileData>();
@@ -172,6 +176,14 @@ public class Rubric implements SheetAccessorInterface {
 
 	public boolean isEmpty() {
 		return entries.isEmpty();
+	}
+
+	public boolean isLoadedFromFile() {
+		return loadedFromFile;
+	}
+
+	public void setLoadedFromFile(boolean loadedFromFile) {
+		this.loadedFromFile = loadedFromFile;
 	}
 
 	public void addNewEntry() {
@@ -272,13 +284,15 @@ public class Rubric implements SheetAccessorInterface {
 		return null;
 	}
 
-	public Set<String> runAutomation(DataUpdateListener updateListener, Set<String> rubricElementNames, String studentName,
+	public Set<String> runAutomation(List<RubricEntry.RubricUndoInfo> undoInfo, DataUpdateListener updateListener, Set<String> rubricElementNames, String studentName,
 			String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
 
 		Set<String> entriesSkipped = null;
-		for (RubricEntry entry : entries) {
+		
+		for (int index = 0; index < entries.size(); index++) {
+			RubricEntry entry = entries.get(index);
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
-				if (entry.runAutomation(studentName, studentId, message, compiler, consoleData) == false) {
+				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData) == false) {
 					if (entriesSkipped == null) {
 						entriesSkipped = new HashSet<String>();						
 					}
