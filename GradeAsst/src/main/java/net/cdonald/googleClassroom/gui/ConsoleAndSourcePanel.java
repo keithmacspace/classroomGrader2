@@ -127,6 +127,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		SwingUtilities.invokeLater(new Runnable() {			
 			@Override
 			public void run() {
+
 				//if (currentID == null || !currentID.equals(idToDisplay)) 
 				{
 					syncSource();
