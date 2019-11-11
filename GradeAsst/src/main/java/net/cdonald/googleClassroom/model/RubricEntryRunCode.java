@@ -10,6 +10,8 @@ import java.util.Set;
 
 import javax.swing.JOptionPane;
 
+import org.mdkt.compiler.CompilationException;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -113,6 +115,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 	}
 	
+	
 	public List<Method> getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler) {
 
 		if (referenceSource == null || referenceSource.size() == 0) {
@@ -153,7 +156,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return methods;
 	}
 	
-	protected Double runAutomation_(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
+	protected Double runAutomation_(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
 		if (message == null) {
 			return null;
 		}
@@ -163,11 +166,11 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 
 			List<FileData> studentFiles = compiler.getSourceCode(studentId);
-			return runAutomation_(studentFiles, studentId, compiler, consoleData);
+			return runAutomation_(studentFiles, studentId, compiler, referenceSource, consoleData);
 		}
 		return null;
 	}
-	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, ConsoleData consoleData) {
+	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)
 		{
 			if (methodToCall == null || sourceFiles.size() == 0 || referenceSourceClassNames == null || referenceSourceClassNames.size() == 0) {
@@ -179,7 +182,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			consoleData.runStarted(studentId, getOwnerName());				
 			prepareForNextTest();
 
-			String error = replaceClassNames(studentFiles, rubricFiles, studentId);
+			String error = replaceClassNames(studentFiles, rubricFiles, studentId, compiler, referenceSource);
 			if (error != null) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 				addOutput(studentId, error);					
@@ -218,7 +221,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return null;
 	}
 	
-	String replaceClassNames(List<FileData> studentFiles, List<FileData> rubricFiles, String studentId) {
+	String replaceClassNames(List<FileData> studentFiles, List<FileData> rubricFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource) {
 		String errorPre = "Not all the methods/class constants found that are needed by this test code.\n";
 		errorPre += "If the student just mis-spelled a name, fix it in the student source tab.\n";
 		errorPre += "If they are completely missing a method, in the student source tab,\n";
@@ -252,6 +255,25 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		// Student source might not be parsable, in which case that is fine
 		catch(Exception e) {
 			error = "Could not parse student file";
+			// Check to see if the test code compiles with the reference, if it doesn't print the compile message
+			List<FileData> compileFiles = new ArrayList<FileData>(referenceSource);
+			
+
+			for (FileData sourceFile : sourceFiles) {
+				compileFiles.add(sourceFile);			
+			}
+			
+			
+			try {
+				compiler.compile(compileFiles);
+			} catch (CompilationException compEx ) {
+				return compEx.getMessage();
+			} catch (Exception compileMessage) {
+				String compilerMessage = e.getLocalizedMessage();
+				return compilerMessage;
+			}
+
+			
 		}
 		if (error.length() == 0) {
 			return null;

@@ -21,8 +21,8 @@ public abstract class RubricAutomation {
 	}
 
 	
-	public Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {		
-		return runAutomation_(owner, studentName, studentId, message, compiler, consoleData);		
+	public Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {		
+		return runAutomation_(owner, studentName, studentId, message, compiler, referenceSource, consoleData);		
 	}
 	
 	public void setOwnerName(String name) {
@@ -55,7 +55,7 @@ public abstract class RubricAutomation {
 	public void modifyTestCode(String fileName, String fileContents) {}
 	public abstract RubricAutomation newCopy();
 	public abstract void removeFileData(FileData fileData);	
-	protected abstract Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData);
+	protected abstract Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData);
 	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData, Map<String, List<Object>> fileData);
 	protected abstract void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData,	Map<String, FileData> fileDataMap);
 

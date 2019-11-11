@@ -100,9 +100,6 @@ public class ConsoleAndSourcePanel extends JPanel {
 		sourceContentTextMap.clear();
 		sourceContentPanelMap.clear();
 		currentSourceTextAreas.clear();
-		rubricPanels.clear();
-		modifiedRubricTestCodeMap.clear();
-		
 	}
 	
 	public void syncSource() {
@@ -128,7 +125,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 			@Override
 			public void run() {
 
-				//if (currentID == null || !currentID.equals(idToDisplay)) 
+				if (currentID == null || !currentID.equals(idToDisplay)) 
 				{
 					syncSource();
 					currentSourceTextAreas.clear();

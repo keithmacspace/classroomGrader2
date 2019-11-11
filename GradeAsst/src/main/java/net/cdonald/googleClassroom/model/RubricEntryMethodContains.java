@@ -92,7 +92,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 	}
 
 	@Override
-	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
+	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource,
 			ConsoleData consoleData) {
 
 		if (message == null) {

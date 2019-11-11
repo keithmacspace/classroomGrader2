@@ -127,7 +127,7 @@ public class StudentWorkCompiler {
 		return null;		
 	}
 	
-	public Map<String, Class<?>> compile(List<FileData> fileDataList) throws Exception {
+	public Map<String, Class<?>> compile(List<FileData> fileDataList) throws CompilationException, Exception {
 		InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance();
 		Map<String, Class<?>> compiled = null;
 
@@ -139,7 +139,7 @@ public class StudentWorkCompiler {
 		
 	}
 	
-	public Object compileAndRun(boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args, boolean instrument) throws Exception {
+	public Object compileAndRun(boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args, boolean instrument) throws CompilationException, Exception {
 		List<FileData> instrumentedList = new ArrayList<FileData>();
 		Map<String, Class<?>> compiled = null;
 		List<FileData> filesToUse = null;

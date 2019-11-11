@@ -73,7 +73,7 @@ public class InMemoryJavaCompiler {
 	 * @return Map containing instances of all compiled classes
 	 * @throws Exception
 	 */
-	public Map<String, Class<?>> compileAll() throws Exception {
+	public Map<String, Class<?>> compileAll() throws CompilationException, Exception {
 		if (sourceCodes.size() == 0) {
 			throw new CompilationException("No source code to compile");
 		}

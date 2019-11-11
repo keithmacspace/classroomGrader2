@@ -47,7 +47,7 @@ public class FindReplaceDialog extends JDialog implements ActionListener
        
     public FindReplaceDialog(JFrame owner)  
     {
-        super(owner, "Find & Replace", true);       
+        super(owner, "Find & Replace", false);       
         this.owner = owner;        
         initComponents();
         findHistory = new ArrayList<String>();
@@ -168,10 +168,11 @@ public class FindReplaceDialog extends JDialog implements ActionListener
     		while (index != -1) {
     			boolean found = true;
         		if (index != 0) {
-        			found = Character.isWhitespace(searchText.charAt(index - 1));        			
+        			int charAt = searchText.charAt(index - 1);
+        			found = isWordDelimeter(charAt);         			
         		}
         		if (found && index + toFind.length() < searchText.length()) {
-        			found = Character.isWhitespace(searchText.charAt(index + toFind.length()));
+        			found = isWordDelimeter(searchText.charAt(index + toFind.length()));
         		}
         		if (found == false) {
         			index = searchText.indexOf(toFind, index + 1);
@@ -188,6 +189,13 @@ public class FindReplaceDialog extends JDialog implements ActionListener
     		currentLocation = 0;
     	}
     	return index;
+    }
+    
+    private boolean isWordDelimeter(int charToCheck) {
+    	if (Character.isAlphabetic(charToCheck) || Character.isDigit(charToCheck) || charToCheck == '_') {
+    		return false;
+    	}
+    	return true;
     }
      
     private void initComponents()  

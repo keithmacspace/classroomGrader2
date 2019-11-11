@@ -292,7 +292,7 @@ public class Rubric implements SheetAccessorInterface {
 		for (int index = 0; index < entries.size(); index++) {
 			RubricEntry entry = entries.get(index);
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
-				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData) == false) {
+				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData, referenceSource) == false) {
 					if (entriesSkipped == null) {
 						entriesSkipped = new HashSet<String>();						
 					}
