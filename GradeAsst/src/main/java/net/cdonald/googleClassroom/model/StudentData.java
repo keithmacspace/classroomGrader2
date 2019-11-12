@@ -9,8 +9,7 @@ public class StudentData extends ClassroomData {
 	public enum fieldNames {
 		ID, LAST, FIRST
 	};
-	public static final String DB_TABLE_NAME = "Students";
-	public static boolean anonymousNames;
+	public static final String DB_TABLE_NAME = "Students";	
 
 	public StudentData(String firstName, String lastName, String id, Date creationTime) {
 		super(lastName, id, creationTime);
@@ -32,18 +31,12 @@ public class StudentData extends ClassroomData {
 		firstName = student.firstName;
 	}
 	@Override
-	public String getName() {
-		if (anonymousNames == false) {
-			return super.getName();
-		}
-		return "Student";
+	public String getName() {		
+		return super.getName();
 	}
 
 	public String getFirstName() {
-		if (anonymousNames == false) {
-			return firstName;
-		}
-		return "Name";
+		return firstName;
 	}
 
 	public void setFirstName(String firstName) {
@@ -74,12 +67,7 @@ public class StudentData extends ClassroomData {
 		}
 	}
 
-	public static boolean isAnonymousNames() {
-		return anonymousNames;
-	}
 
-	public static void setAnonymousNames(boolean anonymousNames) {
-		StudentData.anonymousNames = anonymousNames;
-	}
+
 
 }

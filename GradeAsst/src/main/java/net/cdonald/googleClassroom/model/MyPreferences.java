@@ -23,7 +23,7 @@ public class MyPreferences {
 	// for individual classes in a per-class db
 	private Preferences preferences;
 	
-	private enum GlobalPrefs {WORKING_DIR, CLASS_ID, CLASS_NAME, FILE_DIR, GRADED_BY_NAME, RUBRIC_URL, RUBRIC_FILE, LATE_DATES_IN_RED, LATE_DATE_TIME, LATE_DATE_TYPE, COLLECT_DEBUG_INFO}
+	private enum GlobalPrefs {WORKING_DIR, CLASS_ID, CLASS_NAME, FILE_DIR, GRADED_BY_NAME, RUBRIC_URL, RUBRIC_FILE, LATE_DATES_IN_RED, LATE_DATE_TIME, LATE_DATE_TYPE, COLLECT_DEBUG_INFO, ANONYMOUS_NAMES}
 	
 	private enum ClassPrefs {CLASS_RUBRIC_URL, CLASS_RUBRIC_FILE, GRADE_URL, GRADE_FILE};	
 
@@ -158,16 +158,25 @@ public class MyPreferences {
 	}
 	
 	public boolean getCollectDebugInfo() {
-		return getBooleanType(GlobalPrefs.COLLECT_DEBUG_INFO);
+		return getBooleanType(GlobalPrefs.COLLECT_DEBUG_INFO, Boolean.FALSE);
 	}
 	
 	public void setCollectDebugInfo(boolean set) {
 		setBooleanType(GlobalPrefs.COLLECT_DEBUG_INFO, set);
 	}
 	
-	private boolean getBooleanType(GlobalPrefs prefType) {
-		return getBooleanType(prefType, Boolean.TRUE);
+	public boolean getAnonymousNames() {
+		return getBooleanType(GlobalPrefs.ANONYMOUS_NAMES, Boolean.FALSE);
 	}
+	
+	public void setAnonymousNames(boolean set) {
+		setBooleanType(GlobalPrefs.ANONYMOUS_NAMES, set);
+	}
+	
+	private boolean getBooleanType(GlobalPrefs prefType) {
+		return getBooleanType(prefType, Boolean.FALSE);
+	}
+	
 	private boolean getBooleanType(GlobalPrefs prefType, Boolean defaultVal) {
 		return Boolean.parseBoolean(preferences.get(prefType.toString(), defaultVal.toString()));
 	}

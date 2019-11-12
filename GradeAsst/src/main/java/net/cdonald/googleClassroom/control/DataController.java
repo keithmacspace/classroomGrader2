@@ -57,6 +57,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.LoadGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryListener;
+import net.cdonald.googleClassroom.listenerCoordinator.OptionsDialogUpdated;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricFileSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricSelected;
@@ -68,7 +69,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.SetRunRubricEnableStateLi
 import net.cdonald.googleClassroom.listenerCoordinator.SetWorkingDirListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
-import net.cdonald.googleClassroom.listenerCoordinator.OptionsDialogUpdated;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.CompileErrorListener;
 import net.cdonald.googleClassroom.model.ConsoleData;
@@ -88,8 +88,29 @@ public class DataController implements StudentListInfo {
 	private StudentWorkCompiler studentWorkCompiler;
 	private ConsoleData consoleData;
 	private ClassroomData currentCourse;
-	private List<StudentData> studentData;
-	private Map<String, StudentData> studentMap;
+	private boolean isAnonymous;
+	private class StudentDataClass {
+		private StudentData studentData;
+		private StudentData anonymousStudent;
+		public StudentDataClass(StudentData studentData, int studentNumber) {
+			this.studentData = studentData;
+			anonymousStudent = new StudentData(studentData);
+			anonymousStudent.setName("LastName" + studentNumber);
+			anonymousStudent.setFirstName("FirstName" + studentNumber);
+		}
+		public StudentData getStudent(boolean isAnonymous) {
+			if (isAnonymous) {
+				return anonymousStudent;
+			}
+			return studentData;
+		}
+		public StudentData getStudent() {
+			return getStudent(isAnonymous);
+		}
+	}
+	private List<StudentDataClass> studentData;
+	private Map<String, StudentDataClass> studentMap;
+	private StudentData rubricBeingEditedStudent;
 	private Rubric currentRubric;
 	private Rubric primaryRubric;
 
@@ -100,7 +121,7 @@ public class DataController implements StudentListInfo {
 	private ClassroomData gradeURL;
 	private Map<String, Map<String, String> > notesCommentsMap;
 	private Rubric rubricBeingEdited;
-	private StudentData rubricBeingEditedStudent;
+	
 	private Map<String, Set<String>> showRedMap;
 	private Date dueDate;
 	private Boolean addEdits;
@@ -108,18 +129,19 @@ public class DataController implements StudentListInfo {
 	private boolean markLateRed;
 	private int lateTime;
 	private MyPreferences.LateType lateType;
-	
+
 
 
 	public DataController(MainGoogleClassroomFrame mainFrame, UndoManager undoManager) {
 		this.undoManager = undoManager;
 		prefs = new MyPreferences();
+		this.isAnonymous = prefs.getAnonymousNames();
 		markLateRed = prefs.getLateDatesInRed();
 		lateTime = prefs.getLateDateTime();
 		lateType = prefs.getLateType();
 		studentWorkCompiler = new StudentWorkCompiler(mainFrame);
-		studentData = new ArrayList<StudentData>();
-		studentMap = new HashMap<String, StudentData>();
+		studentData = new ArrayList<StudentDataClass>();
+		studentMap = new HashMap<String, StudentDataClass>();
 		consoleData = new ConsoleData();		
 		currentCourse = null;
 		updateListener = mainFrame;
@@ -206,7 +228,7 @@ public class DataController implements StudentListInfo {
 						if (duplicates != null) {
 							String message = "";
 							for (int i = 0; i < duplicates.size(); i++) {
-								StudentData student = DataController.this.studentMap.get(duplicates.get(i));
+								StudentData student = DataController.this.studentMap.get(duplicates.get(i)).getStudent(false);
 								message += student.getFirstName() + " " + student.getName();
 								if (i != duplicates.size() - 1) {
 									message += ", ";
@@ -445,7 +467,7 @@ public class DataController implements StudentListInfo {
 		ListenerCoordinator.addListener(OptionsDialogUpdated.class, new OptionsDialogUpdated() {
 			@Override
 			public void fired(Boolean anonymous) {
-				StudentData.setAnonymousNames(anonymous);
+				isAnonymous = prefs.getAnonymousNames();
 				markLateRed = prefs.getLateDatesInRed();
 				lateTime = prefs.getLateDateTime();
 				lateType = prefs.getLateType();
@@ -596,7 +618,7 @@ public class DataController implements StudentListInfo {
 		studentWorkCompiler.compile(id);
 		if (studentWorkCompiler.isRunnable(id)) {
 			consoleData.runStarted(id, "");
-			StudentData student = studentMap.get(id);
+			StudentData student = studentMap.get(id).getStudent();
 			if (student != null) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running: " + student.getFirstName() + " " + student.getName());
 			}
@@ -613,7 +635,7 @@ public class DataController implements StudentListInfo {
 			student = rubricBeingEditedStudent;
 		}
 		else {
-			student = studentMap.get(studentId);
+			student = studentMap.get(studentId).getStudent();
 		}
 		String studentName = "";
 		if (student != null) {
@@ -636,8 +658,6 @@ public class DataController implements StudentListInfo {
 		if (currentCourse != null) {
 			studentData.clear();
 			studentMap.clear();
-			boolean saveAnonymous = StudentData.isAnonymousNames();
-			StudentData.setAnonymousNames(false);
 			ListenerCoordinator.runLongQuery(StudentFetcher.class,  new LongQueryListener<ClassroomData>() {
 
 				@Override
@@ -648,8 +668,7 @@ public class DataController implements StudentListInfo {
 					}					
 				}
 				@Override
-				public void done() {
-					StudentData.setAnonymousNames(saveAnonymous);
+				public void done() {					
 					updateListener.structureChanged();
 
 				}
@@ -658,8 +677,8 @@ public class DataController implements StudentListInfo {
 					for (String id : removeList) {
 						if (studentMap.containsKey(id)) {
 							studentMap.remove(id);
-							for (StudentData student : studentData) {
-								if (student.getId().equals(id)) {
+							for (StudentDataClass student : studentData) {
+								if (student.getStudent(false).getId().equals(id)) {
 									studentData.remove(student);								
 									break;
 								}
@@ -677,19 +696,21 @@ public class DataController implements StudentListInfo {
 		if (studentMap.containsKey(student.getId())) {
 			return;
 		}
-
+		StudentDataClass studentDataClass = null;
 		for (int i = 0; i < studentData.size(); i++) {
-			StudentData other = studentData.get(i);
+			StudentData other = studentData.get(i).getStudent(false);
 			if (other.compareTo(student) < 0) {
-				studentData.add(i, student);
+				studentDataClass = new StudentDataClass(student, studentData.size());
+				studentData.add(i, studentDataClass);
 				inserted = true;
 				break;
 			}
 		}
 		if (inserted == false) {
-			studentData.add(student);
+			studentDataClass = new StudentDataClass(student, studentData.size());
+			studentData.add(studentDataClass);
 		}
-		studentMap.put(student.getId(), student);
+		studentMap.put(student.getId(), studentDataClass);
 		updateListener.dataUpdated();
 	}
 	
@@ -721,7 +742,7 @@ public class DataController implements StudentListInfo {
 				retVal = rubricBeingEditedStudent;
 			}
 			else {
-				retVal = studentData.get(rowIndex);
+				retVal = studentData.get(rowIndex).getStudent();
 			}
 			break;
 		case FIRST_NAME_COLUMN:
@@ -729,7 +750,7 @@ public class DataController implements StudentListInfo {
 				retVal = "Source";
 			}
 			else {
-				retVal = studentData.get(rowIndex).getFirstName();
+				retVal = studentData.get(rowIndex).getStudent().getFirstName();
 			}
 			break;
 		case DATE_COLUMN:
@@ -890,7 +911,7 @@ public class DataController implements StudentListInfo {
 		if (rubricBeingEdited != null || rubricBeingEditedStudent != null) {
 				return FileData.REFERENCE_SOURCE_ID;
 		}
-		return studentData.get(row).getId();		
+		return studentData.get(row).getStudent(false).getId();		
 	}
 	
 	public List<List<Object>> getColumnValuesForSheet() {
@@ -909,7 +930,7 @@ public class DataController implements StudentListInfo {
 			for (int row = 0; row < getRowCount(); row++) {
 			
 				if (col == LAST_NAME_COLUMN) {
-					innerData.add(studentData.get(row).getName());
+					innerData.add(studentData.get(row).getStudent(false).getName());
 				}
 				else {
 					Object value = getValueAt(row, col);
@@ -935,8 +956,8 @@ public class DataController implements StudentListInfo {
 			ids.add(FileData.REFERENCE_SOURCE_ID);
 		}
 		else {
-			for (StudentData student : studentData) {
-				ids.add(student.getId());
+			for (StudentDataClass student : studentData) {
+				ids.add(student.getStudent(false).getId());
 			}
 		}
 		return ids;
@@ -970,21 +991,28 @@ public class DataController implements StudentListInfo {
 		}
 		return null;
 	}
+	private List<StudentData> createStudentDataList(boolean anonymous) {
+		List<StudentData> studentDataList = new ArrayList<StudentData>();
+		for (StudentDataClass student : studentData) {
+			studentDataList.add(student.getStudent(anonymous));
+		}
+		return studentDataList;
+	}
 	
 	public boolean syncGrades() {
 		boolean worked = true;
-		boolean saveAnonymous = StudentData.isAnonymousNames();
-		StudentData.setAnonymousNames(false);
+		
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null && rubricBeingEditedStudent == null) {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 				boolean notesModified = (Boolean)ListenerCoordinator.runQuery(GetAndClearNotesModifiedFlag.class);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				
 				if (currentRubric.areGradesModified() || notesModified || currentRubric.isLoadedFromFile() == false) {
-					for (StudentData student : studentData) {
-						String studentID = student.getId();
+					for (StudentDataClass student : studentData) {
+						String studentID = student.getStudent(false).getId();
 						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);
 						Date date = null;
 						if (fileData != null && fileData.size() > 0) {
@@ -994,7 +1022,7 @@ public class DataController implements StudentListInfo {
 					}
 					grades.saveData(assignment);
 				}
-				StudentData.setAnonymousNames(saveAnonymous);
+				
 				updateListener.dataUpdated();				
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
@@ -1003,8 +1031,7 @@ public class DataController implements StudentListInfo {
 			}
 			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
 			
-		}
-		StudentData.setAnonymousNames(saveAnonymous);
+		}		
 		return worked;
 	}
 	
@@ -1014,7 +1041,7 @@ public class DataController implements StudentListInfo {
 			Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 			try {
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, studentData, prefs.getUserName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
 				updateListener.dataUpdated();
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error loading grades from google sheet " + e.getMessage(),  "Save problem",
@@ -1029,14 +1056,14 @@ public class DataController implements StudentListInfo {
 	public void runJPLAG() {
 		ListenerCoordinator.fire(AddProgressBarListener.class, "Running JPLAG");
 		Map<String, List<FileData>> fileMap = new HashMap<String, List<FileData>>();
-		for (StudentData student : studentData) {
-			String id = student.getId();
+		for (StudentDataClass student : studentData) {
+			String id = student.getStudent().getId();
 			List<FileData> files = studentWorkCompiler.getSourceCode(id);
 			if (files != null) {
 				fileMap.put(id, files);
 			}
 		}		
-		String outputFile = JPLAGInvoker.invokeJPLAG(fileMap, studentData, prefs.getClassroomDir());
+		String outputFile = JPLAGInvoker.invokeJPLAG(fileMap, createStudentDataList(isAnonymous), prefs.getClassroomDir());
 		if (outputFile == null) {
 			return;
 		}

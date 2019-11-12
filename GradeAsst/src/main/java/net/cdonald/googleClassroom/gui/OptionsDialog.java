@@ -121,7 +121,8 @@ public class OptionsDialog extends JDialog{
 		// Anonymous names
 		JLabel anonymousCheckBoxLabel = new JLabel("Anonymous Names");
 		anonymousCheckBoxLabel.setToolTipText("The actual names will still appear in the google sheet");
-		anonymousCheckBox = new JCheckBox();		
+		anonymousCheckBox = new JCheckBox();
+		anonymousCheckBox.setSelected(prefs.getAnonymousNames());
 		addCheckBox(miscOptions, anonymousCheckBoxLabel, anonymousCheckBox, 0, 0);
 		JLabel collectDebugInfo = new JLabel("Enable Debug Dialog");
 		collectDebugInfo.setToolTipText("If enabled, You can view the debug dialog under the help menu.");		
@@ -173,9 +174,10 @@ public class OptionsDialog extends JDialog{
 					prefs.setLateDatesInRed(redDatesCheckBox.isSelected());
 					prefs.setLateDateTypeAndTime((MyPreferences.LateType)lateTypeCombo.getSelectedItem(), (Integer)lateTimeCombo.getSelectedItem());
 					prefs.setUserName(userNameField.getText());					
-					ListenerCoordinator.fire(OptionsDialogUpdated.class, anonymousCheckBox.isSelected());
 					DebugLogDialog.setEnableDBG(collectDebugInfoCheckBox.isSelected());
 					prefs.setCollectDebugInfo(collectDebugInfoCheckBox.isSelected());
+					prefs.setAnonymousNames(anonymousCheckBox.isSelected());
+					ListenerCoordinator.fire(OptionsDialogUpdated.class, anonymousCheckBox.isSelected());
 					setVisible(false);
 								
 			}			
