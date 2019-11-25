@@ -143,6 +143,8 @@ public class StudentPanel extends JPanel{
 		descriptionArea.setWrapStyleWord(true);
 		descriptionArea.setLineWrap(true);
 		JTextArea notesArea = new JTextArea();
+		notesArea.setWrapStyleWord(true);
+		notesArea.setLineWrap(true);
 		notesAndCommentsTextArea.put(currentGrader, notesArea);
 		addListeners(studentListInfo);
 		resizeColumns();
@@ -457,10 +459,15 @@ public class StudentPanel extends JPanel{
 		JTextArea commentArea = notesAndCommentsTextArea.get(grader);
 		if (commentArea == null) {
 			commentArea = new JTextArea();
+			commentArea.setWrapStyleWord(true);
+			commentArea.setLineWrap(true);
 			notesAndCommentsTextArea.put(grader, commentArea);
+			
 		}
 		commentArea.setEditable(editable);
-		commentTabs.addTab(grader + NOTES_APPEND, new JScrollPane(commentArea));
+		JScrollPane scrollPane = new JScrollPane(commentArea);
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		commentTabs.addTab(grader + NOTES_APPEND, scrollPane);
 	}
 	
 	

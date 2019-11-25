@@ -205,6 +205,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			}
 
 			if (returnValue == null) {
+				System.out.println("\0");
 				return null;
 			}
 			double value = 0.0;

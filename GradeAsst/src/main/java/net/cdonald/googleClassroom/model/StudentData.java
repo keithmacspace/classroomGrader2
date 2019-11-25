@@ -66,6 +66,22 @@ public class StudentData extends ClassroomData {
 			throw new IllegalArgumentException();
 		}
 	}
+	
+
+	@Override
+	public int compareTo(ClassroomData o) {
+		if (isEmpty() != o.isEmpty()) {
+			if (isEmpty()) {
+				return -1;
+			}
+			return 1;
+		}
+		int lastNameCompare = o.getName().compareToIgnoreCase(getName()); 
+		if (lastNameCompare == 0) {
+			return ((StudentData)o).getFirstName().compareToIgnoreCase(getFirstName());
+		}
+		return lastNameCompare;
+	}
 
 
 

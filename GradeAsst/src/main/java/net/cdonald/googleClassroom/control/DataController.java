@@ -1039,10 +1039,10 @@ public class DataController implements StudentListInfo {
 		if (currentRubric != null && gradeURL != null && currentRubric != rubricBeingEdited) {
 			ListenerCoordinator.fire(AddProgressBarListener.class, "Loading Grades");
 			Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
-			try {
+			try {				
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
-				updateListener.dataUpdated();
+				updateListener.structureChanged();
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error loading grades from google sheet " + e.getMessage(),  "Save problem",
 						JOptionPane.ERROR_MESSAGE);
