@@ -52,6 +52,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricURL;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetStudentNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetWorkingDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -148,9 +149,14 @@ public class DataController implements StudentListInfo {
 		notesCommentsMap = new HashMap<String, Map<String, String>>();
 		showRedMap = null;
 		addEdits = false;
-		initGoogle();		
-		notesCommentsMap.put(prefs.getUserName(), new HashMap<String, String>());
+		initGoogle();				
+		clearNotesAndComments();
 		registerListeners();
+	}
+	
+	private void clearNotesAndComments() {
+		notesCommentsMap.clear();
+		notesCommentsMap.put(prefs.getUserName(), new HashMap<String, String>());
 	}
 	
 
@@ -349,6 +355,15 @@ public class DataController implements StudentListInfo {
 			}			
 		});
 		
+		ListenerCoordinator.addQueryResponder(GetStudentNameQuery.class, new GetStudentNameQuery() {
+
+			@Override
+			public String fired(String studentID) {
+				// TODO Auto-generated method stub
+				return getStudentName(studentID);
+			}
+		});
+		
 
 		
 		ListenerCoordinator.addListener(SetWorkingDirListener.class,  new SetWorkingDirListener() {
@@ -385,6 +400,7 @@ public class DataController implements StudentListInfo {
 			@Override
 			public void fired(GoogleSheetData data) {
 				undoManager.discardAllEdits();
+				clearNotesAndComments();
 				if (data != null && data.isEmpty() == false) {
 					if (primaryRubric == null || primaryRubric.getName().equals(data.getName()) == false) {
 						Rubric rubric = new Rubric(data);
@@ -477,6 +493,14 @@ public class DataController implements StudentListInfo {
 			
 		});
 				
+	}
+	
+	public String getStudentName(String id) {
+		StudentData student = studentMap.get(id).getStudent();
+		if (student != null) {
+			return "" + student.getFirstName() + " " + student.getName();
+		}
+		return "";
 	}
 
 	private boolean checkValidURL(String rubricURL, String gradeFileURL) {
@@ -612,7 +636,7 @@ public class DataController implements StudentListInfo {
 		}
 		return false;
 	}
-	
+
 	
 	public void run(String id) {
 		studentWorkCompiler.compile(id);
@@ -781,6 +805,7 @@ public class DataController implements StudentListInfo {
 		return retVal;
 	}
 	
+	
 	@Override
 	public void setValueAt(Object value, int rowIndex, int columnIndex) {
 		// If we are in the middle of save/load do not allow modifications
@@ -873,15 +898,10 @@ public class DataController implements StudentListInfo {
 	}
 		
 	@Override
-	public String getColumnName(int columnIndex) {		
-		if (columnIndex < NUM_DEFAULT_COLUMNS) {
-			return defaultColumnNames[columnIndex];
-		}
-		if (currentRubric != null) {
-			RubricEntry entry = currentRubric.getEntry(getRubricIndex(columnIndex));
-			if (entry != null) {
-				return entry.getColumnName();
-			}
+	public String getColumnName(int columnIndex) {
+		RubricEntry entry = getColumnEntry(columnIndex);
+		if (entry != null) {
+			return entry.getColumnName();
 		}
 		return null;
 	}
@@ -903,6 +923,16 @@ public class DataController implements StudentListInfo {
 
 	public void setShowRedMap(Map<String, Set<String>> showRedMap) {
 		this.showRedMap = showRedMap;		
+	}
+	
+	public RubricEntry getColumnEntry(int columnIndex) {
+		if (currentRubric != null) {
+			RubricEntry entry = currentRubric.getEntry(getRubricIndex(columnIndex));
+			if (entry != null) {
+				return entry;
+			}
+		}
+		return null;		
 	}
 
 

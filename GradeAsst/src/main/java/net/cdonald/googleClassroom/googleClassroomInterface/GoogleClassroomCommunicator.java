@@ -6,6 +6,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -77,7 +82,6 @@ import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.TextFormat;
 import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
-import com.google.api.services.sheets.v4.model.UpdateCellsRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -401,22 +405,20 @@ public class GoogleClassroomCommunicator {
 							else if (type.contains("google-apps.document")) {
 								driveService.files().export(driveFile.getId(), "text/plain").executeMediaAndDownloadTo(outputStream);
 								 
-								fileName.replace('.', '_');
-								fileName.replace(' ', '_');
-								for (int i = 0; i < fileName.length(); i++) {
-									if (Character.isAlphabetic(fileName.charAt(i)) == false) {
-										fileName = fileName.replace(fileName.charAt(i), '_');
-									}
+								fileContents = decodeGoogleDoc(outputStream.toByteArray());
+								if (fileContents == null) {
+									fileContents = outputStream.toString("US-ASCII");
 								}
-								fileName += ".java";
 								fileContents = "// Student uploaded this as a google document, delete any weird characters and\n" +
-											   "//rename the class to have the same name as the file (without the .java).\n" + 
-											   outputStream.toString("US-ASCII");
+											   "//rename the class to have the same name as the file (without the .java).\n" +
+											   fileContents;
+											   //outputStream.toString("US-ASCII");								
+								
 							} 
 							else {
 								fileContents = "Student uploaded file in unsupported format, nothing downloaded";								
 							}
-							
+							fileName = FileData.createFileName(fileName, fileContents);
 							ClassroomData data = new FileData(fileName, fileContents, studentNameKey,
 									submission.getUpdateTime());
 							data.setRetrievedFromGoogle(true);
@@ -433,7 +435,29 @@ public class GoogleClassroomCommunicator {
 		readStudentsWorkSemaphore.release();
 		DebugLogDialog.endMethod();
 	}
-	
+	private static String decodeGoogleDoc(byte[] utf8) { 
+				  
+		CharsetDecoder decoder = Charset.forName("US-ASCII").newDecoder();
+
+		decoder.onMalformedInput(
+				java.nio.charset.CodingErrorAction.IGNORE);
+		decoder.onUnmappableCharacter(CodingErrorAction.IGNORE);
+
+		String str = null;
+		try {			
+			str = decoder.decode(ByteBuffer.wrap(utf8)).toString();
+		} catch (CharacterCodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// set decoder back to its default value: REPORT
+
+		decoder.onMalformedInput(CodingErrorAction.REPORT);
+		decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
+
+		return str;
+	}
+
 	public void publishStudentGrades(ClassroomData course, ClassroomData assignment, Map<String, Double> grades) throws IOException {
 		if (course.isEmpty() || assignment.isEmpty()) {
 			return;

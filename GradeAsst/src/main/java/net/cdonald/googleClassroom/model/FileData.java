@@ -1,25 +1,17 @@
 package net.cdonald.googleClassroom.model;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.swing.JFileChooser;
-
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.expr.ClassExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
-
-import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.SetFileDirListener;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class FileData extends ClassroomData {
 	public static final String REFERENCE_SOURCE_ID = "ReferenceSource";
@@ -207,6 +199,68 @@ public class FileData extends ClassroomData {
 		fileData.setFileContents(contents);
 		//fileData.instrumentFile("words.words.call()");
 		System.out.println(fileData.getFileContents());
+	} 
+	// This is used when the student uploads the file as a google document. In those cases
+	// the name of the file is not className.java, and so we have to create it
+	public static String createFileName(String initialFileName, String fileContents) {
+		String fileName = initialFileName;
+		// Ideal case is when we can parse & find the className
+		try {
+			CompilationUnit studentSourceCode = StaticJavaParser.parse(fileContents);		
+			ClassNameFinder classNameFinder = new ClassNameFinder();
+			classNameFinder.visit(studentSourceCode, null);
+			fileName = classNameFinder.getClassName();
+		}
+		catch(Exception e) {
+			// If the source does not compile, then we have to search it for the word class
+			int publicIndex = fileContents.indexOf("public");
+			boolean found = false;
+			if (publicIndex != -1) {
+				int classIndex = fileContents.indexOf("class", publicIndex);
+				if (classIndex != -1) {
+					classIndex += "class".length();
+					while (Character.isWhitespace(fileContents.charAt(classIndex))) {
+						classIndex++;
+					}
+					int endIndex = classIndex;
+					while (!Character.isWhitespace(fileContents.charAt(endIndex))) {
+						endIndex++;
+					}
+					fileName = fileContents.substring(classIndex, endIndex);
+					found = true;
+				}
+			}
+			if (found == false) {
+				boolean replaced = true;
+				while (replaced == true) {
+					replaced = false;
+					for (int i = 0; i < fileName.length(); i++) {
+						if (Character.isAlphabetic(fileName.charAt(i)) == false) {
+							fileName = fileName.replace("" + fileName.charAt(i), "");
+							replaced = true;
+						}
+					}
+				}
+			}			
+		}	
+		fileName += ".java";
+		return fileName;
+
+	}
+	private static class ClassNameFinder extends VoidVisitorAdapter<Void> {
+		private String className = null;
+		@Override
+        public void visit(ClassOrInterfaceDeclaration n, Void arg) {
+			// TODO Auto-generated method stub
+			super.visit(n, arg);
+			setClassName(n.getName().toString());			
+		}
+		public String getClassName() {
+			return className;
+		}
+		public void setClassName(String className) {
+			this.className = className;
+		}
 	}
 
 }

@@ -42,6 +42,7 @@ import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearNotesModifiedFlag;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.RubricColumnChanged;
 import net.cdonald.googleClassroom.listenerCoordinator.SelectStudentListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentInfoChangedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentListInfo;
@@ -334,8 +335,9 @@ public class StudentPanel extends JPanel{
 					if (minCol == maxCol) {
 						if (keyPressed) {
 							minCol = lastKeyboardCol;
-							maxCol = lastKeyboardCol;
+							maxCol = lastKeyboardCol;							
 						}
+						ListenerCoordinator.fire(RubricColumnChanged.class, minCol);
 						String description = studentListInfo.getColumnTip(minCol);
 						if (description == null) {
 							description = "";

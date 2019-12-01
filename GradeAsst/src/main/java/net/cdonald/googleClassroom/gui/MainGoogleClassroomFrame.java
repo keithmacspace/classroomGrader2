@@ -53,6 +53,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveInstrumentationListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
+import net.cdonald.googleClassroom.listenerCoordinator.RubricColumnChanged;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricFileSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RunRubricSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.RunSelected;
@@ -62,6 +63,7 @@ import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.MyPreferences;
 import net.cdonald.googleClassroom.model.Rubric;
+import net.cdonald.googleClassroom.model.RubricEntry;
 
 public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListener {
 	private static final long serialVersionUID = 7452928818734325088L;
@@ -419,6 +421,18 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				optionsDialog.setVisible(true);
 			}
 		});
+		
+		ListenerCoordinator.addListener(RubricColumnChanged.class, new RubricColumnChanged() {
+			public void fired(int columnNumber) {
+				RubricEntry entry = dataController.getColumnEntry(columnNumber);
+				if (entry != null) {
+					consoleAndSourcePanel.selectOutputTab(entry.getName());
+				}
+				else {
+					consoleAndSourcePanel.selectOutputTab("Console");
+				}
+			}
+		});
 	
 	}
 	
@@ -508,8 +522,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				try {
 					mainToolBar.setStopEnabled(true);
 					dataController.addEdits(true);
-					for (String id : ids) {
-						
+					for (String id : ids) {						
 						if (runSource == true) {
 							dataController.run(id);												
 						}
@@ -522,9 +535,9 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 								}
 								entriesSkipped.put(id, skipped);				
 							}
-
 						}
 						publish(id);
+						
 					}
 				} catch (Exception e) {
 					JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, e.getMessage(), "Error while running",

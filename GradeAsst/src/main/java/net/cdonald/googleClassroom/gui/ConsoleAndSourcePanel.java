@@ -22,6 +22,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
@@ -35,11 +36,10 @@ import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
 import javax.swing.undo.UndoableEdit;
 
-import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
-import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerMessageQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetStudentNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
@@ -57,6 +57,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private JTabbedPane overallTabbedPane;
 	private JTabbedPane sourceTabbedPane;
 	private JTabbedPane rubricTabbedPane;
+	private JTabbedPane outputTabbedPane;
 	//private JTextField consoleInput;
 	private JTextArea consoleInput;
 	private JPopupMenu popupSource;
@@ -64,7 +65,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private JPopupMenu popupDisplays;
 	private JPopupMenu popupRubricSource;
 	private SplitOutErrPanel outputWrapperPanel;
-	private JPanel inputHistorWrapperPanel;
+	
 	private Map<String, SplitOutErrPanel> rubricPanels;
 	private static Semaphore pauseSemaphore = new Semaphore(1);
 	private JTextArea currentInputHistory;
@@ -74,7 +75,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private UndoManager undoManager;
 	private Map<String, Map<String, JPanel>> sourceContentPanelMap;
 	private Map<String, Map<String, JTextArea>> sourceContentTextMap;
-	private enum TabNames {Source, Console, Rubric}
+	private enum TabNames {Source, Rubric}
 	private JTabbedPane rubricTestPane = new JTabbedPane();
 
 
@@ -125,28 +126,21 @@ public class ConsoleAndSourcePanel extends JPanel {
 			@Override
 			public void run() {
 
-				if (currentID == null || !currentID.equals(idToDisplay)) 
-				{
+				if (currentID == null || !currentID.equals(idToDisplay)) {
 					syncSource();
 					currentSourceTextAreas.clear();
 					sourceTabbedPane.removeAll();
 					currentID = idToDisplay;
 					if (idToDisplay != null) {
 						@SuppressWarnings("unchecked")
-						List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, idToDisplay);
-						CompilerMessage compilerMessage = (CompilerMessage)ListenerCoordinator.runQuery(GetCompilerMessageQuery.class, idToDisplay);					
+						List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, idToDisplay);										
 						if (fileDataList != null) {
 							for (FileData fileData : fileDataList) {
 								setSourceContents(currentID, fileData.getName(), fileData.getFileContents(), true);
 							}
-							if (compilerMessage != null && compilerMessage.getCompilerMessage() != null && compilerMessage.getCompilerMessage().length() > 2) {
-								setSourceContents(currentID, "Compiler Message", compilerMessage.getCompilerMessage(), false);
-							}
-
 						}
 					}
 				}
-
 				bindStudentAreas(idToDisplay);
 			}
 
@@ -338,34 +332,23 @@ public class ConsoleAndSourcePanel extends JPanel {
 	}
 	private class SplitOutErrPanel {
 		private JPanel out;
-		private JPanel err;
-		private JSplitPane splitPane;
 		public SplitOutErrPanel() {
 			out = new JPanel();
-			err = new JPanel();
 			out.setLayout(new BorderLayout());			
 			out.setBorder(BorderFactory.createTitledBorder("System.out"));
-			err.setLayout(new BorderLayout());			
-			err.setBorder(BorderFactory.createTitledBorder("System.err"));
-			splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, out, err);
-			splitPane.setResizeWeight(0.9);
 		}
 		
-		public JSplitPane getSplitPane() {
-			return splitPane;
+		public JPanel getOutputPane() {
+			return out;
 		}
 
 		public void clearPanels() {
 			clearPanel(out);
-			clearPanel(err);
 		}
 		public void clearAndAdd(StudentConsoleAreas.OutputAreas outputAreas) {
-			JTextArea output = outputAreas.getOutputArea();
+			JTextPane output = outputAreas.getOutputArea();
 			clearAndAddPanel(out, output);
-			JTextArea error = outputAreas.getErrorArea();
-			clearAndAddPanel(err, error);
 			output.setComponentPopupMenu(popupDisplays);
-			error.setComponentPopupMenu(popupDisplays);
 		}
 	}
 
@@ -378,7 +361,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		consoleInput.setMinimumSize(new Dimension(20, 25));
 		consoleInput.setPreferredSize(new Dimension(20, 25));
 		consoleInput.setComponentPopupMenu(popupInput);	
-
+		
 
 		JPanel ioPanel = new JPanel();
 		ioPanel.setLayout(new BorderLayout());
@@ -388,15 +371,18 @@ public class ConsoleAndSourcePanel extends JPanel {
 		
 		consoleInputPanel.setBorder(BorderFactory.createTitledBorder("Console Input"));		
 		consoleInputPanel.add(consoleInput, BorderLayout.CENTER);
-		inputHistorWrapperPanel = new JPanel();
+		JPanel inputHistorWrapperPanel = new JPanel();
 		inputHistorWrapperPanel.setLayout(new BorderLayout());
+		currentInputHistory = new JTextArea();
+		inputHistorWrapperPanel.add(new JScrollPane(currentInputHistory), BorderLayout.CENTER);
+		currentInputHistory.setComponentPopupMenu(popupDisplays);
 		
 		inputHistorWrapperPanel.setBorder(BorderFactory.createTitledBorder("Input History"));
 		
 		JPanel inputWrapper = new JPanel();
 		inputWrapper.setLayout(new BorderLayout());
 		inputWrapper.add(consoleInputPanel, BorderLayout.NORTH);
-		inputWrapper.add(inputHistorWrapperPanel, BorderLayout.CENTER);
+//		inputWrapper.add(inputHistorWrapperPanel, BorderLayout.CENTER);
 
 
 		outputWrapperPanel = new SplitOutErrPanel();
@@ -405,23 +391,31 @@ public class ConsoleAndSourcePanel extends JPanel {
 		
 
 
-		JSplitPane ioSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, outputWrapperPanel.getSplitPane(), inputWrapper);
-		ioSplit.setResizeWeight(0.5);
+		//JSplitPane ioSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, outputWrapperPanel.getOutputPane(), inputWrapper);
+		//ioSplit.setResizeWeight(0.5);
 
-		ioPanel.add(ioSplit, BorderLayout.CENTER);
-		//ioPanel.add(inputWrapper, BorderLayout.SOUTH);
+		ioPanel.add(outputWrapperPanel.getOutputPane(), BorderLayout.CENTER);
+		ioPanel.add(inputWrapper, BorderLayout.SOUTH);
 		setVisible(true);
 		rubricTabbedPane = new JTabbedPane();
 
 		sourceTabbedPane = new JTabbedPane();
 		sourceTabbedPane.setComponentPopupMenu(popupSource);
+		
+		outputTabbedPane = new JTabbedPane();
+		JSplitPane sourceOutputSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, sourceTabbedPane, outputTabbedPane);
+		sourceOutputSplit.setResizeWeight(0.7);
+		outputTabbedPane.addTab("Console", ioPanel);
+		outputTabbedPane.addTab("In Hist", inputHistorWrapperPanel);
 
 		overallTabbedPane = new JTabbedPane();
-		overallTabbedPane.addTab(TabNames.Source.toString(), sourceTabbedPane);
-		overallTabbedPane.addTab(TabNames.Console.toString(), ioPanel);
+		overallTabbedPane.addTab(TabNames.Source.toString(), sourceOutputSplit);
 		overallTabbedPane.addTab(TabNames.Rubric.toString(), rubricTabbedPane);
 		add(overallTabbedPane, BorderLayout.CENTER);
 
+		
+		
+		
 		consoleInput.getDocument().addDocumentListener(new DocumentListener() {
 
 			@Override
@@ -434,6 +428,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 						String inputText = text.substring(0, returnIndex);
 
 						ListenerCoordinator.fire(SystemInListener.class, inputText);
+						currentInputHistory.append(inputText + "\n");
 						SwingUtilities.invokeLater(new Runnable() {
 							public void run() {								
 								if (text.length() > returnIndex + 1) {
@@ -515,13 +510,16 @@ public class ConsoleAndSourcePanel extends JPanel {
 									});
 									rubricTestPane.addTab(file.getName(), jsp);
 								}
-							}							
+							}
+							while (outputTabbedPane.getTabCount() > 2) {
+								outputTabbedPane.removeTabAt(2);
+							}
 
 							List<String> tabNames = rubric.getRubricTabs();					
 							for (String rubricName : tabNames) {
 								SplitOutErrPanel rubricPanel = new SplitOutErrPanel();
 								rubricPanels.put(rubricName, rubricPanel);
-								rubricTabbedPane.addTab(rubricName, rubricPanel.getSplitPane());
+								outputTabbedPane.addTab(rubricName, rubricPanel.getOutputPane());
 							}
 						}
 					}
@@ -532,18 +530,14 @@ public class ConsoleAndSourcePanel extends JPanel {
 		ListenerCoordinator.addBlockingListener(PreRunBlockingListener.class, new PreRunBlockingListener() {
 			public void fired(String studentID, String rubricName) {
 				if (rubricName == null || rubricName.length() == 0) {
-					overallTabbedPane.setSelectedIndex(TabNames.Console.ordinal());
+					outputTabbedPane.setSelectedIndex(0);
+					String studentName = (String)ListenerCoordinator.runQuery(GetStudentNameQuery.class, studentID);
+					currentInputHistory.append(studentName + " Run Started\n");
 				}
 				else {
-					if (overallTabbedPane.getTabCount() > TabNames.Rubric.ordinal()) {
-						overallTabbedPane.setSelectedIndex(TabNames.Rubric.ordinal());						
-						for (int i = 0; i < rubricTabbedPane.getTabCount(); i++) {
-							String title = rubricTabbedPane.getTitleAt(i); 
-							if (title.equals(rubricName)) {								
-								rubricTabbedPane.setSelectedIndex(i);
-								break;
-							}
-						}
+					if (overallTabbedPane.getTabCount() > TabNames.Source.ordinal()) {
+						overallTabbedPane.setSelectedIndex(TabNames.Source.ordinal());
+						selectOutputTab(rubricName);
 					}
 				}
 				try {
@@ -592,6 +586,16 @@ public class ConsoleAndSourcePanel extends JPanel {
 		return null;
 	}
 	
+	public void selectOutputTab(String tabName) {		
+		for (int i = 0; i < outputTabbedPane.getTabCount(); i++) {
+			String title = outputTabbedPane.getTitleAt(i); 
+			if (title.equals(tabName)) {				
+				outputTabbedPane.setSelectedIndex(i);
+				break;
+			}
+		}		
+	}
+	
 	private void clearPanel(JPanel panel) {
 		while (panel.getComponentCount() != 0) {
 			panel.remove(0);
@@ -609,9 +613,8 @@ public class ConsoleAndSourcePanel extends JPanel {
 		if (studentID != null) {
 			StudentConsoleAreas currentAreas = (StudentConsoleAreas)ListenerCoordinator.runQuery(GetStudentTextAreasQuery.class, studentID);
 			outputWrapperPanel.clearAndAdd(currentAreas.getOutputAreas());
-			currentInputHistory = currentAreas.getInputArea();
-			clearAndAddPanel(inputHistorWrapperPanel, currentInputHistory);
-			currentInputHistory.setComponentPopupMenu(popupDisplays);
+			//currentInputHistory = currentAreas.getInputArea();
+			//clearAndAddPanel(inputHistorWrapperPanel, currentInputHistory);			
 			Set<String> rubricKeys = rubricPanels.keySet();
 			for (String rubricName : rubricKeys) {
 				rubricPanels.get(rubricName).clearAndAdd(currentAreas.getRubricArea(rubricName));
@@ -619,8 +622,9 @@ public class ConsoleAndSourcePanel extends JPanel {
 		}
 		else {
 			outputWrapperPanel.clearPanels();
-			currentInputHistory = null;
-			clearPanel(inputHistorWrapperPanel);			
+			//currentInputHistory = null;
+			//currentInputHistory.setText("");
+			//clearPanel(inputHistorWrapperPanel);			
 			for (SplitOutErrPanel rubricPanel : rubricPanels.values()) {
 				rubricPanel.clearPanels();
 			}

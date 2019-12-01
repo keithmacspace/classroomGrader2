@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
+
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.StudentConsoleAreas;
 import net.cdonald.googleClassroom.listenerCoordinator.AppendOutputTextListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
@@ -39,9 +41,7 @@ public class ConsoleData {
 	private Map<String, StudentConsoleAreas> studentConsoleAreaMap;
 	private String currentStudentID;
 	private String currentRubricName;
-	private JTextArea currentOutputTextArea;
-	private JTextArea currentErrorTextArea;
-	private JTextArea currentInputTextArea;
+	private StudentConsoleAreas.OutputAreas currentOutputArea;
 	private JTextArea additionalTextArea;
 	private PrintStream oldOut;
 	private PrintStream oldErr;
@@ -76,11 +76,8 @@ public class ConsoleData {
 				if (runSemaphore.availablePermits() == 0) {
 					inWriter.println(text);
 					//System.out.println();
-					if (currentOutputTextArea != null) {
-						currentOutputTextArea.append(text + "\n");
-					}
-					if (currentInputTextArea != null) {
-						currentInputTextArea.append(text + "\n");
+					if (currentOutputArea != null) {
+						currentOutputArea.appendInputToOutput(text + "\n");
 					}
 				}		
 			}
@@ -133,20 +130,13 @@ public class ConsoleData {
 		currentRubricName = rubricName;
 		StudentConsoleAreas currentArea = getStudentConsoleAreaMap(id);
 		if (rubricName != "") {
-			currentOutputTextArea = currentArea.getRubricArea(rubricName).getOutputArea();
-			currentErrorTextArea = currentArea.getRubricArea(rubricName).getErrorArea();
-			currentInputTextArea = null;
+			currentOutputArea = currentArea.getRubricArea(rubricName);
 		}
 		else {
-			currentOutputTextArea = currentArea.getOutputAreas().getOutputArea();
-			currentErrorTextArea = currentArea.getOutputAreas().getErrorArea();
-			currentInputTextArea = currentArea.getInputArea();
+			currentOutputArea = currentArea.getOutputAreas();
+
 		}
-		currentOutputTextArea.setText("");
-		currentErrorTextArea.setText("");
-		if (currentInputTextArea != null) {
-			currentInputTextArea.setText("");
-		}
+		currentOutputArea.clearText();
 		redirectStreams();
 		ListenerCoordinator.fire(PreRunBlockingListener.class, id, rubricName);
 	}
@@ -160,8 +150,7 @@ public class ConsoleData {
 			e1.printStackTrace();
 		}
 		System.setIn(inPipe);	
-		currentOutputTextArea = null;
-		currentInputTextArea = null;
+		currentOutputArea = null;
 		currentStudentID = null;
 		currentRubricName = null;
 		runSemaphore.release();
@@ -227,9 +216,11 @@ public class ConsoleData {
 	}
 	
 	private class PipeInfo{
+		long addTime;
 		char character;
 		PipedInputStream pipe;
-		public PipeInfo(char character, PipedInputStream pipe) {
+		public PipeInfo(long sysTime, char character, PipedInputStream pipe) {
+			this.addTime = sysTime;
 			this.character = character;
 			this.pipe = pipe;
 		}
@@ -253,11 +244,19 @@ public class ConsoleData {
 			String outTemp = "";
 			String errTemp = "";
 			String debugTemp = "";
-
+			
+			long currentTime = 0;
+			if (chunks.size() > 0) {
+				currentTime = chunks.get(0).addTime;
+			}
 			for (PipeInfo info : chunks) {
+				
 				char ch = info.character;
 
-				if (info.pipe == outPipe) {
+				if (info.pipe == errPipe) {
+					errTemp += ch;
+				}
+				else if (info.pipe == outPipe) {
 					// Special flag sent by StudentWorkCompiler to tell us when we are done running
 					// a program. I know it is a little ugly, I just can't figure out how to wait
 					// until all the output finishes flowing down					
@@ -267,22 +266,30 @@ public class ConsoleData {
 						outTemp += ch;
 					}					
 				}
-				else if (info.pipe == errPipe) {
-					errTemp += ch;
-				}
+
 				else {
 					debugTemp += ch;
 				}
-			}
-			if (outTemp.length() != 0) {
-				if (currentOutputTextArea != null) {
-					currentOutputTextArea.append(outTemp);
+				if (currentTime != info.addTime) {
+					if (currentOutputArea != null) {
+						if (errTemp.length() != 0) {				
+							currentOutputArea.appendError(errTemp, false);
+						}
+						if (outTemp.length() != 0) {				
+							currentOutputArea.appendOutput(outTemp, false);
+						}
+					}
+					errTemp = "";
+					outTemp = "";
+					currentTime = info.addTime;					
 				}
 			}
-			if (errTemp.length() != 0) {
-				if (currentErrorTextArea != null) {
-					currentErrorTextArea.append(errTemp);
-				}				
+			if (currentOutputArea != null) {
+				
+					currentOutputArea.appendError(errTemp, true);
+				
+					currentOutputArea.appendOutput(outTemp, true);
+			
 			}
 			
 			if (debugTemp.length() != 0) {				
@@ -300,11 +307,11 @@ public class ConsoleData {
 			}
 		}
 		
-		private void readPipe(PipedInputStream pipe) {
+		private void readPipe(long systemTime, PipedInputStream pipe) {
 			try {	
 				while (pipe != null && pipe.available() != 0) {					
 					char temp = (char)pipe.read();
-					publish(new PipeInfo(temp, pipe));
+					publish(new PipeInfo(systemTime, temp, pipe));
 					if (temp == '\n' && pipe != errPipe && pipe != debugErrPipe) {
 						if (errPipe.available() != 0 || debugErrPipe.available() != 0) {
 							break;
@@ -319,11 +326,12 @@ public class ConsoleData {
 		@Override
 		protected Void doInBackground() {
 			try {
-				while (stop == false) {					
-					readPipe(errPipe);
-					readPipe(outPipe);
-					readPipe(debugErrPipe);
-					readPipe(debugOutPipe);					
+				while (stop == false) {
+					long systemTime = System.currentTimeMillis();
+					readPipe(systemTime, errPipe);
+					readPipe(systemTime, outPipe);
+					readPipe(systemTime, debugErrPipe);
+					readPipe(systemTime, debugOutPipe);					
 				}
 			} catch (Exception e) {
 

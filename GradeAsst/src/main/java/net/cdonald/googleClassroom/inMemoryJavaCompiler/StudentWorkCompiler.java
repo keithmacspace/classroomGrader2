@@ -29,6 +29,7 @@ import com.github.javaparser.ast.visitor.Visitable;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
+import net.cdonald.googleClassroom.listenerCoordinator.AppendOutputTextListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StopRunListener;
@@ -210,7 +211,8 @@ public class StudentWorkCompiler {
 				studentBuildInfo.setStudentCompilerMap(compiled);			
 				message = new CompilerMessage(studentID, true);
 			} catch (CompilationException e) {
-				DebugLogDialog.appendln("error " + e.getMessage());
+				DebugLogDialog.appendln("error " + e.getMessage());				
+				ListenerCoordinator.fire(AppendOutputTextListener.class, studentID, "", e.getLocalizedMessage());
 				message = new CompilerMessage(studentID, false, e.getLocalizedMessage());
 			} catch (Exception e2) {
 				DebugLogDialog.appendln("error 2 " + e2.getMessage());
@@ -356,11 +358,11 @@ public class StudentWorkCompiler {
 			runCore.start();
 			runCore.waitForFinish();
 			if (runCore.isStop()) {
-				System.out.println("Terminated\n");
+				System.out.println("\nTerminated\n");
 				System.out.println("\0");				
 			}
 			else {
-				System.out.println("Ran Successfully");
+				System.out.println("\nExecution Complete");
 				// This is how I send the message that execution has completed
 				// Hopefully none of the students will print a zero.
 				// I hate doing this, but I needed some sort of semaphore
