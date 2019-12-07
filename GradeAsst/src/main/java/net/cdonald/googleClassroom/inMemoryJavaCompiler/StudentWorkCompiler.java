@@ -203,6 +203,7 @@ public class StudentWorkCompiler {
 			List<FileData> studentFiles = studentBuildInfo.getStudentFileData();
 			InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance();			
 			try {
+				ListenerCoordinator.fire(AppendOutputTextListener.class, studentID, "", "", true);
 				for (FileData file : studentFiles) {					
 					compiler.addSource(file.getClassName(), file.getFileContents());
 					//DebugLogDialog.appendln(file.getFileContents());
@@ -212,7 +213,7 @@ public class StudentWorkCompiler {
 				message = new CompilerMessage(studentID, true);
 			} catch (CompilationException e) {
 				DebugLogDialog.appendln("error " + e.getMessage());				
-				ListenerCoordinator.fire(AppendOutputTextListener.class, studentID, "", e.getLocalizedMessage());
+				ListenerCoordinator.fire(AppendOutputTextListener.class, studentID, "", e.getLocalizedMessage(), true);
 				message = new CompilerMessage(studentID, false, e.getLocalizedMessage());
 			} catch (Exception e2) {
 				DebugLogDialog.appendln("error 2 " + e2.getMessage());

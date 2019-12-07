@@ -84,8 +84,8 @@ public class ConsoleData {
 		});
 		
 		ListenerCoordinator.addBlockingListener(AppendOutputTextListener.class, new AppendOutputTextListener() {
-			public void fired(String studentID, String rubricName, String text) {				
-				getStudentConsoleAreaMap(studentID).appendToOutput(rubricName, text);
+			public void fired(String studentID, String rubricName, String text, boolean clearText) {				
+				getStudentConsoleAreaMap(studentID).appendToOutput(rubricName, text, clearText);
 			}
 		});
 		

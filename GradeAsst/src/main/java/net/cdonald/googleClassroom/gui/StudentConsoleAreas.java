@@ -121,7 +121,18 @@ public class StudentConsoleAreas {
 		return outputAreas;
 	}
 
-	
+	public void appendToOutput(String rubricName, String text, boolean clearText) {
+		 
+		if (clearText) {
+			if (rubricName != null && rubricName != "") {			
+				getRubricArea(rubricName).clearText();
+			}
+			else {
+				outputAreas.clearText();	
+			}			
+		}
+		appendToOutput(rubricName, text);
+	}
 	public void appendToOutput(String rubricName, String text) {
 		if (rubricName != null && rubricName != "") {			
 			getRubricArea(rubricName).appendOutput(text, true);

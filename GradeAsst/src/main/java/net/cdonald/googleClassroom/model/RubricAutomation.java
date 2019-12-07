@@ -48,7 +48,7 @@ public abstract class RubricAutomation {
 
 	
 	protected void addOutput(String id, String text) {
-		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n");
+		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n", false);
 	}
 
 	public void getTestCode(List<FileData> files, Set<String> names) {}
