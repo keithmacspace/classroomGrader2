@@ -210,6 +210,7 @@ public class ExcelAdapter  {
 				htmlString = (String)(system.getContents(this).getTransferData(DataFlavor.allHtmlFlavor));
 
 			} catch (Exception ex) {
+				DebugLogDialog.appendException(ex);
 
 			}
 			List<List<String> > entries = null;
@@ -323,6 +324,7 @@ public class ExcelAdapter  {
 				entries.add(colList);
 			}
 		} catch (Exception e) {
+			DebugLogDialog.appendException(e);
 		}
 		return entries;
 	}

@@ -4,6 +4,7 @@ package net.cdonald.googleClassroom.googleClassroomInterface;
 import java.io.IOException;
 import java.util.Map;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
@@ -39,6 +40,7 @@ public class StudentFetcher extends ClassroomDataFetcher {
 				authorize.getStudents(classSelected, this);
 			} catch (IOException e) {
 				communicationException = e;
+				DebugLogDialog.appendException(e);
 			}
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
 		}

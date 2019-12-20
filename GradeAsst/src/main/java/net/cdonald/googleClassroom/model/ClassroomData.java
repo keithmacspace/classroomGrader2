@@ -5,6 +5,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+
 public class ClassroomData implements Comparable<ClassroomData> {
 	private String name;
 	private String id;
@@ -39,6 +41,7 @@ public class ClassroomData implements Comparable<ClassroomData> {
 			try {
 				date = formatter.parse(creationTime.replaceAll("Z$",  "+0000"));
 			} catch (ParseException e) {
+				DebugLogDialog.appendException(e);
 			}
 		}
 		init(name, id, date);

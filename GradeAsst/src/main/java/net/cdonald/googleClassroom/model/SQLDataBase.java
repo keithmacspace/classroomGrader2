@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+
 public class SQLDataBase {
 
 	private Connection conn;
@@ -40,8 +42,7 @@ public class SQLDataBase {
 				//System.out.println("Connection closed");
 				conn = null;
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				DebugLogDialog.appendException(e);
 			}
 		}
 	}
@@ -175,8 +176,7 @@ public class SQLDataBase {
 				PreparedStatement removeStmt = conn.prepareStatement(statement);
 				removeStmt.execute();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				DebugLogDialog.appendException(e);
 			}
 		}
 	}
@@ -249,7 +249,7 @@ public class SQLDataBase {
 			}
 
 		} catch (SQLException e) {
-			// System.err.print("SQL Error " + e.getMessage());
+			DebugLogDialog.appendException(e);
 		}
 	}
 	
@@ -261,9 +261,7 @@ public class SQLDataBase {
 			System.out.println(entry);
 			dbTest.disconnect();
 		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		
 	}

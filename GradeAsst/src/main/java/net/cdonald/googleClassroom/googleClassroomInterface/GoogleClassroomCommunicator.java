@@ -82,6 +82,7 @@ import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.TextFormat;
 import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
+import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -156,6 +157,7 @@ public class GoogleClassroomCommunicator {
 			DebugLogDialog.aquireSemaphore(getCredentialsSemaphore, 1);
 		} catch (InterruptedException e) {
 			getCredentialsSemaphore.release();
+			DebugLogDialog.appendException(e);
 		}
 		// Build a new authorized API client service.
 
@@ -216,6 +218,7 @@ public class GoogleClassroomCommunicator {
 		} catch (InterruptedException e) {
 			worked = false;
 			readAssignmentsSemaphore.release();
+			DebugLogDialog.appendException(e);
 		}
 		cancelCurrentAssignmentRead = false;
 		return worked;
@@ -227,6 +230,7 @@ public class GoogleClassroomCommunicator {
 			DebugLogDialog.aquireSemaphore(readStudentsSemaphore, 1);
 		} catch (InterruptedException e) {
 			readStudentsSemaphore.release();
+			DebugLogDialog.appendException(e);
 			worked = false;
 		}
 		cancelCurrentStudentRead = false;		
@@ -238,6 +242,7 @@ public class GoogleClassroomCommunicator {
 		try {
 			DebugLogDialog.aquireSemaphore(readStudentsWorkSemaphore, 1);
 		} catch (InterruptedException e) {
+			DebugLogDialog.appendException(e);
 			worked = false;
 			readStudentsWorkSemaphore.release();
 		}
@@ -258,6 +263,7 @@ public class GoogleClassroomCommunicator {
 				fetchListener.retrievedInfo(data);
 			}
 		} catch (IOException e) {
+			DebugLogDialog.appendException(e);
 			throw e;
 		}
 		DebugLogDialog.endMethod();
@@ -301,6 +307,7 @@ public class GoogleClassroomCommunicator {
 			}
 		} catch (IOException e) {
 			readStudentsSemaphore.release();
+			DebugLogDialog.appendException(e);
 			throw e;
 		}		
 		readStudentsSemaphore.release();
@@ -355,6 +362,7 @@ public class GoogleClassroomCommunicator {
 		} catch (IOException e) {
 			readStudentsWorkSemaphore.release();
 			readAssignmentsSemaphore.release();
+			DebugLogDialog.appendException(e);
 			throw e;
 		}
 
@@ -430,6 +438,7 @@ public class GoogleClassroomCommunicator {
 			}
 		} catch (IOException e) {
 			readStudentsWorkSemaphore.release();
+			DebugLogDialog.appendException(e);
 			throw e;
 		}
 		readStudentsWorkSemaphore.release();
@@ -447,8 +456,7 @@ public class GoogleClassroomCommunicator {
 		try {			
 			str = decoder.decode(ByteBuffer.wrap(utf8)).toString();
 		} catch (CharacterCodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		// set decoder back to its default value: REPORT
 
@@ -490,6 +498,7 @@ public class GoogleClassroomCommunicator {
 			
 		} catch (IOException e) {
 			readStudentsWorkSemaphore.release();
+			DebugLogDialog.appendException(e);
 			throw e;
 		}
 		readStudentsWorkSemaphore.release();
@@ -522,8 +531,7 @@ public class GoogleClassroomCommunicator {
 		try {
 			initServices();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		String id = googleSheetID(url);
 		if (id.length() < 25) {
@@ -535,6 +543,7 @@ public class GoogleClassroomCommunicator {
 			spreadSheet = sheetsService.spreadsheets().get(id).execute();
 		} catch (IOException e) {
 			DebugLogDialog.endMethod();
+			DebugLogDialog.appendException(e);
 			return null;
 		}
 		if (spreadSheet == null) {
@@ -663,14 +672,14 @@ public class GoogleClassroomCommunicator {
 		return current;		
 	}
 	
-	public void insertRow(GoogleSheetData targetFile, int column) {
-		insertRowOrColumn(targetFile, column, "ROWS");
+	public void insertRow(GoogleSheetData targetFile, int column, String rowName, int colLocationForName) {
+		insertRowOrColumn(targetFile, column, "ROWS", rowName, colLocationForName);
 	}
-	public void insertColumn(GoogleSheetData targetFile, int row) {
-		insertRowOrColumn(targetFile, row, "COLUMNS");
+	public void insertColumn(GoogleSheetData targetFile, int row, String colName, int rowLocationForName) {
+		insertRowOrColumn(targetFile, row, "COLUMNS", colName, rowLocationForName );
 	}
 	
-	private void insertRowOrColumn(GoogleSheetData targetFile, int row, String dimensionType) {
+	private void insertRowOrColumn(GoogleSheetData targetFile, int rowOrCol, String dimensionType, String name, int otherDimension) {
 		DebugLogDialog.startMethod();
 		Sheet current = null;
 		String id = null;
@@ -688,8 +697,8 @@ public class GoogleClassroomCommunicator {
 				DimensionRange range = new DimensionRange();
 				range.setSheetId(current.getProperties().getSheetId());
 				range.setDimension(dimensionType);
-				range.setStartIndex(row);
-				range.setEndIndex(row + 1);
+				range.setStartIndex(rowOrCol);
+				range.setEndIndex(rowOrCol + 1);
 				insertRequest.setRange(range);
 				insertRequest.setInheritFromBefore(false);
 				Request request = new Request();
@@ -698,11 +707,24 @@ public class GoogleClassroomCommunicator {
 				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 				batchUpdateSpreadsheetRequest.setRequests(requestsList);
 				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
-
+				List<List<Object>> nameList2d = new ArrayList<List<Object>>();
+				List<Object> nameList = new ArrayList<Object>();
+				nameList.add(name);
+				nameList2d.add(nameList);
+				int columnNum = (dimensionType.equals("ROWS"))? otherDimension : rowOrCol;
+				int rowNum = (dimensionType.equals("ROWS"))? rowOrCol : otherDimension;
+				rowNum++;
+				ValueRange labelRange = new ValueRange();
+				String columnName = getColumnName(columnNum);
+				columnName += "" + rowNum;
+				String stringRange = sheetName + "!" + columnName + ":" + columnName;
+				labelRange.setRange(stringRange);
+				labelRange.setValues(nameList2d);
+				UpdateValuesResponse result = sheetsService.spreadsheets().values().update(id, stringRange, labelRange).setValueInputOption("RAW").execute();
+				DebugLogDialog.appendln(result.getUpdatedCells().toString());
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		DebugLogDialog.endMethod();
 	}
@@ -790,8 +812,7 @@ public class GoogleClassroomCommunicator {
 
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		DebugLogDialog.endMethod();
 	}

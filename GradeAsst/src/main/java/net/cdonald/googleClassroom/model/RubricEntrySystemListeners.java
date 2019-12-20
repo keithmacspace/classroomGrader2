@@ -2,6 +2,7 @@ package net.cdonald.googleClassroom.model;
 
 import java.util.concurrent.Semaphore;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.StudentConsoleAreas;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -35,8 +36,7 @@ public class RubricEntrySystemListeners {
 		try {
 			semaphore.acquire();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		attach();
 	}
@@ -54,8 +54,7 @@ public class RubricEntrySystemListeners {
 			detach();
 			semaphore.release();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}	
 	}
 	

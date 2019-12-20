@@ -209,6 +209,7 @@ public class GuidedSetupDialog extends JDialog {
 		} catch (FileNotFoundException ex) {
 			JOptionPane.showMessageDialog(null, "We need to be able to write data to the directory.\nAttempted to write:\n" + studentFileName + "\n and failed",  "Bad Working Dir",
 					JOptionPane.ERROR_MESSAGE);
+			DebugLogDialog.appendException(ex);
 			return false;
 		}
 		return true;
@@ -383,7 +384,8 @@ public class GuidedSetupDialog extends JDialog {
 					success = true;
 				} catch (Exception e) {
 					System.out.println("Authorization failed\n");
-					System.out.println(e.getMessage() + "\n");			
+					System.out.println(e.getMessage() + "\n");
+					DebugLogDialog.appendException(e);
 				}
 				if (success) {
 					System.out.println("\n");

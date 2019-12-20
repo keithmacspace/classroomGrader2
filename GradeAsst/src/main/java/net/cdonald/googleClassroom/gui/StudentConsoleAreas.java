@@ -15,8 +15,7 @@ import javax.swing.text.StyledDocument;
 
 public class StudentConsoleAreas {
 	public class OutputAreas {
-		private JTextPane outputArea;
-		private JTextArea errorArea;
+		private JTextPane outputArea;		
 		private Style black;
 		private Style red;
 		private Style blue;
@@ -24,14 +23,12 @@ public class StudentConsoleAreas {
 		private String currentError;
 		public OutputAreas() {
 			outputArea = createTextPane();
-
-			errorArea = new JTextArea();
-			errorArea.setEditable(false);
 			currentOutput = "";
 			currentError = "";
 		}
 		private JTextPane createTextPane() {
 			JTextPane pane = new JTextPane();
+			pane.setEditable(false);
 			StyledDocument doc = pane.getStyledDocument();
 			JTextArea temp = new JTextArea();
 			red = createStyle("Red", doc, temp, Color.RED);
@@ -59,7 +56,7 @@ public class StudentConsoleAreas {
 					doc.insertString(doc.getLength(), currentText +  text,  style);
 				}
 				catch(BadLocationException e) {
-					
+					DebugLogDialog.appendException(e);
 				}
 				currentText = "";
 			}
@@ -82,24 +79,17 @@ public class StudentConsoleAreas {
 		}
 		public void appendError(String error, boolean finalPush) {
 			currentError = appendText(currentError, error, outputArea, red, finalPush);
-//			errorArea.append(error);
 		}
 		public void clearText() {
 			outputArea.setText("");
-			errorArea.setText("");
 		}
 		
 		public JTextPane getOutputArea() {
 			return outputArea;
 		}
 
-		public JTextArea getErrorArea() {
-			return errorArea;
-		}
-
 		public void clear() {
 			outputArea.setText("");
-			errorArea.setText("");
 		}		
 	};
 	private Map<String, OutputAreas>  rubricOutputMap;	

@@ -121,4 +121,12 @@ public class DebugLogDialog extends JDialog {
 	public static boolean getEnableDBG() {
 		return enable;
 	}
+	
+	public static void appendException(Throwable e) {
+		appendln(e.getMessage());
+		for (StackTraceElement elem : e.getStackTrace()) {
+			appendln(elem.toString());
+		}
+	}
+	
 }

@@ -25,6 +25,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -165,7 +166,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		setLayout(new BorderLayout());
 		consoleAndSourcePanel = new ConsoleAndSourcePanel(undoManager);
 		mainToolBar = new MainToolBar();
-		studentPanel = new StudentPanel(dataController, prefs.getSplitLocation(MyPreferences.Dividers.STUDENT_NOTES));
+		studentPanel = new StudentPanel(undoManager, dataController, prefs.getSplitLocation(MyPreferences.Dividers.STUDENT_NOTES));
 		mainMenu = new MainMenu(this, undoManager);
 		infoPanel = new InfoPanel();
 		setJMenuBar(mainMenu);
@@ -354,8 +355,8 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		
 		ListenerCoordinator.addListener(RecompileListener.class, new RecompileListener() {
 			@Override
-			public void fired(String studentID, String fileName, String fileText) { 
-				dataController.recompile(studentID, fileName, fileText);
+			public void fired(String studentID) { 
+				dataController.recompile(studentID);
 				dataUpdated();					
 				studentPanel.setSelectedStudent(studentID);
 			}			
@@ -457,8 +458,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 					FileData fileData = new FileData(fileName, text, FileData.REFERENCE_SOURCE_ID, null);
 					allFiles.add(fileData);
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					DebugLogDialog.appendException(e1);
 				}						
 			}
 		}
@@ -493,7 +493,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	private void runRubricOrCode(boolean runSource, boolean runAll) {
 		runWorker = new SwingWorker<Void, String>() {
 			private String lastId = null;
-			 
+			private Map<String, Set<String>> entriesSkipped = null;
 
 			@Override
 			protected void process(List<String> chunks) {
@@ -505,7 +505,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 			@Override
 			protected Void doInBackground() throws Exception {
 				consoleAndSourcePanel.syncSource();
-				Map<String, Set<String>> entriesSkipped = null;
+				
 				
 				disableRuns();				
 				List<String> ids = null;
@@ -542,25 +542,34 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				} catch (Exception e) {
 					JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, e.getMessage(), "Error while running",
 							JOptionPane.ERROR_MESSAGE);
-					e.printStackTrace();					
+					e.printStackTrace();
+					DebugLogDialog.appendException(e);
 					System.out.println("\0");
 				}
 				dataController.addEdits(false);
-				if (entriesSkipped != null) {
-					dataController.setShowRedMap(entriesSkipped);
-					dataUpdated();
-					JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, "Entries shown in red were not updated because they already had a score.\nDelete the score if you want automation to change the value.\nThe red will be removed when you close this dialog.", "Some Entries Not Updated",
-							JOptionPane.OK_OPTION);
-					dataController.setShowRedMap(null);
-					dataUpdated();					
-				}
 				return null;
 			}
 			@Override
 			protected void done() {
-				studentPanel.setSelectedStudent(lastId);
-				enableRuns();
-				mainToolBar.setStopEnabled(false);
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						studentPanel.setSelectedStudent(lastId);
+						mainToolBar.setStopEnabled(false);
+						if (entriesSkipped != null) {
+							dataController.setShowRedMap(entriesSkipped);
+							dataUpdated();
+							JOptionPane.showMessageDialog(MainGoogleClassroomFrame.this, "Entries shown in red were not updated because they already had a score.\nDelete the score if you want automation to change the value.\nThe red will be removed when you close this dialog.", "Some Entries Not Updated",
+									JOptionPane.OK_OPTION);
+							dataController.setShowRedMap(null);
+							dataUpdated();					
+						}
+						entriesSkipped = null;						
+
+						enableRuns();
+						
+					}
+				});
+
 			}
 		};
 		runWorker.execute();

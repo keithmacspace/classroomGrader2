@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
+
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.utils.FileUtils;
 
 
@@ -50,7 +52,7 @@ public class JPLAGInvoker {
 			}			
 			args.add(fullJPLAGPath);
 		} catch (URISyntaxException e) {
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		args.add("-vq");
 		args.add("-s");
@@ -74,7 +76,7 @@ public class JPLAGInvoker {
 			String message = "JPLAG invocation failed: Open Help/Debug Log for more details";
 			JOptionPane.showMessageDialog(null, message,  "JPLAG Failed",
 					JOptionPane.INFORMATION_MESSAGE);
-			e1.printStackTrace();
+			DebugLogDialog.appendException(e1);
 			return null;
 		}
 		jplagOut += File.separator + "index.html";
@@ -88,7 +90,7 @@ public class JPLAGInvoker {
 				URI u = new File(jplagOut).toURI();
 				Desktop.getDesktop().browse(u);
 			} catch (IOException e) {
-				e.printStackTrace();
+				DebugLogDialog.appendException(e);
 			}
 		}
 		return finalOutput;
@@ -99,7 +101,7 @@ public class JPLAGInvoker {
 		try {
 			FileUtils.removeRecursive(Paths.get(assignmentPath));
 		} catch (IOException e1) {
-
+			DebugLogDialog.appendException(e1);
 		}		
 		new File(assignmentPath).mkdir();
 		for (StudentData student : students) {
@@ -115,7 +117,7 @@ public class JPLAGInvoker {
 						out.flush();
 						out.close();
 					} catch (FileNotFoundException e) {
-
+						DebugLogDialog.appendException(e);
 					}
 				}
 			}

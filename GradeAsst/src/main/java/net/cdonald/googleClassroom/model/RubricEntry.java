@@ -43,6 +43,15 @@ public class RubricEntry {
 
 		private Double score;
 		private boolean modifiedByUser;
+		public boolean scoreEquals(StudentScore other) {
+			if (score == null || other == null) { 
+				return false;
+			}
+			if (score.equals(other.score)) {
+				return true;
+			}
+			return false;			
+		}
 	}
 	public static class RubricUndoInfo {
 		public RubricUndoInfo(int rubricEntryIndex, String studentID, StudentScore studentScorePreChange,

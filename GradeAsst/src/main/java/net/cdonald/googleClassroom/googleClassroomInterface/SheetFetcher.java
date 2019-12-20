@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.googleClassroomInterface;
 import java.io.IOException;
 import java.util.Map;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryResponder;
 import net.cdonald.googleClassroom.listenerCoordinator.SheetFetcherListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
@@ -29,6 +30,7 @@ public class SheetFetcher extends ClassroomDataFetcher {
 				authorize.getSheetNames(url, this);
 			} catch (IOException e) {
 				communicationException = e;
+				DebugLogDialog.appendException(e);
 			}
 		}
 		return null;

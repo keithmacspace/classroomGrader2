@@ -23,8 +23,7 @@ public class SourceDocumentListener implements DocumentListener {
 			String text = d.getText(0, length);
 			fileData.setFileContents(text);
 		} catch (BadLocationException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			DebugLogDialog.appendException(e1);
 		}
 	}
 	

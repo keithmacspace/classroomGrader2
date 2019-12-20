@@ -40,10 +40,11 @@ import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
+import net.cdonald.googleClassroom.listenerCoordinator.AllStudentNamesLoadedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.ClassSelectedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.EnableRunRubricQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearNotesModifiedFlag;
+import net.cdonald.googleClassroom.listenerCoordinator.GetAndClearModifiedNotes;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerMessageQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentAssignmentQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
@@ -52,9 +53,11 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentRubricURL;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetFileDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.GetStudentIDListQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetWorkingDirQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GradeFileSelectedListener;
+import net.cdonald.googleClassroom.listenerCoordinator.GradesSyncedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.LoadGradesListener;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryListener;
@@ -119,8 +122,7 @@ public class DataController implements StudentListInfo {
 	private GoogleClassroomCommunicator googleClassroom;
 	private MyPreferences prefs;
 	private ClassroomData rubricURL;
-	private ClassroomData gradeURL;
-	private Map<String, Map<String, String> > notesCommentsMap;
+	private ClassroomData gradeURL;	
 	private Rubric rubricBeingEdited;
 	
 	private Map<String, Set<String>> showRedMap;
@@ -146,7 +148,7 @@ public class DataController implements StudentListInfo {
 		consoleData = new ConsoleData();		
 		currentCourse = null;
 		updateListener = mainFrame;
-		notesCommentsMap = new HashMap<String, Map<String, String>>();
+		
 		showRedMap = null;
 		addEdits = false;
 		initGoogle();				
@@ -155,8 +157,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	private void clearNotesAndComments() {
-		notesCommentsMap.clear();
-		notesCommentsMap.put(prefs.getUserName(), new HashMap<String, String>());
+		
 	}
 	
 
@@ -171,10 +172,10 @@ public class DataController implements StudentListInfo {
 		try {
 			googleClassroom = new GoogleClassroomCommunicator(MainGoogleClassroomFrame.APP_NAME, prefs.getTokenDir(), prefs.getJsonPath());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			DebugLogDialog.appendException(e);
 			e.printStackTrace();
 		} catch (GeneralSecurityException e) {
-			// TODO Auto-generated catch block
+			DebugLogDialog.appendException(e);
 			e.printStackTrace();
 		}
 	}
@@ -287,6 +288,18 @@ public class DataController implements StudentListInfo {
 			public String fired() {
 				return prefs.getFileDir();
 			}
+		});
+		
+		ListenerCoordinator.addQueryResponder(GetStudentIDListQuery.class, new GetStudentIDListQuery() {
+			@Override
+			public List<String> fired() {
+				List<String> allIDs = new ArrayList<String>();
+				for (String studentID : studentMap.keySet()) {
+					allIDs.add(studentID);
+				}
+				// TODO Auto-generated method stub
+				return allIDs;
+			}			
 		});
 		
 
@@ -412,7 +425,7 @@ public class DataController implements StudentListInfo {
 						} catch (IOException e) {
 							JOptionPane.showMessageDialog(null, e.getMessage(), "Error accessing rubric db sheet",
 									JOptionPane.ERROR_MESSAGE);
-							e.printStackTrace();					
+							DebugLogDialog.appendException(e);					
 						}
 						
 					}				
@@ -694,6 +707,7 @@ public class DataController implements StudentListInfo {
 				@Override
 				public void done() {					
 					updateListener.structureChanged();
+					ListenerCoordinator.fire(AllStudentNamesLoadedListener.class);
 
 				}
 				@Override
@@ -834,7 +848,7 @@ public class DataController implements StudentListInfo {
 			StudentScore postChange = entry.getStudentScore(studentID);
 			boolean bothNull = ((preChange == null || preChange.getScore() == null) && (postChange == null || postChange.getScore() == null));
 			if (!bothNull) {
-				boolean sameValue = preChange != null && postChange != null && preChange.getScore().equals(postChange.getScore()); 
+				boolean sameValue = preChange != null && preChange.scoreEquals(postChange); 
 				if (!sameValue) {
 					undoManager.addEdit(new RubricUndoableEdit(index, studentID, preChange, postChange));
 				}
@@ -860,10 +874,7 @@ public class DataController implements StudentListInfo {
 	}
 	@Override
 	public boolean showRed(int row, int col, Object value) {
-		if (col == DATE_COLUMN) {
-			
-			
-
+		if (col == DATE_COLUMN) {				
 			lateTime = prefs.getLateDateTime();
 			lateType = prefs.getLateType();
 			if (value instanceof Date) {
@@ -904,11 +915,6 @@ public class DataController implements StudentListInfo {
 			return entry.getColumnName();
 		}
 		return null;
-	}
-	
-	@Override
-	public Map<String, Map<String, String> >getNotesCommentsMap() {
-		return notesCommentsMap;
 	}
 	
 	@Override
@@ -1002,6 +1008,7 @@ public class DataController implements StudentListInfo {
 			catch(IOException e) {
 				JOptionPane.showMessageDialog(null, e.getMessage(), "Error saving to rubric db sheet",
 						JOptionPane.ERROR_MESSAGE);
+				DebugLogDialog.appendException(e);
 				
 			}
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Rubric");
@@ -1036,11 +1043,12 @@ public class DataController implements StudentListInfo {
 			try {
 				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
-				boolean notesModified = (Boolean)ListenerCoordinator.runQuery(GetAndClearNotesModifiedFlag.class);
+				@SuppressWarnings("unchecked")
+				Map<String, String> modifiedNotes = (Map<String, String>)ListenerCoordinator.runQuery(GetAndClearModifiedNotes.class);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
-				
-				if (currentRubric.areGradesModified() || notesModified || currentRubric.isLoadedFromFile() == false) {
+				GradeSyncer grades = new GradeSyncer(googleClassroom, modifiedNotes, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments());
+				if (currentRubric.areGradesModified() || modifiedNotes.size() > 0 || currentRubric.isLoadedFromFile() == false) {
 					for (StudentDataClass student : studentData) {
 						String studentID = student.getStudent(false).getId();
 						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);
@@ -1058,7 +1066,8 @@ public class DataController implements StudentListInfo {
 				JOptionPane.showMessageDialog(null, "Error saving grades to google sheet " + e.getMessage(),  "Save problem",
 						JOptionPane.ERROR_MESSAGE);
 				worked = false;
-			}
+				DebugLogDialog.appendException(e);
+			}			
 			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
 			
 		}		
@@ -1071,14 +1080,18 @@ public class DataController implements StudentListInfo {
 			Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
 			try {				
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, notesCommentsMap, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, null, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments());
 				updateListener.structureChanged();
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error loading grades from google sheet " + e.getMessage(),  "Save problem",
 						JOptionPane.ERROR_MESSAGE);
+				DebugLogDialog.appendException(e);
 			}
 			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
+
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Loading Grades");
+			
 		}
 		
 	}
@@ -1117,8 +1130,8 @@ public class DataController implements StudentListInfo {
 				
 	}
 
-	public void recompile(String studentID, String fileName, String fileText) {
-		studentWorkCompiler.recompile(studentID, fileName, fileText);		
+	public void recompile(String studentID) {
+		studentWorkCompiler.compile(studentID);		
 	}
 	
 	public void removeSource(String studentID, String fileName) {
@@ -1152,6 +1165,7 @@ public class DataController implements StudentListInfo {
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(null, "Only the person who created this assignment can modify it\n" + e.getMessage(),  "Error publishing grades",
 						JOptionPane.ERROR_MESSAGE);
+				DebugLogDialog.appendException(e);
 			}
 		}
 		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Publishing Grades");

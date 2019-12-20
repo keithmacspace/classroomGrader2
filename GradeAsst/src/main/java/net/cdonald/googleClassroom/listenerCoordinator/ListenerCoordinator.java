@@ -9,6 +9,8 @@ import java.util.Map;
 
 import javax.swing.SwingWorker;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+
 //import net.cdonald.ListenerTest;
 //import net.cdonald.LongQueryResponderTest;
 //import net.cdonald.QueryResponseTest;
@@ -208,17 +210,13 @@ public class ListenerCoordinator {
 			}
 			return null;
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			DebugLogDialog.appendException(e);
 		}
 		return returnValue;
 	}

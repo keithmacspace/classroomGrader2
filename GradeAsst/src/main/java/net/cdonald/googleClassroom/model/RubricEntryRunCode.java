@@ -26,6 +26,7 @@ import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -140,6 +141,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, e.getMessage(), "Error compiling the test code",
 					JOptionPane.ERROR_MESSAGE);
+			DebugLogDialog.appendException(e);
 			return null;
 		}
 		List<Method> methods = new ArrayList<Method>();

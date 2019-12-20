@@ -63,7 +63,7 @@ public class MyPreferences {
 				}
 			}
 		} catch (BackingStoreException e) {
-
+			DebugLogDialog.appendException(e);
 		}
 		return false;
 	}
@@ -265,13 +265,13 @@ public class MyPreferences {
 			try {
 				FileUtils.removeRecursive(Paths.get(directoryPath));
 			} catch (IOException e) {
-
+				DebugLogDialog.appendException(e);
 			}
 		}
 		try {
 			preferences.removeNode();
 		} catch (BackingStoreException e) {
-
+			DebugLogDialog.appendException(e);
 		}
 		
 		

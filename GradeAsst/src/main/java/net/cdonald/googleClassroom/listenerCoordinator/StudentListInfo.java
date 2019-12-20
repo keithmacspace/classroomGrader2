@@ -16,8 +16,7 @@ public interface StudentListInfo {
 	public Object getValueAt(int rowIndex, int columnIndex);
 	public void setValueAt(Object value, int rowIndex, int columnIndex);
 	public String getColumnTip(int column);
-	public String getColumnName(int column);	
-	public Map<String, Map<String, String> > getNotesCommentsMap();
+	public String getColumnName(int column);		
 	public String getUserName();
 	public boolean showRed(int row, int col, Object value);
 	public void addEdits(boolean addEdits);

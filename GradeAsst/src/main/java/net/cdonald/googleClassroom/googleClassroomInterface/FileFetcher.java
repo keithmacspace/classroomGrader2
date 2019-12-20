@@ -4,9 +4,9 @@ package net.cdonald.googleClassroom.googleClassroomInterface;
 import java.util.Map;
 
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
+import net.cdonald.googleClassroom.listenerCoordinator.AllStudentFilesLoadedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentAssignmentQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.LongQueryResponder;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
@@ -23,6 +23,7 @@ public class FileFetcher extends ClassroomDataFetcher {
 	@Override
 	protected void done() {
 		ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
+		ListenerCoordinator.fire(AllStudentFilesLoadedListener.class);
 		super.done();
 	}
 

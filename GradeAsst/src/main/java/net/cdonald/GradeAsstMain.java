@@ -1,8 +1,8 @@
 package net.cdonald;
 
-
 import javax.swing.SwingUtilities;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.MainGoogleClassroomFrame;
 import net.cdonald.googleClassroom.model.MyPreferences;
 
@@ -12,6 +12,7 @@ public class GradeAsstMain implements Runnable {
 	@Override
 	public void run() {
 		try {
+			Thread.setDefaultUncaughtExceptionHandler(new ExceptionLogger());
 			new MainGoogleClassroomFrame();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -19,6 +20,17 @@ public class GradeAsstMain implements Runnable {
 		}
 		//new GradingWindow();
 	}
+    
+    
+    public static class ExceptionLogger implements Thread.UncaughtExceptionHandler {
+
+		@Override
+		public void uncaughtException(Thread t, Throwable e) {
+			DebugLogDialog.appendException(e);			
+		}
+    	
+    }
+
 
 
 	public static void main(String[] args) {
@@ -29,8 +41,6 @@ public class GradeAsstMain implements Runnable {
 				return;
 			}			
 		}
-		
-
 
 		SwingUtilities.invokeLater(new GradeAsstMain());
 

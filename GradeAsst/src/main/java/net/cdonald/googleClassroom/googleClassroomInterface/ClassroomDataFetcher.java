@@ -63,10 +63,12 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 						publish(temp);
 					}
 				}
-			} catch (SQLException e) {				
+			} catch (SQLException e) {	
+				DebugLogDialog.appendException(e);
 				databaseException = e;
 			} catch (Exception x) {
 				miscException = x;
+				DebugLogDialog.appendException(x);
 			}
 		}
 	}
@@ -138,11 +140,12 @@ public abstract class ClassroomDataFetcher extends LongQueryResponder<ClassroomD
 								dataBase.delete(dataBaseTable, tableLabelEnum, readFromDB);
 							}
 
-						} catch (SQLException e) {
-							System.err.println(e.getMessage());
+						} catch (SQLException e) {							
 							databaseException = e;
+							DebugLogDialog.appendException(e);
 						} catch (Exception x) {
 							miscException = x;
+							DebugLogDialog.appendException(x);
 						}
 						dataBase.disconnect();
 					}

@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.googleClassroomInterface;
 import java.io.IOException;
 import java.util.Map;
 
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCurrentClassQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetDBNameQuery;
@@ -20,7 +21,7 @@ public class AssignmentFetcher extends ClassroomDataFetcher {
 	}
 	@Override
 	protected void done() {
-		ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
+		ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);		
 		super.done();
 	}
 
@@ -36,6 +37,7 @@ public class AssignmentFetcher extends ClassroomDataFetcher {
 				authorize.getAssignments(classSelected, this);
 			} catch (IOException e) {
 				communicationException = e;
+				DebugLogDialog.appendException(e);
 			}
 		}		
 		return null;

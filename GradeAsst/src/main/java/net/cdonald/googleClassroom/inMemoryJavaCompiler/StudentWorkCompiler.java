@@ -118,12 +118,18 @@ public class StudentWorkCompiler {
 	}
 
 	private Object runSpecificMethod(boolean expectingReturn, String methodName, List<FileData> files, Map<String, Class<?>> compiled, Class<?>[] params, Object[] args) {
+		boolean ranSomething = false;
 		for (FileData fileData : files) {
 			Class<?> aClass = compiled.get(fileData.getClassName());
 			Method method = getMethod(aClass, methodName, params);
 			if (method != null) {
+				ranSomething = true;
 				return runCore(expectingReturn, method, args);
-			}		
+			}
+		}
+		if (ranSomething == false) {
+			System.out.println("There is no method " + methodName + " in the source.");
+			System.out.println("\0");
 		}
 		return null;		
 	}
@@ -249,7 +255,7 @@ public class StudentWorkCompiler {
 						// If, for some reason, instrumentation adds a bug, run without it
 						compileAndRun(false, files, "main", mainParamTypes, mainParams, false);
 					} catch (Exception e1) {
-
+						System.out.println("\0");
 					}
 				}
 			}
@@ -411,15 +417,6 @@ public class StudentWorkCompiler {
 		}
 		return null;
 	}
-
-
-	public void recompile(String studentID, String fileName, String fileText) {
-		if (studentBuildInfoMap.containsKey(studentID)) {
-			studentBuildInfoMap.get(studentID).changeFileData(fileName, fileText);
-			compile(studentID); 			
-		}		
-	}
-
 
 	public void removeSource(String studentID, String fileName) {
 		if (studentBuildInfoMap.containsKey(studentID)) {

@@ -40,6 +40,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 	private static final String LATE_INFO_COLUMN_KEY = "Late By";
 	private static final String TOTAL_STRING = "Total";
 	private static final String NOTES_APPEND = ": Notes";
+	private static final String NOTES_COLUMN_NAME = "Grader" + NOTES_APPEND; // Ealier form broke up notes by grader, but that didn't work as cleanly.  
 	private static final String LAST_NAME_COLUMN_KEY = "Last Name";
 	private static final String FIRST_NAME_COLUMN_KEY = "First Name";
 
@@ -51,22 +52,24 @@ public class GradeSyncer implements SheetAccessorInterface {
 	private GoogleClassroomCommunicator communicator;
 	private Map<RowTypes, Integer> rowLocations;
 	private Map<String, Integer> columnLocations;
-	private Set<String> notesGraderNames;
+	private Set<String> notesGraderNames; // This is for handling earlier forms where we had individual notes
 	private Map<String, String> gradedByColumns;
 	private ClassroomData assignment;
-	private Map<String, Map<String, String>> graderCommentsMap;
+	private Map<String, String> graderCommentsMap;
+	private Map<String, String> modifiedCommentsMap;
 	private int maxRow;
 	
 	/**
 	 * As soon as this constructor is called, we will load the current sheet & load the grades into the rubric.
 	 * The load will never change current values in the rubric.
 	 */
-	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, Map<String, String>> graderCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName) throws IOException {	
+	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, String> modifiedCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName) throws IOException {	
 		this.communicator = communicator;
 		this.targetFile = targetFile;
 		this.rubric = rubric;
 		this.graderName = graderName;
-		this.graderCommentsMap = graderCommentsMap;
+		this.modifiedCommentsMap = modifiedCommentsMap;
+		graderCommentsMap = new HashMap<String, String>();
 		rowLocations = new HashMap<RowTypes, Integer>();
 		columnLocations = new HashMap<String, Integer>();
 		notesGraderNames = new HashSet<String>();
@@ -131,8 +134,8 @@ public class GradeSyncer implements SheetAccessorInterface {
 		for (int i = 0; i < rubric.getEntryCount(); i++) {
 			addColumnLocation(rubric.getEntry(i).getName(), col++);
 		}
-		String notesString = graderName + NOTES_APPEND;
-		addColumnLocation(notesString, col++);
+		
+		addColumnLocation(NOTES_COLUMN_NAME, col++);
 	}
 
 	
@@ -213,7 +216,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 					return true;					
 				}
 			}
-			insertRow(data, rowNum);
+			insertRow(data, rowNum, rowType);
 			rowLocations.put(rowType, rowNum);
 			return true;
 		}
@@ -226,9 +229,9 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 * When we do, move the positions stored in the StudentRow objects
 	 * and the rowLocations map.
 	 */
-	private void insertRow(LoadSheetData data, int rowNum) {
+	private void insertRow(LoadSheetData data, int rowNum, RowTypes rowType) {
 		// OK, we don't have a blank row there, let's insert one.
-		communicator.insertRow(targetFile, rowNum);
+		communicator.insertRow(targetFile, rowNum, rowType.getSearchString(), 0);
 		// Insert a null row into our image of the data so later reads of the
 		// rows get the correct data.
 		data.rowInserted(rowNum);
@@ -241,7 +244,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 			}
 		}
 		for (StudentRow studentRow : studentRowList) {
-			studentRow.incRowIfGreater(rowNum);
+			studentRow.incRowIfGreaterOrEqual(rowNum);
 		}
 	}
 
@@ -442,10 +445,12 @@ public class GradeSyncer implements SheetAccessorInterface {
 					if (columnObject instanceof String) {						
 						String column = (String)columnObject;
 						addColumnLocation(column, columnIndex);
-						int noteIndex = column.toUpperCase().indexOf(NOTES_APPEND.toUpperCase()); 
-						if (noteIndex != -1) {
-							String noteName = column.substring(0, noteIndex);					
-							notesGraderNames.add(noteName);
+						if (!column.equalsIgnoreCase(NOTES_COLUMN_NAME)) {
+							int noteIndex = column.toUpperCase().indexOf(NOTES_APPEND.toUpperCase()); 
+							if (noteIndex != -1) {
+								String noteName = column.substring(0, noteIndex);					
+								notesGraderNames.add(noteName);
+							}
 						}
 					}				
 					columnIndex++;
@@ -457,7 +462,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 				for (int i = 0; i < rubric.getEntryCount(); i++) {
 					possiblyInsertColumn(rubric.getEntry(i).getName(), col++);
 				}
-				possiblyInsertColumn(graderName + NOTES_APPEND, computeMaxColumn());
+				possiblyInsertColumn(NOTES_COLUMN_NAME, col++);
 
 			}
 		}
@@ -470,7 +475,8 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 */
 	private void possiblyInsertColumn(String columnName, int desiredSpot) {
 		if (getColumnLocation(columnName) == null) {
-			communicator.insertColumn(targetFile, desiredSpot);
+			int rowNum = rowLocations.get(RowTypes.RUBRIC_NAME);
+			communicator.insertColumn(targetFile, desiredSpot, columnName, rowNum);
 			for (String key : columnLocations.keySet()) {
 				Integer location = columnLocations.get(key);
 				if (location >= desiredSpot) {
@@ -501,41 +507,54 @@ public class GradeSyncer implements SheetAccessorInterface {
 			int rowNum = studentRow.getRowNumber();
 			if (studentRow.getStudent() != null && rowNum < data.getNumRows()) {
 				String studentID = studentRow.getStudent().getId();
-				List<Object> points = data.readRow(rowNum);
+				List<Object> pointsOrNotes = data.readRow(rowNum);
 				for (int i = 0; i < rubric.getEntryCount(); i++) {
 					RubricEntry entry = rubric.getEntry(i);
 					// Don't overwrite any values already in the rubric
 					RubricEntry.StudentScore studentScore = entry.getStudentScore(studentID);
 					if (studentScore == null || studentScore.isModifiedByUser() == false) {
 						int index = getColumnLocation(entry.getName());
-						if (points.size() > index) {
-							Object object = points.get(index);
+						if (pointsOrNotes.size() > index) {
+							Object object = pointsOrNotes.get(index);
 							if (object != null) {								
 									entry.setStudentValue(studentID, object.toString());								
 							}
 						}						
 					}
 				}
-				for (String grader : notesGraderNames) {
-					String columnName = grader + NOTES_APPEND;
-					Integer index = getColumnLocation(columnName); 
-					if (index != null) {
-						if (index < points.size()) {
-							if (points.get(index) != null) {
-								if (graderCommentsMap.containsKey(grader) == false) {
-									graderCommentsMap.put(grader, new HashMap<String, String>());
-								}
-								Map<String, String> current = graderCommentsMap.get(grader);								
-								// Don't overwrite comments added by the current user
-								if (grader.equalsIgnoreCase(graderName) == false || current == null || current.containsKey(studentID) == false) { 					
-									current.put(studentID, points.get(index).toString());
-								}
-							}							
-						}
-					}
-				}					
+				boolean addedDefaultNotes = mergeComments(NOTES_COLUMN_NAME, pointsOrNotes, studentID);
+				if (addedDefaultNotes == false) {								
+					// Handle the earlier form of notes
+					for (String grader : notesGraderNames) {
+						String columnName = grader + NOTES_APPEND;
+						mergeComments(columnName, pointsOrNotes, studentID);						
+					}					
+				}
 			}
 		}
+	}
+	
+	private boolean mergeComments(String columnName, List<Object> pointsOrNotes, String studentID) {
+		Integer index = getColumnLocation(columnName);
+		boolean addedNotes = false;
+		if (index != null) {
+			if (index < pointsOrNotes.size()) {
+				if (pointsOrNotes.get(index) != null) {
+					// Do not overwrite modified comments
+					if (modifiedCommentsMap == null || modifiedCommentsMap.containsKey(studentID) == false) {
+						String comment = pointsOrNotes.get(index).toString();
+						if (comment.length() != 0) {
+							addedNotes = true;
+						}
+						if (graderCommentsMap.containsKey(studentID)) {
+							comment += graderCommentsMap.get(studentID);
+						}
+						graderCommentsMap.put(studentID, comment);
+					}
+				}							
+			}
+		}
+		return addedNotes;
 	}
 	
 	/**
@@ -571,8 +590,9 @@ public class GradeSyncer implements SheetAccessorInterface {
 	
 	/**
 	 * This is where the save flow starts
+	 * @param modifiedNotes 
 	 */
-	public void saveData(ClassroomData assignment) throws IOException {
+	public void saveData(ClassroomData assignment) throws IOException {		
 		this.assignment = assignment;
 		communicator.writeSheet(this);
 		if (updateBorders) {
@@ -622,8 +642,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 * Fill the save state data with the scores & notes for individual students
 	 */
 	private boolean fillStudentRowsToSave(SaveSheetData saveData, int maxColumn, LoadSheetData loadData) {
-		boolean changedData = false;
-		Map<String, String> graderComments = graderCommentsMap.get(graderName);
+		boolean changedData = false;		
 		for (StudentRow studentRow : studentRowList) {			
 			StudentData studentData = studentRow.getStudent();
 			if (studentData != null) {
@@ -649,9 +668,12 @@ public class GradeSyncer implements SheetAccessorInterface {
 				}
 				changedData |= fillStudentGradeColumns(studentID, studentRowData, row, currentRow);
 
-				String note = graderComments.get(studentID);
+				String note = null;
+				if (modifiedCommentsMap != null) {
+					note = modifiedCommentsMap.get(studentID);
+				}
 				if (note != null) {					 
-					Integer notesIndex = getColumnLocation(graderName + NOTES_APPEND);
+					Integer notesIndex = getColumnLocation(NOTES_COLUMN_NAME);
 					if(notesIndex == null) {
 						studentRowData.add(note);
 					}
@@ -773,12 +795,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 		columnNameRow.set(getColumnLocation(TOTAL_STRING), TOTAL_STRING);
 		columnNameRow.set(getColumnLocation(SUBMIT_DATE_STRING), SUBMIT_DATE_STRING);
 		columnNameRow.set(getColumnLocation(LATE_INFO_COLUMN_KEY), LATE_INFO_COLUMN_KEY);
-
-		String graderNotes = graderName + NOTES_APPEND;
-		Integer noteLocation = getColumnLocation(graderNotes);
-		if (noteLocation != null) {
-			columnNameRow.set(noteLocation, graderNotes);
-		}
+		columnNameRow.set(getColumnLocation(NOTES_COLUMN_NAME), NOTES_COLUMN_NAME);
 
 		for (int i = 0; i < rubric.getEntryCount(); i++) {
 			RubricEntry entry = rubric.getEntry(i);
@@ -848,8 +865,8 @@ public class GradeSyncer implements SheetAccessorInterface {
 			return rowNumber;
 		}
 		
-		void incRowIfGreater(int rowNum) {
-			if (rowNumber > rowNum) {
+		void incRowIfGreaterOrEqual(int rowNum) {
+			if (rowNumber >= rowNum) {
 				rowNumber++;
 			}
 		}
@@ -869,6 +886,11 @@ public class GradeSyncer implements SheetAccessorInterface {
 			return dateTurnedIn;
 		}
 
+	}
+
+
+	public Map<String, String> getComments() {
+		return graderCommentsMap;
 	}
 
 }

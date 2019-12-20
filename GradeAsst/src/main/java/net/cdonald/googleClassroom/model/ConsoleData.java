@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
@@ -19,13 +20,14 @@ import net.cdonald.googleClassroom.listenerCoordinator.AppendOutputTextListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentTextAreasQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
+import net.cdonald.googleClassroom.listenerCoordinator.RubricSelected;
 import net.cdonald.googleClassroom.listenerCoordinator.SetAdditionalConsoleListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
 import net.cdonald.googleClassroom.listenerCoordinator.SystemOutListener;
 
 
 public class ConsoleData {
-	public static final boolean CAPTURE_STDERR =  true;
+	public static final boolean CAPTURE_STDERR = true;
 	private PipedInputStream inPipe;
 	private final PipedInputStream outPipe = new PipedInputStream();
 	private final PipedInputStream errPipe = new PipedInputStream();
@@ -61,7 +63,7 @@ public class ConsoleData {
 			debugOutStream = new PrintStream(new PipedOutputStream(debugOutPipe), true);
 			debugErrStream = new PrintStream(new PipedOutputStream(debugErrPipe), true);
 		} catch (IOException e) {
-			
+			DebugLogDialog.appendException(e);
 		}
 		swapStreams();
 	}
@@ -96,6 +98,16 @@ public class ConsoleData {
 			}
 		});
 		
+		ListenerCoordinator.addListener(RubricSelected.class, new RubricSelected() {
+
+			@Override
+			public void fired(GoogleSheetData googleSheet) {
+				for (StudentConsoleAreas consoleAreas : studentConsoleAreaMap.values()) {
+					consoleAreas.clear();
+				}
+			}
+		});
+		
 		ListenerCoordinator.addBlockingListener(SetAdditionalConsoleListener.class, new SetAdditionalConsoleListener() {
 			@Override
 			public void fired(JTextArea additionalArea) {
@@ -124,7 +136,7 @@ public class ConsoleData {
 		try {
 			runSemaphore.acquire();
 		} catch (InterruptedException e) {
-
+			DebugLogDialog.appendException(e);
 		}
 		currentStudentID = id;
 		currentRubricName = rubricName;
@@ -140,20 +152,21 @@ public class ConsoleData {
 		redirectStreams();
 		ListenerCoordinator.fire(PreRunBlockingListener.class, id, rubricName);
 	}
-	private void runStopped() {		
-		swapStreams();
-		inPipe = new PipedInputStream();
-		try {
-			inWriter = new PrintWriter(new PipedOutputStream(inPipe), true);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+	private void runStopped() {
+		if (currentOutputArea != null) {
+			swapStreams();
+			inPipe = new PipedInputStream();
+			try {
+				inWriter = new PrintWriter(new PipedOutputStream(inPipe), true);
+			} catch (IOException e1) {
+				DebugLogDialog.appendException(e1);
+			}
+			System.setIn(inPipe);	
+			currentOutputArea = null;
+			currentStudentID = null;
+			currentRubricName = null;
+			runSemaphore.release();
 		}
-		System.setIn(inPipe);	
-		currentOutputArea = null;
-		currentStudentID = null;
-		currentRubricName = null;
-		runSemaphore.release();
 
 	}
 	
@@ -168,8 +181,7 @@ public class ConsoleData {
 			}
 			inWriter = new PrintWriter(new PipedOutputStream(inPipe), true);
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			DebugLogDialog.appendException(e1);
 		}
 		System.setIn(inPipe);
 		System.setOut(outWriter);
@@ -291,6 +303,10 @@ public class ConsoleData {
 					currentOutputArea.appendOutput(outTemp, true);
 			
 			}
+			else {
+				DebugLogDialog.appendln(errTemp);
+				DebugLogDialog.appendln(outTemp);
+			}
 			
 			if (debugTemp.length() != 0) {				
 				if (additionalTextArea != null) {
@@ -319,7 +335,7 @@ public class ConsoleData {
 					}
 				}
 			} catch (IOException e) {
-
+				DebugLogDialog.appendException(e);
 			}
 			
 		}
@@ -334,7 +350,7 @@ public class ConsoleData {
 					readPipe(systemTime, debugOutPipe);					
 				}
 			} catch (Exception e) {
-
+				DebugLogDialog.appendException(e);
 			}
 			// Show what happened
 			return null;
