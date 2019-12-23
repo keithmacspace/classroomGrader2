@@ -13,8 +13,11 @@ import net.cdonald.googleClassroom.googleClassroomInterface.LoadSheetData;
 import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetData;
 import net.cdonald.googleClassroom.googleClassroomInterface.SheetAccessorInterface;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
+import net.cdonald.googleClassroom.listenerCoordinator.RubricTestCodeChanged;
 
 public class Rubric implements SheetAccessorInterface {
 	public enum ModifiableState {
@@ -58,9 +61,9 @@ public class Rubric implements SheetAccessorInterface {
 	private GoogleSheetData sheetData;
 	private List<RubricEntry> entries;
 	private boolean inModifiedState;
-	private Map<String, FileData> fileDataMap;
 	private List<FileData> referenceSource;
-	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";
+	private List<FileData> testCodeSource;
+	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";	
 	private List<PointBreakdown> pointBreakdown;
 	private boolean loadedFromFile = false;
 
@@ -77,8 +80,8 @@ public class Rubric implements SheetAccessorInterface {
 		this.sheetData = sheetData;
 		loadedFromFile = false;
 		entries = new ArrayList<RubricEntry>();
-		fileDataMap = new HashMap<String, FileData>();
 		referenceSource = new ArrayList<FileData>();
+		testCodeSource = new ArrayList<FileData>();
 
 	}
 
@@ -90,12 +93,10 @@ public class Rubric implements SheetAccessorInterface {
 			entries.add(new RubricEntry(otherEntry));
 		}
 		inModifiedState = other.inModifiedState;
-		fileDataMap = new HashMap<String, FileData>();
-		for (String key : other.fileDataMap.keySet()) {
-			fileDataMap.put(key, new FileData(other.fileDataMap.get(key)));
-		}
 		referenceSource = new ArrayList<FileData>();
-		setReferenceSource(other.referenceSource);
+		testCodeSource = new ArrayList<FileData>();
+		setSource(testCodeSource, other.testCodeSource);
+		setSource(referenceSource, other.referenceSource);
 		if (other.pointBreakdown != null) {
 			for (PointBreakdown points : other.pointBreakdown) {
 				addPointBreakdown(points);
@@ -108,38 +109,51 @@ public class Rubric implements SheetAccessorInterface {
 	public Rubric() {
 		inModifiedState = true;
 		loadedFromFile = false;
-		entries = new ArrayList<RubricEntry>();
-		fileDataMap = new HashMap<String, FileData>();
+		entries = new ArrayList<RubricEntry>();		
 		referenceSource = new ArrayList<FileData>();
+		testCodeSource = new ArrayList<FileData>();
 	}
 
-	public Map<String, FileData> getFileDataMap() {
-		return fileDataMap;
-	}
 
 	public List<FileData> getReferenceSource() {
 		return referenceSource;
 	}
+	
+	private void setSource(List<FileData> fileDataToChange, List<FileData> source) {
+		fileDataToChange.clear();
+		if (source != null) {
+			for (FileData fileData : source) {
+				fileDataToChange.add(fileData);
+			}
+		}		
+		ListenerCoordinator.fire(RubricTestCodeChanged.class);
+	}
 
 	public void setReferenceSource(List<FileData> fileDataList) {
-		referenceSource.clear();
-		if (fileDataList != null) {
-			for (FileData fileData : fileDataList) {
-				referenceSource.add(fileData);
+		setSource(referenceSource, fileDataList);
+	}
+	
+	public void setTestCode(List<FileData> fileDataList) {
+		setSource(testCodeSource, fileDataList);
+	}
+	public void addTestCode(List<FileData> newFiles) {
+		if (newFiles != null && newFiles.size() > 0) {
+			for (FileData fileData : newFiles) {
+				boolean exists = false;
+				for (FileData testFile : newFiles) {
+					if (testFile.getName().contentEquals(fileData.getName())) {
+						exists = true;
+						testFile.setFileContents(fileData.getFileContents());
+					}
+				}
+				if (exists == false) {
+					testCodeSource.add(fileData);
+				}
 			}
+			ListenerCoordinator.fire(RubricTestCodeChanged.class);
 		}
 	}
 
-	public void addFileData(FileData fileData) {
-		fileDataMap.put(fileData.getName(), fileData);
-		for (RubricEntry entry : entries) {
-			entry.removeFileData(fileData);
-		}
-	}
-
-	public void removeFileData(FileData fileData) {
-		fileDataMap.remove(fileData.getName());
-	}
 
 	public double getTotalValue(String id) {
 		double value = 0.0;
@@ -292,7 +306,7 @@ public class Rubric implements SheetAccessorInterface {
 		for (int index = 0; index < entries.size(); index++) {
 			RubricEntry entry = entries.get(index);
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
-				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData, referenceSource) == false) {
+				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData, referenceSource, testCodeSource) == false) {
 					if (entriesSkipped == null) {
 						entriesSkipped = new HashSet<String>();						
 					}
@@ -331,7 +345,10 @@ public class Rubric implements SheetAccessorInterface {
 	public void loadFromSheet(LoadSheetData loadSheetData) {
 		showedErrorMessage = false;
 		entries.clear();
-		fileDataMap.clear();
+		referenceSource.clear();
+		testCodeSource.clear();
+		Map<String, FileData> fileDataMap = new HashMap<String, FileData>();
+
 		if (loadSheetData == null || loadSheetData.isEmpty() == true) {
 			return;
 		}
@@ -366,7 +383,7 @@ public class Rubric implements SheetAccessorInterface {
 				break;
 			}
 		}
-
+		
 		// Now read the automation columns
 		if (currentAutomationHeader != 0) {
 			while (columnHeaders.size() > currentAutomationHeader
@@ -380,14 +397,24 @@ public class Rubric implements SheetAccessorInterface {
 				entry.loadAutomationColumns(entryColumns, fileDataMap);
 			}
 		}
+		
+		for (FileData testSource : fileDataMap.values()) {
+			testCodeSource.add(testSource);
+		}
+
+		// Load the source files so that we can verify all the correct files exist.
+		loadSource(entryColumns, referenceSource, REFERENCE_SOURCE_LABEL);		
 
 		loadPointsBreakdown(entryColumns);
-		// Finally read the reference source
-		loadReferenceSource(entryColumns);
+		
 	}
 
-	private void loadReferenceSource(Map<String, List<List<Object>>> entryColumns) {
-		List<List<Object>> columns = entryColumns.get(REFERENCE_SOURCE_LABEL.toUpperCase());
+	private void loadSource(Map<String, List<List<Object>>> entryColumns,  List<FileData> fileDataList, String columnName) {
+		List<List<Object>> columns = entryColumns.get(columnName.toUpperCase());
+		for (String colName : entryColumns.keySet()) {
+			DebugLogDialog.appendln(colName);
+		}
+		fileDataList.clear();
 		if (columns == null || columns.size() == 0) {
 
 			return;
@@ -414,10 +441,10 @@ public class Rubric implements SheetAccessorInterface {
 					}
 				}
 				if (showError) {
-					showLoadError("Reference source file " + fileName + " is missing from save data");
+					showLoadError("Source file " + fileName + " is missing from save data");
 				}
 			} else {
-				referenceSource.add(fileData);
+				fileDataList.add(fileData);
 			}
 		}
 	}
@@ -426,15 +453,14 @@ public class Rubric implements SheetAccessorInterface {
 	public SaveSheetData getSheetSaveState() {
 		SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.RAW, sheetData.getName(), true);
 		
-		List<List<Object>> columnData = new ArrayList<List<Object>>();
-		Map<String, List<Object>> fileData = new HashMap<String, List<Object>>();
+		List<List<Object>> columnData = new ArrayList<List<Object>>();		
 
 		saveState.addOneRow(RubricEntry.getRubricHeader(), 1);
 		int currentRow = 2;
 		savePointBreakdown(columnData);
 		for (RubricEntry entry : entries) {
 			saveState.addOneRow(entry.getRubricEntryInfo(), currentRow);
-			entry.saveAutomationData(columnData, fileData);
+			entry.saveAutomationData(columnData);
 			currentRow++;
 		}
 
@@ -444,17 +470,10 @@ public class Rubric implements SheetAccessorInterface {
 			saveState.writeFullColumn(column, currentColumn);
 			currentColumn++;
 		}
-		for (String key : fileData.keySet()) {
-			List<Object> fileColumn = fileData.get(key);
-			saveState.writeFullColumn(fileColumn, currentColumn);
+		for (FileData ref : referenceSource) {
+			saveState.writeFullColumn(ref.fillSaveData(), currentColumn);
 			currentColumn++;
 		}
-		
-		saveReferenceSource(saveState, currentColumn);
-		return saveState;
-	}
-
-	private void saveReferenceSource(SaveSheetData saveState, int currentColumn) {
 		List<Object> referenceSourceNameRows = new ArrayList<Object>();
 		referenceSourceNameRows.add(REFERENCE_SOURCE_LABEL);
 		for (FileData file : referenceSource) {
@@ -463,10 +482,19 @@ public class Rubric implements SheetAccessorInterface {
 
 		saveState.writeFullColumn(referenceSourceNameRows, currentColumn);
 		currentColumn++;
-		for (FileData file : referenceSource) {
+		
+		currentColumn = saveSource(saveState, referenceSource, currentColumn);
+		currentColumn = saveSource(saveState, testCodeSource, currentColumn);
+		return saveState;
+	}
+
+	private static int saveSource(SaveSheetData saveState, List<FileData> fileData, int currentColumn) {
+		currentColumn++;
+		for (FileData file : fileData) {
 			saveState.writeFullColumn(file.fillSaveData(), currentColumn);
 			currentColumn++;
 		}
+		return currentColumn;
 	}
 
 	@Override
@@ -636,24 +664,10 @@ public class Rubric implements SheetAccessorInterface {
 		columnData.add(descriptions);
 	}
 
-	public List<FileData> getTestCode() {
-		List<FileData> files = new ArrayList<FileData>();
-		Set<String> names = new HashSet<String>();
-		for (RubricEntry entry : entries) {
-			
-			entry.getTestCode(files, names);
-		}
-		if (files.size() == 0) {
-			return null;
-		}
-		return files;
+	public List<FileData> getTestCode() {		
+		return testCodeSource;
 	}
-	
-	public void modifyTestCode(String fileName, String fileContents) {
-		for (RubricEntry entry : entries) {
-			entry.modifyTestCode(fileName, fileContents);
-		}		
-	}
+
 
 
 }

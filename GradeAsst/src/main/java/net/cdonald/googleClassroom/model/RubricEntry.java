@@ -316,7 +316,7 @@ public class RubricEntry {
 	}
 
 	boolean runAutomation(List<RubricUndoInfo> undoInfo, int elementIndex, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
-			ConsoleData consoleData, List<FileData> referenceSource) {
+			ConsoleData consoleData, List<FileData> referenceSource, List<FileData> testCodeSource) {
 		// Don't change the value of already graded rubrics
 		StudentScore studentScore = studentScores.get(studentId);
 		if (studentScore != null && studentScore.score != null) {
@@ -337,7 +337,7 @@ public class RubricEntry {
 		// No need to check the Rubric.ModifiableState, if we're running automation,
 		// we're changing the value
 		if (automation != null) {
-			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, referenceSource, consoleData);
+			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, referenceSource, testCodeSource, consoleData);
 			// Leave the old score if the result is null.
 			if (result != null) {
 				studentScore.modifiedByUser = true;
@@ -428,17 +428,17 @@ public class RubricEntry {
 		return row;
 	}
 
-	public void loadAutomationColumns(Map<String, List<List<Object>>> columnData, Map<String, FileData> fileDataMap) {
+	public void loadAutomationColumns(Map<String, List<List<Object>>> columnData, Map<String, FileData> testCodeSource) {
 		if (automation != null) {
-			automation.loadAutomationColumns(name, columnData, fileDataMap);
+			automation.loadAutomationColumns(name, columnData, testCodeSource);
 		}
 
 	}
 	
 
-	public void saveAutomationData(List<List<Object>> columnData, Map<String, List<Object>> fileData) {
+	public void saveAutomationData(List<List<Object>> columnData) {
 		if (automation != null) {
-			automation.saveAutomationColumns(name, columnData, fileData);
+			automation.saveAutomationColumns(name, columnData);
 		}
 	}
 
@@ -446,12 +446,6 @@ public class RubricEntry {
 	public void addRubricTab(List<String> rubricTabs) {
 		if (automation != null) {
 			rubricTabs.add(name);
-		}
-	}
-
-	public void removeFileData(FileData fileData) {
-		if (automation != null) {
-			automation.removeFileData(fileData);
 		}
 	}
 
@@ -480,18 +474,6 @@ public class RubricEntry {
 
 	}
 
-	public void getTestCode(List<FileData> files, Set<String> names) {
-		if (automation != null) {
-			automation.getTestCode(files, names);
-		}		
-	}
-	
-	public void modifyTestCode(String fileName, String fileContents) {
-		if (automation != null) {
-			automation.modifyTestCode(fileName, fileContents);
-		}
-		
-	}
 
 	public String getColumnName() {
 		// TODO Auto-generated method stub

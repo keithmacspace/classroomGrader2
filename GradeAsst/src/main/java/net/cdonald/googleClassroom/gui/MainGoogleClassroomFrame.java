@@ -77,7 +77,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	private MainMenu mainMenu;
 	private GoogleSheetDialog importExportDialog;
 	private DataController dataController;		
-	private RubricElementDialog rubricElementDialog;
+	//private RubricElementDialog rubricElementDialog;
 	private NewRubricDialog newRubricDialog;
 	private InfoPanel infoPanel;
 	private DebugLogDialog dbg;
@@ -92,8 +92,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		undoManager = new UndoManager();
 
 		dbg = new DebugLogDialog(this);
-		dataController = new DataController(this, undoManager);		
-		rubricElementDialog = new RubricElementDialog(this, dataController.getPrefs(), dataController.getStudentWorkCompiler());
+		dataController = new DataController(this, undoManager);				
 		newRubricDialog = new NewRubricDialog(this);
 		guidedSetup = new GuidedSetupDialog(this, dataController);
 		replaceDialog = new FindReplaceDialog(this);
@@ -283,7 +282,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				if (rubric == null) {					
 					return;
 				}
-				consoleAndSourcePanel.updateRubricTestCode(rubric);
+				consoleAndSourcePanel.updateRubricCode(rubric);
 				runRubricOrCode(false, runAll);
 			}
 		});
@@ -487,7 +486,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	}
 	
 	private void editRubric(Rubric rubricToModify) {
-		 rubricElementDialog.modifyRubric(rubricToModify); 
+		 //rubricElementDialog.modifyRubric(rubricToModify); 
 	}
 	
 	private void runRubricOrCode(boolean runSource, boolean runAll) {

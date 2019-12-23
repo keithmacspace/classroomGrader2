@@ -42,7 +42,7 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
  * the CodeContainsString Card
  *
  */
-public class RubricEntryCodeContainsStringCard implements RubricEntryDialogCardInterface{
+public class RubricEntryCodeContainsStringCard implements RubricEntryAutomationCardInterface{
 	private JPanel codeContainsPanel;
 	private JComboBox<String> methodToSearchCombo;
 	private JTable valuesToSearchForTable;

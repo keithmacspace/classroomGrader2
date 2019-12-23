@@ -65,15 +65,10 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		return new RubricEntryPointLossForLate(this);
 	}
 
-	@Override
-	public void removeFileData(FileData fileData) {
-
-	}
-
 
 	@Override
-	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message,
-			StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
+	protected Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message,
+			StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		ClassroomData assignment = (ClassroomData)ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 		if (assignment == null) {
 			return null;
@@ -131,8 +126,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 	}
 
 	@Override
-	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData,
-			Map<String, List<Object>> fileData) {
+	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData) {
 
 		List<Object> labels = new ArrayList<Object>();
 		List<Object> content = new ArrayList<Object>();
@@ -150,7 +144,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 
 	@Override
 	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData,
-			Map<String, FileData> fileDataMap) {
+			Map<String, FileData> testCodeMap) {
 		List<List<Object> > columns = columnData.get(entryName.toUpperCase());
 		if (columns == null || columns.size() != 2) {
 			Rubric.showLoadError("Missing data for entry: \"" + entryName + "\"");

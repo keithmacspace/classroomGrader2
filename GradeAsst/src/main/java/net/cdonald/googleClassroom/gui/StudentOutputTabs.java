@@ -46,7 +46,7 @@ public class StudentOutputTabs extends JPanel {
 
 	private void createLayout() {
 		setLayout(new BorderLayout());
-		followInput = new JCheckBox("Follow column selection.", true);
+		followInput = new JCheckBox("Auto Select", true);
 
 		add(followInput, BorderLayout.NORTH);
 		add(outputTabs, BorderLayout.CENTER);

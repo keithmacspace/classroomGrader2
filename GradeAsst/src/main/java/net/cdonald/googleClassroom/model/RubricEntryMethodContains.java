@@ -87,12 +87,10 @@ public class RubricEntryMethodContains extends RubricAutomation {
 		return new RubricEntryMethodContains(this);
 	}
 
-	@Override
-	public void removeFileData(FileData fileData) {
-	}
+
 
 	@Override
-	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource,
+	protected Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource,
 			ConsoleData consoleData) {
 
 		if (message == null) {
@@ -242,8 +240,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 	}
 
 	@Override
-	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData,
-			Map<String, List<Object>> fileData) {
+	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData) {
 		List<Object> methodNames = new ArrayList<Object>();
 		List<Object> callsToFind = new ArrayList<Object>();
 		methodNames.add(entryName);
@@ -259,7 +256,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 
 	@Override
 	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData,
-			Map<String, FileData> fileDataMap) {
+			Map<String, FileData> testCodeMap) {
 		List<List<Object> > columns = columnData.get(entryName.toUpperCase());
 		if (columns == null || columns.size() != 2) {
 			Rubric.showLoadError("Missing data for entry: \"" + entryName + "\"");

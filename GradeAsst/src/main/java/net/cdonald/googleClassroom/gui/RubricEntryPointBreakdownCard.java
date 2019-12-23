@@ -8,7 +8,7 @@ import javax.swing.JScrollPane;
 
 import net.cdonald.googleClassroom.model.RubricEntry;
 
-public class RubricEntryPointBreakdownCard implements RubricEntryDialogCardInterface {
+public class RubricEntryPointBreakdownCard implements RubricEntryAutomationCardInterface {
 	private RubricEntryPointBreakdownTable pointBreakdownTable;
 	private boolean isActive;
 	private RubricElementDialog dialogOwner;

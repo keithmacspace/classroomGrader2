@@ -10,26 +10,29 @@ import net.cdonald.googleClassroom.model.Rubric;
 
 
 public class RunCodeFileListTableModel extends AbstractTableModel {
-	private static final long serialVersionUID = 8156237947165577539L;	
-	private List<FileData> files;
+	private static final long serialVersionUID = 8156237947165577539L;		
 	RunCodeFileListTableModelListener listener;
 
 	
-	public RunCodeFileListTableModel(Rubric rubric, RunCodeFileListTableModelListener listener) {
+	public RunCodeFileListTableModel(RunCodeFileListTableModelListener listener) {
 		super();
 		this.listener = listener;
-		files = new ArrayList<FileData>();
 	}
 	
 	public void init() {
-		files.clear();			
+			
 	}
 
 
 	
 	@Override
 	public int getRowCount() {
-		return files.size();		
+		List<FileData> files = listener.getFiles();
+		if (files == null || files.size() == 0) {
+			return 5;
+		}
+		return files.size();
+		
 	}
 
 	@Override
@@ -52,28 +55,40 @@ public class RunCodeFileListTableModel extends AbstractTableModel {
 
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
-		FileData current = files.get(rowIndex);
-		if (current == null) {
-			return null;
+		List<FileData> files = listener.getFiles();
+		FileData current = null;
+		if (files != null && files.size() > rowIndex) {
+			current = files.get(rowIndex);
+			if (columnIndex == 0) {
+				return listener.containsSource(current);
+			}
+			if (current == null) {
+				return null;
+			}
+			
 		}
 		if (columnIndex == 0) {
-			return listener.containsSource(current);
+			return Boolean.FALSE;
 		}
 		return current;
 	}
 
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-		FileData current = files.get(rowIndex);		
-		if (current != null) {
-			if (columnIndex == 0) {
-				Boolean value = (Boolean)aValue;
-				if (value == false) {
-					listener.removeRunCodeFile(current);
+		List<FileData> files = listener.getFiles();
+		FileData current = null;
+		if (files != null && files.size() > rowIndex && columnIndex == 0) {
+			current = files.get(rowIndex);		
+			if (current != null) {
+				if (columnIndex == 0) {
+					Boolean value = (Boolean)aValue;
+					if (value == false) {
+						listener.removeRunCodeFile(current);
+					}
+					else {
+						listener.addRunCodeFile(current);
+					}				
 				}
-				else {
-					listener.addRunCodeFile(current);
-				}				
 			}
 		}
 	}
@@ -92,29 +107,6 @@ public class RunCodeFileListTableModel extends AbstractTableModel {
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
 		return (columnIndex == 0);
-	}
-	
-	public void addFile(FileData fileData) {
-		boolean found = false;
-		for (int i = 0; i < files.size(); i++) {
-			if (files.get(i) == null) {
-				files.set(i, fileData);
-				found = true;
-				break;
-			}
-		}
-		if (found == false) {
-			files.add(fileData);			
-		}		
-	}
-	
-	public void removeFile(String fileName) {
-		for (int i = 0; i < files.size(); i++) {
-			if (files.get(i).getName().equals(fileName)) {
-				files.remove(i);
-				break;
-			}
-		}		
 	}
 
 }

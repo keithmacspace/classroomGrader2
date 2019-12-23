@@ -67,7 +67,7 @@ public class RubricEntryCallMethod extends RubricAutomation {
 		this.outputs.add(output);
 	}
 
-	protected Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
+	protected Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		if (message == null) {
 			return null;
 		}
@@ -198,21 +198,15 @@ public class RubricEntryCallMethod extends RubricAutomation {
 
 
 	@Override
-	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData, Map<String, FileData> fileData) {
+	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData, Map<String, FileData> testCodeMap) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData,
-			Map<String, List<Object>> fileData) {
-		// TODO Auto-generated method stub
+	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData) {
 		
 	}
 	
-	@Override
-	public void removeFileData(FileData fileData) {
-		
-	}
 	
 }

@@ -56,15 +56,15 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	private StudentWorkCompiler compiler;
 	private JPanel automationPanel;
 	private JSplitPane mainSplit;
-	private Map<RubricEntry.AutomationTypes, RubricEntryDialogCardInterface> cardInterfaces;
+	private Map<RubricEntry.AutomationTypes, RubricEntryAutomationCardInterface> cardInterfaces;
 	
 
 	public void modifyRubric(Rubric rubric) {
 		this.rubricToModify = new Rubric(rubric);
 		ListenerCoordinator.fire(SetRubricListener.class, this.rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
-		entriesTable.setAssociatedEntry(rubricToModify);
+		entriesTable.setAssociatedRubric(rubricToModify);
 		rubricToModify.setInModifiedState(true);
-		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+		for (RubricEntryAutomationCardInterface card : cardInterfaces.values()) {
 			if (card.isActive()) {
 				card.removeItems();
 			}
@@ -81,7 +81,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		super(parent, "Edit Rubric", Dialog.ModalityType.MODELESS);
 		this.compiler = compiler;
 		this.setUndecorated(false);
-		cardInterfaces = new HashMap<RubricEntry.AutomationTypes, RubricEntryDialogCardInterface>();
+		cardInterfaces = new HashMap<RubricEntry.AutomationTypes, RubricEntryAutomationCardInterface>();
 		buttons = new ArrayList<JButton>();		
 		priorSelectedIndex = -1;		
 
@@ -241,7 +241,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 	}
 
 	public void preOKSaveTest() {
-		for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {			
+		for (RubricEntryAutomationCardInterface card : cardInterfaces.values()) {			
 			card.saving();
 		}
 		if (entriesTable.getCellEditor() != null) {
@@ -317,7 +317,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 			if (validSelection) {
 				if (priorSelectedIndex != entriesTable.getSelectedRow()) {
 					priorSelectedIndex = entriesTable.getSelectedRow();
-					for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+					for (RubricEntryAutomationCardInterface card : cardInterfaces.values()) {
 						if (card.isActive()) {
 							card.removeItems();
 						}
@@ -410,7 +410,7 @@ public class RubricElementDialog extends JDialog implements RubricElementListene
 		}
 		if (enable) {
 			ListenerCoordinator.fire(SetRubricListener.class, rubricToModify, SetRubricListener.RubricType.RUBRIC_BEING_EDITED);
-			for (RubricEntryDialogCardInterface card : cardInterfaces.values()) {
+			for (RubricEntryAutomationCardInterface card : cardInterfaces.values()) {
 				card.referenceSourceEnabled(enable);
 			}
 		}

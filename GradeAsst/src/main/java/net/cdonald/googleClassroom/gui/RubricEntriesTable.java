@@ -42,9 +42,8 @@ import net.cdonald.googleClassroom.model.RubricEntry.HeadingNames;
 public class RubricEntriesTable extends JTable {
 	private RubricEntryTableModel rubricEntryTableModel;
 	private Rubric associatedRubric;
-	private int defaultHeight;
 	private ExcelAdapter excelAdapter;
-
+	private static final RubricEntry.HeadingNames [] headingNames = {RubricEntry.HeadingNames.NAME, RubricEntry.HeadingNames.VALUE, RubricEntry.HeadingNames.AUTOMATION_TYPE};
 
 	public RubricEntriesTable(RubricElementListener listener) {
 		super();
@@ -60,11 +59,6 @@ public class RubricEntriesTable extends JTable {
 				column.setCellEditor(new RubricAutomationEditor());
 				column.setCellRenderer(new AutomationCellRenderer(listener));
 				break;
-			case DESCRIPTION:
-				column.setCellEditor(new DescriptionAreaEditor());
-				column.setCellRenderer(new DescriptionCellRenderer());
-				break;
-
 			case NAME:
 				break;
 			case VALUE:
@@ -76,31 +70,12 @@ public class RubricEntriesTable extends JTable {
 		setSelectionBackground(getSelectionBackground());
 		setCellSelectionEnabled(true);
 		addListeners();
-		defaultHeight = -1;
 		excelAdapter = new ExcelAdapter(this, true, false);
 		setComponentPopupMenu(createPopupMenu());
 	}
 	
 	private void addListeners() {
-		getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 
-			@Override
-			public void valueChanged(ListSelectionEvent e) {
-				if (e.getValueIsAdjusting()) {
-					return;
-				}
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						ListSelectionModel lsm = (ListSelectionModel) e.getSource();		
-						if (lsm.isSelectionEmpty() == false) {
-							int selectedRow = lsm.getMinSelectionIndex();
-							updateRowHeights(selectedRow);
-						}
-
-					}
-				});
-			}
-		});
 	}
 
 	public void fireTableDataChanged() {
@@ -200,56 +175,18 @@ public class RubricEntriesTable extends JTable {
 		return associatedRubric;
 	}
 
-	public void setAssociatedEntry(Rubric associatedEntry) {
+	public void setAssociatedRubric(Rubric associatedEntry) {
 		associatedRubric = associatedEntry;
 		fireTableDataChanged();
-		updateRowHeights(-1);
+
 	}
 
 	public void stopEditing() {
-
 		if (getCellEditor() != null) {
 			getCellEditor().stopCellEditing();
 		}
-
 	}
 
-	public void updateRowHeights(int selectedRow) {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				int automationCol = 0;
-				int descriptionCol = 0;
-				for (int column = 0; column < getColumnCount(); column++) {
-					if (rubricEntryTableModel.getColumnHeading(column) == RubricEntry.HeadingNames.DESCRIPTION )  {
-						descriptionCol = column;
-					}
-					if (rubricEntryTableModel.getColumnHeading(column) == RubricEntry.HeadingNames.AUTOMATION_TYPE) {
-						automationCol = column;
-					}
-				}
-
-				if (defaultHeight == -1) {
-					Component comp = prepareRenderer(getCellRenderer(0, automationCol), 0, automationCol);				            
-					defaultHeight = comp.getPreferredSize().height;
-				}
-				for (int row = 0; row < getRowCount(); row++) {
-					int rowHeight = defaultHeight;
-					if (row == selectedRow) {
-						Component comp = prepareRenderer(getCellRenderer(row, descriptionCol), row, descriptionCol);
-						rowHeight = Math.max(rowHeight, comp.getPreferredSize().height);
-					}
-
-					setRowHeight(row, rowHeight);
-				}						
-				
-			}
-
-		});
-	}
-	
-	public void updateRowHeight() {
-		updateRowHeights(this.getSelectedRow());
-	}
 
 
 
@@ -316,93 +253,17 @@ public class RubricEntriesTable extends JTable {
 
 	}
 
-	private class DescriptionAreaEditor extends DefaultCellEditor {
 
-		private JTextArea textarea;
-		private JScrollPane scrollPane;
-
-		public DescriptionAreaEditor() {
-			super(new JCheckBox());
-
-			textarea = new JTextArea();
-			textarea.setLineWrap(true);
-			textarea.setWrapStyleWord(true);
-			scrollPane = new JScrollPane(textarea);
-			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-			//textarea.setComponentPopupMenu(createPopupMenu());
-			textarea.getDocument().addDocumentListener(new DocumentListener() {
-
-				@Override
-				public void insertUpdate(DocumentEvent e) {
-					updateRowHeight();
-
-				}
-
-				@Override
-				public void removeUpdate(DocumentEvent e) {
-					updateRowHeight();
-
-				}
-
-				@Override
-				public void changedUpdate(DocumentEvent e) {
-
-				}
-
-			});
-
-		}
-
-		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
-				int column) {
-			textarea.setText((String) value);
-			return scrollPane;
-		}
-
-		public Object getCellEditorValue() {
-			return textarea.getText();
-		}
-	}
-
-	class DescriptionCellRenderer extends JScrollPane implements TableCellRenderer {
-		JTextArea textArea;
-
-		public DescriptionCellRenderer() {
-			textArea = new JTextArea();
-			textArea.setLineWrap(true);
-			textArea.setWrapStyleWord(true);
-			textArea.setOpaque(true);
-			getViewport().add(textArea);
-			setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		}
-
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-				int row, int column) {
-			if (isSelected) {
-				setForeground(table.getSelectionForeground());
-				setBackground(table.getSelectionBackground());
-			} else {
-				setForeground(table.getForeground());
-				setBackground(table.getBackground());
-			}
-			setFont(table.getFont());
-
-			textArea.setText((value == null) ? "" : value.toString());
-			return this;
-		}
-	}
 
 	private class RubricEntryTableModel extends DefaultTableModel {
-		private static final long serialVersionUID = 3651730049445837992L;
+		private static final long serialVersionUID = 3651730049445837992L;		
 
 		public RubricEntryTableModel() {
 
 		}
 
-		public RubricEntry.HeadingNames getColumnHeading(int column) {
-			column++;
-			return RubricEntry.HeadingNames.values()[column];
+		public RubricEntry.HeadingNames getColumnHeading(int column) {			
+			return headingNames[column];
 		}
 
 		@Override
@@ -423,7 +284,6 @@ public class RubricEntriesTable extends JTable {
 
 		@Override
 		public Class<?> getColumnClass(int columnIndex) {
-
 			if (getColumnHeading(columnIndex) == HeadingNames.AUTOMATION_TYPE) {
 				return RubricEntry.AutomationTypes.class;
 			}
@@ -436,8 +296,6 @@ public class RubricEntriesTable extends JTable {
 			switch (getColumnHeading(column)) {
 			case AUTOMATION_TYPE:
 				return "Automation Type";
-			case DESCRIPTION:
-				return "Description";
 			case NAME:
 				return "Name";
 			case VALUE:
@@ -450,7 +308,7 @@ public class RubricEntriesTable extends JTable {
 
 		@Override
 		public int getColumnCount() {
-			return HeadingNames.values().length - 1; // We don't want ID
+			return headingNames.length;
 		}
 
 		@Override
@@ -477,7 +335,6 @@ public class RubricEntriesTable extends JTable {
 				if (row == getRowCount() - 1) {
 					Object [] rowData = {null, null, null, null};
 					this.addRow(rowData);
-					//associatedRubric.addNewEntry();
 				}
 			}
 		}
@@ -485,7 +342,6 @@ public class RubricEntriesTable extends JTable {
 		@Override
 		public void fireTableDataChanged() {
 			super.fireTableDataChanged();
-			updateRowHeights(-1);
 
 		}
 
@@ -510,7 +366,7 @@ public class RubricEntriesTable extends JTable {
 				
 				
 				RubricEntriesTable t = new RubricEntriesTable(null);
-				t.setAssociatedEntry(rubric);
+				t.setAssociatedRubric(rubric);
 				x.add(new JScrollPane(t));
 				a.add(x);
 				a.pack();

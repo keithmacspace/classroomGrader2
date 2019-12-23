@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.model;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,28 +37,41 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class RubricEntryRunCode extends  RubricAutomation {
 	private String methodToCall;
-	private List<FileData> sourceFiles;
+	private Set<String> testCodeSourceToUse;
 	private List<String> referenceSourceClassNames;
 	boolean checkSystemOut;		
 	private enum ColumnNames {METHOD_TO_CALL, CLASS_NAMES_TO_REPLACE, SOURCE_FILE};
 
 
 	
-	public RubricEntryRunCode() {		
-		sourceFiles = new ArrayList<FileData>();
+	public RubricEntryRunCode() {				
 		referenceSourceClassNames = new ArrayList<String>();
+		testCodeSourceToUse = new HashSet<String>();
+	}
+	
+	public void addTestCodeSourceName(String name) {
+		testCodeSourceToUse.add(name);
+	}
+	
+	public void removeTestCodeSource(String name) {
+		testCodeSourceToUse.remove(name);
+	}
+	
+	public boolean containsSource(String name) {
+		return testCodeSourceToUse.contains(name);
 	}
 	
 	public RubricEntryRunCode(RubricEntryRunCode other) {
-		methodToCall = other.methodToCall;
-		sourceFiles = new ArrayList<FileData>();
+		methodToCall = other.methodToCall;		
 		referenceSourceClassNames = new ArrayList<String>();
-		for (FileData fileData : other.sourceFiles) {
-			sourceFiles.add(fileData);
-		}
+		testCodeSourceToUse = new HashSet<String>();
 		for (String className : other.referenceSourceClassNames) {
 			referenceSourceClassNames.add(className);
 		}
+		for (String name : other.testCodeSourceToUse) {
+			testCodeSourceToUse.add(name);
+		}
+
 		checkSystemOut = other.checkSystemOut;
 	}
 	
@@ -66,58 +80,9 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	}
 
 
-	public void addSourceContents(FileData file) {
-		file.setRubricCode(true);
-		if (containsSource(file) == false) {
-			this.sourceFiles.add(file);
-		}
-
-	}
-	
-	@Override
-	public void getTestCode(List<FileData> files, Set<String> names) {
-		for (FileData sourceFile : sourceFiles) {
-			if (names.contains(sourceFile.getName()) == false){
-				files.add(sourceFile);
-				names.add(sourceFile.getName());
-			}
-		}
-	}
-	
-	@Override
-	public void modifyTestCode(String fileName, String contents) {
-		for (FileData source : sourceFiles ) {
-			if (source.getName().equals(fileName) ) {
-				source.setFileContents(contents);
-			}
-		}
-	}
 	
 	
-	
-	@Override
-	public void removeFileData(FileData fileData) {
-
-		for (int i = 0; i < sourceFiles.size(); i++) {
-			if (sourceFiles.get(i).getName().equals(fileData.getName())) {
-				sourceFiles.remove(i);
-				break;
-			}
-		}
-	}
-	
-	public boolean containsSource(FileData file) {
-		for (FileData current : sourceFiles) {
-			if (current.getName().equals(file.getName())) {
-				return true;
-			}
-		}
-		return false;
-		
-	}
-	
-	
-	public List<Method> getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler) {
+	public List<Method> getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) {
 
 		if (referenceSource == null || referenceSource.size() == 0) {
 			return null;
@@ -130,10 +95,12 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 		List<FileData> rubricFiles = new ArrayList<FileData>(referenceSource);
 		
-
-		for (FileData sourceFile : sourceFiles) {
-			rubricFiles.add(sourceFile);			
+		for (FileData sourceFile : testCodeFiles) {				
+			if (testCodeSourceToUse.contains(sourceFile.getName())){
+				rubricFiles.add(sourceFile);
+			}
 		}
+
 		
 		Map<String, Class<?>> compiled = null;
 		try {
@@ -145,20 +112,24 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			return null;
 		}
 		List<Method> methods = new ArrayList<Method>();
-		for (FileData sourceFile : sourceFiles) {
-			Class<?> aClass = compiled.get(sourceFile.getClassName());
-			for (Method method : aClass.getMethods()) {
+		for (FileData sourceFile : testCodeFiles) {
+			if (testCodeSourceToUse.contains(sourceFile.getName())){
+				Class<?> aClass = compiled.get(sourceFile.getClassName());
+				if (aClass != null ) {
+					for (Method method : aClass.getMethods()) {
 
-				boolean validReturn = (method.getReturnType() == double.class || method.getReturnType() == Double.class);
-				if (method.getParameterCount() == 0 && validReturn) {
-					methods.add(method);
+						boolean validReturn = (method.getReturnType() == double.class || method.getReturnType() == Double.class);
+						if (method.getParameterCount() == 0 && validReturn) {
+							methods.add(method);
+						}
+					}
 				}
 			}
 		}
 		return methods;
 	}
 	
-	protected Double runAutomation_(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
+	protected Double runAutomation(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		if (message == null) {
 			return null;
 		}
@@ -168,14 +139,14 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 
 			List<FileData> studentFiles = compiler.getSourceCode(studentId);
-			return runAutomation_(studentFiles, studentId, compiler, referenceSource, consoleData);
+			return runAutomation_(studentFiles, studentId, compiler, referenceSource, testCodeSource, consoleData);
 		}
 		return null;
 	}
-	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {
+	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)
 		{
-			if (methodToCall == null || sourceFiles.size() == 0 || referenceSourceClassNames == null || referenceSourceClassNames.size() == 0) {
+			if (methodToCall == null || testCodeSourceToUse.size() == 0 || referenceSourceClassNames == null || referenceSourceClassNames.size() == 0) {
 				System.err.println(getOwnerName() + " is not fully defined ");
 				return null;
 			}
@@ -184,7 +155,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			consoleData.runStarted(studentId, getOwnerName());				
 			prepareForNextTest();
 
-			String error = replaceClassNames(studentFiles, rubricFiles, studentId, compiler, referenceSource);
+			String error = replaceClassNames(studentFiles, rubricFiles, studentId, compiler, referenceSource, testCodeSource);
 			if (error != null) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 				addOutput(studentId, error);					
@@ -224,7 +195,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return null;
 	}
 	
-	String replaceClassNames(List<FileData> studentFiles, List<FileData> rubricFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource) {
+	String replaceClassNames(List<FileData> studentFiles, List<FileData> rubricFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource) {
 		String errorPre = "Not all the methods/class constants found that are needed by this test code.\n";
 		errorPre += "If the student just mis-spelled a name, fix it in the student source tab.\n";
 		errorPre += "If they are completely missing a method, in the student source tab,\n";
@@ -242,17 +213,19 @@ public class RubricEntryRunCode extends  RubricAutomation {
 				studentSourceLists.visit(studentSourceCode, null);
 				studentSourceMap.put(studentFile.getClassName(), studentSourceLists);
 			}
-			for (FileData testFile : sourceFiles) {
-				CompilationUnit testCode = StaticJavaParser.parse(testFile.getFileContents());
-				ClassNameModifier nameChange = new ClassNameModifier(referenceSourceClassNames, studentSourceMap);
-				nameChange.visit(testCode, null);
-				if (nameChange.isError()) {
-					error += nameChange.getErrorString();					
+			for (FileData testFile : testCodeSource) {
+				if (testCodeSourceToUse.contains(testFile.getName())) {
+					CompilationUnit testCode = StaticJavaParser.parse(testFile.getFileContents());
+					ClassNameModifier nameChange = new ClassNameModifier(referenceSourceClassNames, studentSourceMap);
+					nameChange.visit(testCode, null);
+					if (nameChange.isError()) {
+						error += nameChange.getErrorString();					
+					}
+					else {
+						FileData temp = new FileData(testFile.getName(), testCode.toString(), studentId, null);
+						rubricFiles.add(temp);
+					}
 				}
-				else {
-					FileData temp = new FileData(testFile.getName(), testCode.toString(), studentId, null);
-					rubricFiles.add(temp);
-				}			
 			}			
 		}
 		// Student source might not be parsable, in which case that is fine
@@ -262,8 +235,10 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			List<FileData> compileFiles = new ArrayList<FileData>(referenceSource);
 			
 
-			for (FileData sourceFile : sourceFiles) {
-				compileFiles.add(sourceFile);			
+			for (FileData sourceFile : testCodeSource) {
+				if (testCodeSourceToUse.contains(sourceFile.getName())) {
+					compileFiles.add(sourceFile);
+				}
 			}
 			
 			
@@ -438,16 +413,9 @@ public class RubricEntryRunCode extends  RubricAutomation {
 
 
 
-
-	public List<FileData> getSourceFiles() {
-		return sourceFiles;
-	}
-
-
-
 	
 	@Override
-	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData, Map<String, List<Object>> fileData) {
+	protected void saveAutomationColumns(String entryName, List<List<Object>> columnData) {
 		List<Object> labels = new ArrayList<Object>();
 		List<Object> content = new ArrayList<Object>();
 		labels.add(entryName);
@@ -466,21 +434,16 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		columnData.add(labels);
 		columnData.add(content);
 		String sourceFileNames = "";
-		
-		for (int i = 0; i < sourceFiles.size() - 1; i++) {
-			sourceFileNames += sourceFiles.get(i).getName() + ",";
-		}
-		if (sourceFiles.size() != 0) {
-			sourceFileNames += sourceFiles.get(sourceFiles.size() - 1).getName();
+		int count = testCodeSourceToUse.size();
+		for (String sourceName : testCodeSourceToUse) {
+			count--;
+			sourceFileNames += sourceName;
+			if (count != 0) {
+				sourceFileNames += ",";
+			}
 		}
 		labels.add(ColumnNames.SOURCE_FILE.toString());
 		content.add(sourceFileNames);
-		for (FileData file : sourceFiles) {
-			if (fileData.containsKey(file.getName()) == false) {
-				List<Object> fileLineList = file.fillSaveData();
-				fileData.put(file.getName(), fileLineList);
-			}
-		}
 	}
 
 	
@@ -522,22 +485,19 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			if (files == null) {
 				return;
 			}
-			sourceFiles = new ArrayList<FileData>();
+			testCodeSourceToUse = new HashSet<String>();
 			for (Object fileO : files) {
 				if (fileO instanceof String) {
 					String file = (String)fileO;
+					testCodeSourceToUse.add(file);
 					// We want them all sharing the same source so that when we edit the
 					// source in the rubric, all of them see the edit
-					if (fileDataMap.containsKey(file)) {
-						sourceFiles.add(fileDataMap.get(file));
-					}
-					else {
+					if (fileDataMap.containsKey(file) == false) {
 						FileData fileData = FileData.newFromSheet(file, columnData.get(file.toUpperCase()));
 						if (fileData == null) {
 							showErrorMessage(entryName);
 						}
 						else {
-							sourceFiles.add(fileData);
 							fileDataMap.put(file, fileData);
 						}
 					}

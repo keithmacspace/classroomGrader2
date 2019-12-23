@@ -13,10 +13,10 @@ public class UndoableStudentSelection extends AbstractUndoableEdit {
 	private static final long serialVersionUID = 6604127429109660697L;
 	private String newID = null;
 	private String formerID = null;
-	private static boolean undoing = false;
+	private static volatile boolean undoing = false;
 	
 	public static void studentSelected(UndoManager undoManager, String newID, String formerID) {
-		if (undoing == false) {
+		if (undoing == false && newID != null && formerID != null) {
 			undoManager.addEdit(new UndoableStudentSelection(newID, formerID));
 		}
 		undoing = false;
@@ -27,7 +27,10 @@ public class UndoableStudentSelection extends AbstractUndoableEdit {
 		this.newID = newID;
 		this.formerID = formerID;
 	}
-
+	@Override
+	public boolean isSignificant() {
+		return newID != null && !newID.equals(formerID);
+	}
 
 	@Override
 	public void undo() throws CannotUndoException {
@@ -36,11 +39,15 @@ public class UndoableStudentSelection extends AbstractUndoableEdit {
 			ListenerCoordinator.fire(SelectStudentListener.class, formerID);
 		}
 	}
-
+	
 	@Override
 	public boolean canUndo() {
-		return (formerID != null);
-		
+		return true;
+	}
+	
+	@Override 
+	public boolean canRedo() {
+		return true;
 	}
 
 	@Override
@@ -49,11 +56,6 @@ public class UndoableStudentSelection extends AbstractUndoableEdit {
 			undoing = true;
 			ListenerCoordinator.fire(SelectStudentListener.class, newID);
 		}
-	}
-
-	@Override
-	public boolean canRedo() {
-		return (newID != null);
 	}
 
 	@Override

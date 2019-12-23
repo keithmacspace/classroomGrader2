@@ -40,27 +40,17 @@ import net.cdonald.googleClassroom.model.Rubric;
 
 public class ConsoleAndSourcePanel extends JPanel {
 	private static final long serialVersionUID = 1084761781946423738L;	
-	private JTabbedPane overallTabbedPane;	
-	private JTabbedPane rubricTabbedPane;
+	private JTabbedPane overallTabbedPane;		
 	private JPopupMenu popupSource;
 	private JPopupMenu popupInput;
 	private JPopupMenu popupDisplays;
-	private JPopupMenu popupRubricSource;
-	
-
-	
-	
-	private static Semaphore pauseSemaphore = new Semaphore(1);
-	
-	private String currentID;	
-	private Map<String, JTextArea> rubricTestCodeMap;
+	private static Semaphore pauseSemaphore = new Semaphore(1);	
+	private String currentID;		
 	private UndoManager undoManager;
-
-
 	private StudentSourceCards studentSourceCards;
-	private enum TabNames {Source, Rubric}
-	private JTabbedPane rubricTestPane = new JTabbedPane();
+	private enum OverallTabNames {Source, Rubric}
 	private StudentOutputTabs studentOutputTabs;
+	private RubricTabPanel rubricTabPanel;
 	
 
 
@@ -73,7 +63,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 		registerListeners();
 		setVisible(true);
 		
-		rubricTestCodeMap = new HashMap<String, JTextArea>();		
+				
 
 	}
 
@@ -117,15 +107,13 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private void createPopupMenu() {
 		popupSource = new JPopupMenu();
 		popupDisplays = new JPopupMenu();
-		popupInput = new JPopupMenu();
-		popupRubricSource = new JPopupMenu();
+		popupInput = new JPopupMenu();		
 
 		Action cut = new DefaultEditorKit.CutAction();
 		cut.putValue(Action.NAME, "Cut");
 		cut.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control X"));
 		popupSource.add(cut);
 		popupInput.add(cut);
-		popupRubricSource.add(cut);
 
 		Action copy = new DefaultEditorKit.CopyAction();
 		copy.putValue(Action.NAME, "Copy");
@@ -133,14 +121,12 @@ public class ConsoleAndSourcePanel extends JPanel {
 		popupSource.add(copy);
 		popupInput.add(cut);
 		popupDisplays.add(copy);
-		popupRubricSource.add(copy);
 
 		Action paste = new DefaultEditorKit.PasteAction();
 		paste.putValue(Action.NAME, "Paste");
 		paste.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
 		popupSource.add(paste);
 		popupInput.add(paste);
-		popupRubricSource.add(paste);
 		
 		JMenuItem recompile = new JMenuItem("Recompile");
 		popupSource.add(recompile);
@@ -168,14 +154,13 @@ public class ConsoleAndSourcePanel extends JPanel {
 		setLayout(new BorderLayout());
 
 		setVisible(true);
-		rubricTabbedPane = new JTabbedPane();
-
 		
-
+		rubricTabPanel = new RubricTabPanel(undoManager, popupSource, popupDisplays);
 		studentSourceCards = new StudentSourceCards();		
 		overallTabbedPane = new JTabbedPane();
-		overallTabbedPane.addTab(TabNames.Source.toString(), studentSourceCards);
-		overallTabbedPane.addTab(TabNames.Rubric.toString(), rubricTabbedPane);
+		new TabbedUndoListener(undoManager, overallTabbedPane);
+		overallTabbedPane.addTab(OverallTabNames.Source.toString(), studentSourceCards);
+		overallTabbedPane.addTab(OverallTabNames.Rubric.toString(), rubricTabPanel);
 		
 
 		studentOutputTabs = new StudentOutputTabs(popupInput, popupDisplays);
@@ -197,44 +182,13 @@ public class ConsoleAndSourcePanel extends JPanel {
 			public void fired(Rubric rubric) {
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
-						rubricTabbedPane.removeAll();
-						if (rubric != null) {
-							List<FileData> referenceSourceArea = rubric.getReferenceSource();
-							if (referenceSourceArea != null && referenceSourceArea.size() > 0) {
-								JTabbedPane referenceSourceTabs = new JTabbedPane();
-								rubricTabbedPane.addTab("Reference Source", referenceSourceTabs);
-								for (FileData file : referenceSourceArea) {
-									LineNumberTextArea goldSource = new LineNumberTextArea();
-									goldSource.setComponentPopupMenu(popupDisplays);
-									goldSource.setEditable(false);
-									goldSource.setText(file.getFileContents());
-									referenceSourceTabs.addTab(file.getName(), goldSource.getScrollPane());
-								}
-							}
-							List<FileData> rubricTestCode = rubric.getTestCode();
-							rubricTestPane.removeAll();
-							rubricTestCodeMap.clear();
-							if (rubricTestCode != null && rubricTestCode.size() > 0) {								
-								rubricTabbedPane.addTab("Test Code Source", rubricTestPane);
-								for (FileData file : rubricTestCode) {
-									LineNumberTextArea testSource = new LineNumberTextArea();
-									testSource.setComponentPopupMenu(popupSource);
-									testSource.setEditable(true);
-									testSource.setText(file.getFileContents());
-									rubricTestPane.addTab(file.getName(), testSource.getScrollPane());
-									TabbedUndoListener.TabInfo[] a = {
-											new TabbedUndoListener.TabInfo(overallTabbedPane, TabNames.Rubric.ordinal()), 
-											new TabbedUndoListener.TabInfo(rubricTabbedPane, rubricTabbedPane.getTabCount() - 1),
-											new TabbedUndoListener.TabInfo(rubricTestPane, rubricTestPane.getTabCount() - 1)};
-									testSource.getDocument().addUndoableEditListener(new TabbedUndoListener(undoManager, a));
-									rubricTestCodeMap.put(file.getName(), testSource);
-								}
-							}
-							@SuppressWarnings("unchecked")
-							List<String> studentIDs = (ArrayList<String>)ListenerCoordinator.runQuery(GetStudentIDListQuery.class);
-							studentOutputTabs.bindStudentAreas(studentIDs, rubric);
-						}
+						rubricTabPanel.changeRubricTabs(rubric, undoManager);
+
+						@SuppressWarnings("unchecked")
+						List<String> studentIDs = (ArrayList<String>)ListenerCoordinator.runQuery(GetStudentIDListQuery.class);
+						studentOutputTabs.bindStudentAreas(studentIDs, rubric);
 					}
+
 				});
 			}
 		});
@@ -247,8 +201,8 @@ public class ConsoleAndSourcePanel extends JPanel {
 					studentOutputTabs.setRunningStudent(studentName);
 				}
 				else {
-					if (overallTabbedPane.getTabCount() > TabNames.Source.ordinal()) {
-						overallTabbedPane.setSelectedIndex(TabNames.Source.ordinal());
+					if (overallTabbedPane.getTabCount() > OverallTabNames.Source.ordinal()) {
+						overallTabbedPane.setSelectedIndex(OverallTabNames.Source.ordinal());
 						selectOutputTab(rubricName);
 					}
 				}
@@ -290,9 +244,12 @@ public class ConsoleAndSourcePanel extends JPanel {
 			public void fired() {
 				@SuppressWarnings("unchecked")
 				List<String> allIDs = (ArrayList<String>)ListenerCoordinator.runQuery(GetStudentIDListQuery.class);
-				studentSourceCards.initSource(allIDs, undoManager, overallTabbedPane, TabNames.Source.ordinal(), popupSource);
+				studentSourceCards.initSource(allIDs, undoManager, overallTabbedPane, OverallTabNames.Source.ordinal(), popupSource);
 				Rubric rubric = (Rubric)ListenerCoordinator.runQuery(GetCurrentRubricQuery.class);
-				studentOutputTabs.bindStudentAreas(allIDs, rubric);
+				// Only bind if we don't have a rubric, if we do we already have all the tabs we need.
+				if (rubric == null) {
+					studentOutputTabs.bindStudentAreas(allIDs, rubric);
+				}
 			}			
 		});
 
@@ -307,10 +264,8 @@ public class ConsoleAndSourcePanel extends JPanel {
 	}
 		
 	
-	public void updateRubricTestCode(Rubric rubric) {		
-		for (String file : rubricTestCodeMap.keySet()) {
-			rubric.modifyTestCode(file, rubricTestCodeMap.get(file).getText());
-		}		
+	public void updateRubricCode(Rubric rubric) {
+		rubricTabPanel.updateRubricCode();
 	}	
 
     

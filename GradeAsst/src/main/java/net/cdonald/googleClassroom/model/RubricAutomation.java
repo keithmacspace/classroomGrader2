@@ -21,10 +21,7 @@ public abstract class RubricAutomation {
 	}
 
 	
-	public Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData) {		
-		return runAutomation_(owner, studentName, studentId, message, compiler, referenceSource, consoleData);		
-	}
-	
+
 	public void setOwnerName(String name) {
 		ownerName = name;
 		sysListeners = new RubricEntrySystemListeners(ownerName);		
@@ -50,13 +47,12 @@ public abstract class RubricAutomation {
 	protected void addOutput(String id, String text) {
 		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n", false);
 	}
-
-	public void getTestCode(List<FileData> files, Set<String> names) {}
-	public void modifyTestCode(String fileName, String fileContents) {}
-	public abstract RubricAutomation newCopy();
-	public abstract void removeFileData(FileData fileData);	
-	protected abstract Double runAutomation_(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, ConsoleData consoleData);
-	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData, Map<String, List<Object>> fileData);
-	protected abstract void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData,	Map<String, FileData> fileDataMap);
+	public abstract RubricAutomation newCopy();	
+	protected abstract Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData);
+	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData);
+	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData, Map<String, FileData> fileDataMap) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

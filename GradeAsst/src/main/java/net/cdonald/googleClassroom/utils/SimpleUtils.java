@@ -1,6 +1,7 @@
 package net.cdonald.googleClassroom.utils;
 
 import java.awt.GridBagConstraints;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -157,5 +159,21 @@ public class SimpleUtils {
 		lateInfo += "late";
 		return lateInfo;
 	}
+	
+	public static JPanel createButtonPanel(int numButtons) {
+		final int SPACE = 6;
+		final int BUTTON_TOP_SPACE = 5;
+		JPanel buttonsPanel;
+		GridLayout buttonLayout;
+		buttonsPanel = new JPanel();
+		// buttonsPanel.setLayout(new FlowLayout());
+		buttonLayout = new GridLayout(numButtons, 0);
+		final int GAP_SIZE = 6;
+		buttonLayout.setVgap(GAP_SIZE);
+		buttonsPanel.setBorder(BorderFactory.createEmptyBorder(BUTTON_TOP_SPACE, SPACE, SPACE, SPACE));
+		buttonsPanel.setLayout(buttonLayout);
+		return buttonsPanel;
+	}
+
 
 }

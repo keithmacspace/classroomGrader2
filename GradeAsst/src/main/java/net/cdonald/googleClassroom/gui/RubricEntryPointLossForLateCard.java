@@ -17,14 +17,13 @@ import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntryPointLossForLate;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
-public class RubricEntryPointLossForLateCard implements  RubricEntryDialogCardInterface {
+public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCardInterface {
 	private JComboBox<SimpleUtils.TimeUnit> timeUnitCombo;
 	private JTextField pointsLost;
 	private RubricEntryPointLossForLate associatedAutomation;
 	private RubricElementDialog dialogOwner;
 	private boolean isActive;
-	public RubricEntryPointLossForLateCard(RubricElementDialog dialogOwner) {
-		this.dialogOwner = dialogOwner;
+	public RubricEntryPointLossForLateCard() {		
 		JPanel valuePanel = new JPanel();
 		valuePanel.setLayout(new FlowLayout());
 		pointsLost = new JTextField();

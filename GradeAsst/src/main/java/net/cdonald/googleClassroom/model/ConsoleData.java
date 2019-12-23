@@ -27,7 +27,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.SystemOutListener;
 
 
 public class ConsoleData {
-	public static final boolean CAPTURE_STDERR = true;
+	public static final boolean CAPTURE_STDERR = false; //true;
 	private PipedInputStream inPipe;
 	private final PipedInputStream outPipe = new PipedInputStream();
 	private final PipedInputStream errPipe = new PipedInputStream();

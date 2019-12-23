@@ -88,6 +88,7 @@ public class StudentSourceCards extends JPanel {
 			super();
 			this.studentID = studentID;
 			sourceTextArea = new ArrayList<JTextArea>();
+			new TabbedUndoListener(undoManager, this);
 			@SuppressWarnings("unchecked")
 			List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, studentID);		
 			if (fileDataList != null) {
@@ -98,8 +99,7 @@ public class StudentSourceCards extends JPanel {
 					sourceTextArea.add(sourceArea);
 					addTab(name, sourceArea.getScrollPane());
 					sourceArea.setComponentPopupMenu(popupSource);
-					TabbedUndoListener.TabInfo[] a = {new TabbedUndoListener.TabInfo(overallTabPane, overallTabIndex), new TabbedUndoListener.TabInfo(this, getTabCount() - 1)};
-					sourceArea.getDocument().addUndoableEditListener(new TabbedUndoListener(undoManager, a));
+					sourceArea.getDocument().addUndoableEditListener(undoManager);
 				}
 			}		
 		}
