@@ -97,16 +97,28 @@ public class RubricEntry {
 		private RubricEntry.StudentScore studentScorePreChange;
 		private RubricEntry.StudentScore studentScorePostChange;
 	}
-	private String id;
+	private static int creationCount = 0; 
+	private int uniqueID;
 	private String name;
 	private String description;
 	private int rubricValue;
 	private AutomationTypes automationType;
 	private Map<String, StudentScore> studentScores;
-	private RubricAutomation automation;	
+	private RubricAutomation automation;
+	private boolean isRubricDefinitionModified = false;
 
+
+	private void assignID() {
+		creationCount++;
+		uniqueID = creationCount;
+	}
+	
+	public int getUniqueID() {
+		return uniqueID;
+	}	
 
 	public RubricEntry(List<String> headings, List<Object> entries) {
+		assignID();
 		rubricValue = 0;
 		automationType = AutomationTypes.NONE;
 		for (int i = 0; i < headings.size(); i++) {
@@ -126,12 +138,13 @@ public class RubricEntry {
 
 	// This is the form used when we create it via the dialog box in addRubricEntry
 	public RubricEntry() {
+		assignID();
 		automationType = AutomationTypes.NONE;
 		studentScores = new HashMap<String, StudentScore>();		
 	}
 
 	public RubricEntry(RubricEntry other) {
-		id = other.id;
+		assignID();
 		name = other.name;
 		description = other.description;
 		rubricValue = other.rubricValue;
@@ -151,7 +164,7 @@ public class RubricEntry {
 			studentScores.put(studentID, new StudentScore());
 		}
 		StudentScore score = studentScores.get(studentID);
-		if (Rubric.getModifiableState() == Rubric.ModifiableState.TRACK_MODIFICATIONS) {
+		if (Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
 			score.modifiedByUser = true;
 		}
 
@@ -199,6 +212,7 @@ public class RubricEntry {
 	}
 
 	public void setTableValue(HeadingNames headingName, Object param) {
+		isRubricDefinitionModified = true;
 		switch (headingName) {
 		case NAME:
 			name = (String) param;
@@ -268,7 +282,7 @@ public class RubricEntry {
 	}
 
 	public void setValue(HeadingNames headingName, String param) {
-
+		isRubricDefinitionModified = true;
 		switch (headingName) {
 		case NAME:
 			name = param;
@@ -383,14 +397,17 @@ public class RubricEntry {
 	}
 
 	public void setName(String name) {
+		isRubricDefinitionModified = true;
 		this.name = name;
 	}
 
 	public void setDescription(String description) {
+		isRubricDefinitionModified = true;
 		this.description = description;
 	}
 
 	public void setValue(int rubricValue) {
+		isRubricDefinitionModified = true;
 		this.rubricValue = rubricValue;
 	}
 
@@ -399,10 +416,12 @@ public class RubricEntry {
 	}
 
 	public void setAutomationType(AutomationTypes automationType) {
+		isRubricDefinitionModified = true;
 		this.automationType = automationType;
 	}
 
 	public void setAutomation(RubricAutomation automation) {
+		isRubricDefinitionModified = true;
 		this.automation = automation;
 		if (automation != null) {
 			automation.setOwnerName(getName());
@@ -465,7 +484,7 @@ public class RubricEntry {
 		return false;
 	}
 
-	public void clearModifiedFlag() {
+	public void clearStudentScoreModifiedFlag() {
 		for (StudentScore score : studentScores.values()) {
 			if (score != null) {
 				score.modifiedByUser = false;
@@ -478,6 +497,14 @@ public class RubricEntry {
 	public String getColumnName() {
 		// TODO Auto-generated method stub
 		return getValue() + "-" + getName();
+	}
+	
+	public boolean isRubricDefinitionModified() {
+		return isRubricDefinitionModified;
+	}
+	
+	public void clearIsRubricDefinitionModified() {
+		isRubricDefinitionModified = false;
 	}
 
 

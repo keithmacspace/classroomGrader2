@@ -121,6 +121,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		
 		if (numToSubtract >= owner.getValue()) {
 			addOutput(studentId, "Submitted too late to get any points");
+			numToSubtract = owner.getValue();
 		}
 		return (double)(owner.getValue() - numToSubtract)/(double)owner.getValue();		
 	}

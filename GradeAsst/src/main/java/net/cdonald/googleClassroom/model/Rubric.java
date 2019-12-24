@@ -20,59 +20,28 @@ import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricTestCodeChanged;
 
 public class Rubric implements SheetAccessorInterface {
-	public enum ModifiableState {
+	public enum ScoreModifiableState {
 		TRACK_MODIFICATIONS, LOCK_USER_MODIFICATIONS
 	}
-	public class PointBreakdown {
-		private int value;
-		private String description;
-		public PointBreakdown() {
-			super();
-			this.value = 0;
-			this.description = "";
-		}
-		public PointBreakdown(int value, String description) {
-			super();
-			this.value = value;
-			this.description = description;
-		}
-		public int getValue() {
-			return value;
-		}
-		public void setValue(int value) {
-			this.value = value;
-		}
-		public void setValue(String value) {
-			try {
-				this.value = Integer.parseInt(value);
-			}catch(NumberFormatException e) {
-				
-			}
-		}
-		public String getDescription() {
-			return description;
-		}
-		public void setDescription(String description) {
-			this.description = description;
-		}		
+	public enum RubricModifiableState {
+		
 	}
-	private final String partialCreditString = "PARTIAL CREDIT";
-	private static ModifiableState modifiableState = ModifiableState.TRACK_MODIFICATIONS;
+	private static ScoreModifiableState scoreModifiableState = ScoreModifiableState.TRACK_MODIFICATIONS;
 	private GoogleSheetData sheetData;
 	private List<RubricEntry> entries;
-	private boolean inModifiedState;
+	private boolean isRubricDefinitionModified = false;
 	private List<FileData> referenceSource;
 	private List<FileData> testCodeSource;
-	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";	
-	private List<PointBreakdown> pointBreakdown;
+	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";		
 	private boolean loadedFromFile = false;
+	private boolean allowEntryAddition = false;
 
-	public static ModifiableState getModifiableState() {
-		return modifiableState;
+	public static ScoreModifiableState getScoreModifiableState() {
+		return scoreModifiableState;
 	}
 
-	public static void setModifiableState(ModifiableState modifiableState) {
-		Rubric.modifiableState = modifiableState;
+	public static void setScoreModifiableState(ScoreModifiableState modifiableState) {
+		Rubric.scoreModifiableState = modifiableState;
 	}
 
 	public Rubric(GoogleSheetData sheetData) {
@@ -86,28 +55,28 @@ public class Rubric implements SheetAccessorInterface {
 	}
 
 	public Rubric(Rubric other) {
-		sheetData = new GoogleSheetData(other.sheetData);
+		if (other.sheetData != null) {
+			sheetData = new GoogleSheetData(other.sheetData);
+		}
+		else {
+			sheetData = null;
+		}
 		entries = new ArrayList<RubricEntry>();
 		loadedFromFile = other.loadedFromFile;
 		for (RubricEntry otherEntry : other.entries) {
 			entries.add(new RubricEntry(otherEntry));
 		}
-		inModifiedState = other.inModifiedState;
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
 		setSource(testCodeSource, other.testCodeSource);
 		setSource(referenceSource, other.referenceSource);
-		if (other.pointBreakdown != null) {
-			for (PointBreakdown points : other.pointBreakdown) {
-				addPointBreakdown(points);
-			}
-		}
-
+		isRubricDefinitionModified = other.isRubricDefinitionModified;
+		
 	}
 
 	// This form is used when we are creating a new rubric from scratch
 	public Rubric() {
-		inModifiedState = true;
+		isRubricDefinitionModified = false;
 		loadedFromFile = false;
 		entries = new ArrayList<RubricEntry>();		
 		referenceSource = new ArrayList<FileData>();
@@ -119,7 +88,16 @@ public class Rubric implements SheetAccessorInterface {
 		return referenceSource;
 	}
 	
+	public boolean isAllowEntryAddition() {
+		return allowEntryAddition;
+	}
+
+	public void setAllowEntryAddition(boolean allowEntryAddition) {
+		this.allowEntryAddition = allowEntryAddition;
+	}
+
 	private void setSource(List<FileData> fileDataToChange, List<FileData> source) {
+		isRubricDefinitionModified = true;
 		fileDataToChange.clear();
 		if (source != null) {
 			for (FileData fileData : source) {
@@ -214,10 +192,12 @@ public class Rubric implements SheetAccessorInterface {
 	}
 
 	public void addNewEntry(int index) {
+		isRubricDefinitionModified = true;
 		entries.add(index, new RubricEntry());
 	}
 
 	public void modifyEntry(RubricEntry entry) {
+		isRubricDefinitionModified = true;
 		boolean modified = false;
 		for (int i = 0; (i < entries.size() && modified == false); i++) {
 			if (entries.get(i).getName().equalsIgnoreCase(entry.getName())) {
@@ -231,6 +211,7 @@ public class Rubric implements SheetAccessorInterface {
 	}
 
 	public void removeEntry(String name) {
+		isRubricDefinitionModified = true;
 		for (int i = 0; i < entries.size(); i++) {
 			RubricEntry entry = entries.get(i);
 			if (entry.getName().compareToIgnoreCase(name) == 0) {
@@ -241,12 +222,14 @@ public class Rubric implements SheetAccessorInterface {
 	}
 
 	public void removeEntry(int index) {
+		isRubricDefinitionModified = true;
 		if (index >= 0 && index <= entries.size()) {
 			entries.remove(index);
 		}
 	}
 
 	public void swapEntries(int index, int otherIndex) {
+		isRubricDefinitionModified = true;
 		if (index >= 0 && index < entries.size() && otherIndex >= 0 && otherIndex < entries.size()) {
 			RubricEntry temp = entries.set(index, entries.get(otherIndex));
 			entries.set(otherIndex, temp);
@@ -269,7 +252,7 @@ public class Rubric implements SheetAccessorInterface {
 
 	public int getEntryCount() {
 		if (entries != null) {
-			if (inModifiedState) {
+			if (allowEntryAddition) {
 				for (int i = entries.size() - 1; i >= 0; i--) {
 					RubricEntry entry = entries.get(i);
 					if (entry.getName() != null && entry.getName().length() != 0) {
@@ -289,7 +272,7 @@ public class Rubric implements SheetAccessorInterface {
 			return entries.get(index);
 		}
 		// When we are modifying the rubric, then we can just add elements
-		else if (isInModifiedState()) {
+		else if (allowEntryAddition) {
 			while (entries.size() <= index) {
 				entries.add(new RubricEntry());
 			}
@@ -325,12 +308,25 @@ public class Rubric implements SheetAccessorInterface {
 		}
 	}
 
-	public boolean isInModifiedState() {
-		return inModifiedState;
+	public boolean isRubricDefinitionModified() {
+		if (isRubricDefinitionModified) {
+			return true;
+		}
+		for (RubricEntry entry : entries) {
+			if (entry.isRubricDefinitionModified()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
-	public void setInModifiedState(boolean inModifiedState) {
-		this.inModifiedState = inModifiedState;
+	public void clearRubricDefinitionModified() {
+		this.isRubricDefinitionModified = false;
+		if (isRubricDefinitionModified == false) {
+			for (RubricEntry entry : entries) {
+				entry.clearIsRubricDefinitionModified();
+			}
+		}
 	}
 
 	public void deleteEntry(String elementName) {
@@ -390,7 +386,12 @@ public class Rubric implements SheetAccessorInterface {
 					&& columnHeaders.get(currentAutomationHeader) != null) {
 				String entryNameKey = columnHeaders.get(currentAutomationHeader).toUpperCase();
 				List<Object> column = loadSheetData.readColumn(currentAutomationHeader);
-				entryColumns.get(entryNameKey).add(column);
+				if (entryNameKey != null && entryNameKey.length() != 0) {
+					List<List<Object>> entryColumn = entryColumns.get(entryNameKey);
+					if (entryColumn != null) {
+						entryColumn.add(column);
+					}
+				}
 				currentAutomationHeader++;
 			}
 			for (RubricEntry entry : entries) {
@@ -404,8 +405,8 @@ public class Rubric implements SheetAccessorInterface {
 
 		// Load the source files so that we can verify all the correct files exist.
 		loadSource(entryColumns, referenceSource, REFERENCE_SOURCE_LABEL);		
-
-		loadPointsBreakdown(entryColumns);
+		clearRubricDefinitionModified();
+		//loadPointsBreakdown(entryColumns);
 		
 	}
 
@@ -457,7 +458,6 @@ public class Rubric implements SheetAccessorInterface {
 
 		saveState.addOneRow(RubricEntry.getRubricHeader(), 1);
 		int currentRow = 2;
-		savePointBreakdown(columnData);
 		for (RubricEntry entry : entries) {
 			saveState.addOneRow(entry.getRubricEntryInfo(), currentRow);
 			entry.saveAutomationData(columnData);
@@ -470,10 +470,7 @@ public class Rubric implements SheetAccessorInterface {
 			saveState.writeFullColumn(column, currentColumn);
 			currentColumn++;
 		}
-		for (FileData ref : referenceSource) {
-			saveState.writeFullColumn(ref.fillSaveData(), currentColumn);
-			currentColumn++;
-		}
+
 		List<Object> referenceSourceNameRows = new ArrayList<Object>();
 		referenceSourceNameRows.add(REFERENCE_SOURCE_LABEL);
 		for (FileData file : referenceSource) {
@@ -537,135 +534,24 @@ public class Rubric implements SheetAccessorInterface {
 		return true;
 	}
 
-	public void clearModifiedFlag() {
+	public void clearStudentScoreModifiedFlag() {
 		for (RubricEntry entry : entries) {
-			entry.clearModifiedFlag();
+			entry.clearStudentScoreModifiedFlag();
 		}
 	}
 	
-	public void addPointBreakdown(int value, String description) {
-		addPointBreakdown(new PointBreakdown(value, description));
-	}
-	
-	public void addPointBreakdown(PointBreakdown points) {
-		if (pointBreakdown == null) {
-			pointBreakdown = new ArrayList<PointBreakdown>();
-		}
-		pointBreakdown.add(points);
-	}
-	
-	public List<PointBreakdown> getPointBreakdown() {
-		return pointBreakdown;
-	}
-	public String getPointBreakdownValue(int row) {
-		if (pointBreakdown != null && pointBreakdown.size() > row) {
-			return "" + pointBreakdown.get(row).getValue();
-		}
-		return null;		
-	}
-	public String getPointBreakdownDescription(int row) {
-		if (pointBreakdown != null && pointBreakdown.size() > row) {
-			return pointBreakdown.get(row).getDescription();
-		}
-		return null;		
-	}
-	
-	public PointBreakdown getPointBreakdown(int row) {
-		if (pointBreakdown == null) {
-			pointBreakdown = new ArrayList<PointBreakdown>();
-		}
-		if (row < pointBreakdown.size()) {
-			return pointBreakdown.get(row);
-		}
-		pointBreakdown.add(new PointBreakdown(0, ""));
-		return pointBreakdown.get(pointBreakdown.size() - 1);
-	}
-	public void setPointBreakdownValue(int row, String value) {		
-			getPointBreakdown(row).setValue(value);			
-	}
-	public void setPointBreakdownDescription(int row, String value) {		
-			getPointBreakdown(row).setDescription(value);		
-	}
-	public void addNewPointBreakdownDescription(int row) {
-		if (row <= pointBreakdown.size() && row >= 0) {
-			pointBreakdown.add(row, new PointBreakdown());
-		}
-	}
-	
-	public void removePointBreakdownDescription(int row) {
-		if (row < pointBreakdown.size() && row >= 0) {
-			pointBreakdown.remove(row);
-		}
-	}
-	public void swapPointBreakdownDescriptions(int row1, int row2) {
-		if (row1 >= 0 && row2 >= 0 && row1 < pointBreakdown.size() && row2 < pointBreakdown.size()) {
-			PointBreakdown a = pointBreakdown.get(row1);
-			pointBreakdown.set(row1, pointBreakdown.get(row2));
-			pointBreakdown.set(row2, a);
-		}
-	}
-
-	
-	private void loadPointsBreakdown(Map<String, List<List<Object>>> columnData) {
-		List<List<Object> > columns = columnData.get(partialCreditString);
-		if (columns == null || columns.size() == 0) {
-			return;
-		}
-		else {
-			List<Object> valueRows = null;
-			int maxRows = 0;
-			int descriptionIndex = columns.size() - 1;
-			if (descriptionIndex != 0) {
-				valueRows = columns.get(0);
-				maxRows = valueRows.size();
-			}
-			List<Object> descriptionRows = columns.get(descriptionIndex);
-			maxRows = Math.max(descriptionRows.size(), maxRows);
-			for (int i = 1; i < maxRows; i++) {
-				int value = 0;
-				String description = "";
-				if (valueRows != null && valueRows.size() > i) {
-					String valueString = (String)valueRows.get(i);
-					if (valueString != null) {
-						try {
-							value = Integer.parseInt(valueString);
-						}
-						catch(NumberFormatException e) {
-							description = valueString;
-						}
-					}
-				}
-				if (descriptionRows.size() > i) {
-					String descriptionString = (String)descriptionRows.get(i);
-					if (descriptionString != null) {
-						description += descriptionString;
-					}
-				}
-				if (description.length() > 0) {
-					addPointBreakdown(value, description);
-				}
-			}
-		}
-	}
-	
-	private void savePointBreakdown(List<List<Object>> columnData) {
-		if (pointBreakdown == null) {
-			return;
-		}
-		List<Object> values = new ArrayList<Object>();
-		List<Object> descriptions = new ArrayList<Object>();
-		values.add(partialCreditString);
-		descriptions.add(partialCreditString);
-		for (PointBreakdown points : pointBreakdown) {
-			values.add((Integer)points.getValue());
-			descriptions.add(points.description);
-		}
-		columnData.add(values);
-		columnData.add(descriptions);
-	}
 
 	public List<FileData> getTestCode() {		
 		return testCodeSource;
+	}
+
+	public RubricEntry getEntryByID(int elementID) {
+		for (RubricEntry entry : entries) {
+			if (elementID == entry.getUniqueID()) {
+				return entry;
+			}			
+		}
+		return null;
 	}
 
 

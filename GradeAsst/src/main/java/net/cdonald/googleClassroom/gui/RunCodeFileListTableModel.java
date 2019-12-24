@@ -11,12 +11,15 @@ import net.cdonald.googleClassroom.model.Rubric;
 
 public class RunCodeFileListTableModel extends AbstractTableModel {
 	private static final long serialVersionUID = 8156237947165577539L;		
-	RunCodeFileListTableModelListener listener;
+	private RunCodeFileListTableModelListener listener;
+	private boolean editable;
+	
 
 	
 	public RunCodeFileListTableModel(RunCodeFileListTableModelListener listener) {
 		super();
 		this.listener = listener;
+		editable = false;
 	}
 	
 	public void init() {
@@ -29,7 +32,7 @@ public class RunCodeFileListTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		List<FileData> files = listener.getFiles();
 		if (files == null || files.size() == 0) {
-			return 5;
+			return 3;
 		}
 		return files.size();
 		
@@ -106,7 +109,12 @@ public class RunCodeFileListTableModel extends AbstractTableModel {
 
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		return (columnIndex == 0);
+		return (columnIndex == 0) && editable;
+	}
+
+	public void setEditable(boolean enable) {
+		editable = enable;
+		
 	}
 
 }

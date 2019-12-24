@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+
+import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -13,17 +15,21 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+
+import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
+import net.cdonald.googleClassroom.model.RubricEntry.AutomationTypes;
 import net.cdonald.googleClassroom.model.RubricEntryPointLossForLate;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
-public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCardInterface {
+public class RubricEntryPointLossForLateCard extends  RubricEntryAutomationCardInterface {
 	private JComboBox<SimpleUtils.TimeUnit> timeUnitCombo;
 	private JTextField pointsLost;
 	private RubricEntryPointLossForLate associatedAutomation;
-	private RubricElementDialog dialogOwner;
-	private boolean isActive;
-	public RubricEntryPointLossForLateCard() {		
+
+	public RubricEntryPointLossForLateCard(boolean enableEditing, Rubric rubricToModify, int elementID) {
+		setLayout(new BorderLayout());
+		setBorder(BorderFactory.createTitledBorder("Automation Options"));
 		JPanel valuePanel = new JPanel();
 		valuePanel.setLayout(new FlowLayout());
 		pointsLost = new JTextField();
@@ -33,11 +39,11 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCa
 		JLabel perLabel = new JLabel(" points lost per ");
 		valuePanel.add(perLabel);
 		valuePanel.add(timeUnitCombo);
-		JPanel wrapperPanel = new JPanel();
-		wrapperPanel.setLayout(new BorderLayout());
-		wrapperPanel.add(valuePanel, BorderLayout.CENTER);
-		isActive = false;
-		dialogOwner.addAutomationCard(wrapperPanel, RubricEntry.AutomationTypes.POINT_LOSS_FOR_LATE);
+		
+
+		add(valuePanel, BorderLayout.CENTER);
+		
+		
 		
 		pointsLost.getDocument().addDocumentListener(new DocumentListener() {
 
@@ -81,6 +87,8 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCa
 			}
 			
 		});
+		addItems(rubricToModify, elementID);
+		setEnableEditing(enableEditing);
 		
 	}
 	
@@ -113,11 +121,9 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCa
 		
 	}
 
+	public void addItems(Rubric rubricToModify, int elementID) {
+		RubricEntry associatedEntry = rubricToModify.getEntryByID(elementID);
 	
-	@Override
-	public void addItems() {
-		isActive = true;
-		RubricEntry associatedEntry = dialogOwner.getCurrentEntry();
 		if (associatedEntry.getAutomation() == null || !(associatedEntry.getAutomation() instanceof RubricEntryPointLossForLate)) {
 			associatedEntry.setAutomation(new RubricEntryPointLossForLate());
 		}
@@ -127,25 +133,31 @@ public class RubricEntryPointLossForLateCard implements  RubricEntryAutomationCa
 		timeUnitCombo.setSelectedItem(temp.getTimeUnit());
 		associatedAutomation = temp;
 	}
-	
+
 	@Override
-	public void removeItems() {		
-		isActive = false;
-		associatedAutomation = null;
+	public void testSourceChanged() {
+		// TODO Auto-generated method stub
+		
 	}
 
 	@Override
-	public boolean isActive() {
-		return isActive;
+	public String getDescription() {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
+
 	@Override
-	public void referenceSourceEnabled(boolean enable) {
+	public AutomationTypes getAutomationType() {
+		// TODO Auto-generated method stub
+		return RubricEntry.AutomationTypes.POINT_LOSS_FOR_LATE;
+	}
+
+	@Override
+	public void setEnableEditing(boolean enable) {
+		timeUnitCombo.setEnabled(enable);
+		pointsLost.setEditable(enable);
 		
 	}
 	
-	@Override
-	public void rubricSet() {
 
-	}
 }

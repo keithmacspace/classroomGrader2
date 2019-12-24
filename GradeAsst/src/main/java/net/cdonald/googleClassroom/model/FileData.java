@@ -1,5 +1,9 @@
 package net.cdonald.googleClassroom.model;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +13,6 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.ClassExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
@@ -189,6 +192,23 @@ public class FileData extends ClassroomData {
 			return true;
 		}
 		return false;
+	}
+	
+	public static FileData initFromDisk(String path) {
+		int lastDivider = path.lastIndexOf(File.separator);
+		File file = new File(path);
+		String fileName = file.getName();
+		String content = null;
+		try {			 
+			 content = new String(Files.readAllBytes(Paths.get(file.toURI())));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (content != null) {
+			return new FileData(fileName, content, "RefSource", null);
+		}
+		return null;
 	}
 	
 	

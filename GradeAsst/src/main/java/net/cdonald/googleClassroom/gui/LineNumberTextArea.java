@@ -10,7 +10,7 @@ import javax.swing.text.Element;
 public class LineNumberTextArea extends JTextArea {
 	private static final long serialVersionUID = 5392213771105928768L;
 	private JScrollPane scrollPane = new JScrollPane();
-	
+	private boolean isModified;
 	
 	public JScrollPane getScrollPane() {
 		return scrollPane;
@@ -18,9 +18,26 @@ public class LineNumberTextArea extends JTextArea {
 	
 	public LineNumberTextArea() {
 		super();
+		setModified(false);
 		addLineNumbers();
 	}
 	
+	public boolean isModified() {
+		return isModified;
+	}
+
+	public void setModified(boolean isModified) {
+		this.isModified = isModified;
+	}
+	
+	@Override
+	public void setText(String t) {		
+		super.setText(t);
+		// When we do a full set text it means unmodified/original file state
+		setModified(false);
+	}
+
+
 	private static String getLineNumber(int number, int lastNumber) {
 		String lineNum = "" + number;
 		int stopPoint = (int)Math.log10(number);
@@ -45,6 +62,7 @@ public class LineNumberTextArea extends JTextArea {
 		getDocument().addDocumentListener(new DocumentListener(){
 			private int lastLineNumber = 0;
 			private void changeLineNumbers() {
+				isModified = true;
 				int caretPosition = getDocument().getLength();
 				Element root = getDocument().getDefaultRootElement();
 				int lastNumber = root.getElementIndex( caretPosition ) + 2;

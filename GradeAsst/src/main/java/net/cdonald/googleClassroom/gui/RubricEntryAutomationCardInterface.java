@@ -1,9 +1,16 @@
 package net.cdonald.googleClassroom.gui;
 
-import net.cdonald.googleClassroom.model.Rubric;
+import javax.swing.JPanel;
 
-public interface RubricEntryAutomationCardInterface {
-	public void addItems(Rubric rubricToModify, int entryToModify);	
-	public void saving();
-	public String getDescription();
+import net.cdonald.googleClassroom.model.RubricEntry;
+
+public abstract class RubricEntryAutomationCardInterface  extends JPanel {
+	public abstract void saving();
+	public abstract void testSourceChanged();
+	public abstract String getDescription();
+	public abstract RubricEntry.AutomationTypes getAutomationType();
+	public abstract void setEnableEditing(boolean enable);
+	public RubricEntryAutomationCardInterface() {
+		super();
+	}
 }

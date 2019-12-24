@@ -1,11 +1,13 @@
 package net.cdonald.googleClassroom.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
+import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,20 +15,22 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
-import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.LoadSourceQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.RubricTestCodeChanged;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
+import net.cdonald.googleClassroom.model.RubricEntry.AutomationTypes;
 import net.cdonald.googleClassroom.model.RubricEntryRunCode;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
@@ -35,22 +39,25 @@ import net.cdonald.googleClassroom.utils.SimpleUtils;
  * Broke this out purely to shrink the code in RubricElementDialog.  It creates the RunCode card
  *
  */
-public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTableModelListener,  RubricEntryAutomationCardInterface {
-	private static final long serialVersionUID = -1929262696727464061L;
-	private JButton addFilesButton;
-	private JTable fileToUseList;
-	private JScrollPane fileScroll;
+public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface implements RunCodeFileListTableModelListener {
+	private static final long serialVersionUID = -1929262696727464061L;	
+	private JTable fileToUseList;	
 	private RunCodeFileListTableModel fileToUseModel;
 	private JComboBox<String> methodToCallCombo;
 	private JLabel methodToCallLabel;
-	private Map<String, Method> methodMap;	
+	private Map<String, List<Method>> possibleMethodMap;	
 	private RubricEntryRunCode associatedAutomation;
-	private JLabel explanation;
-	private Rubric rubricToModify;
-	public RubricEntryRunCodeCard(Rubric rubric, int elementIndex){		
+	private JLabel explanation;	
+	private Map<String, Method> methodMap;
+	private RubricFileListener rubricFileListener;
+	public RubricEntryRunCodeCard(boolean enableEditing, Map<String, List<Method>> possibleMethodMap, RubricFileListener rubricFileListener, Rubric rubric, int elementID){		
+		this.possibleMethodMap = possibleMethodMap;
+		this.rubricFileListener = rubricFileListener;
+		setLayout(new BorderLayout());
+		setBorder(BorderFactory.createTitledBorder("Run Code Automation Options"));
 		methodMap = new HashMap<String, Method>();
 		
-		addFilesButton = new JButton("Add Files");
+
 
 		explanation = new JLabel("<html>Load new or select an already loaded test file that contains the code to run."
 				+ " Then select the method that will be run. "
@@ -61,50 +68,34 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 
 
 		
-		JPanel buttonsPanel = SimpleUtils.createButtonPanel(2);
-		buttonsPanel.add(addFilesButton);		
+
+			
 		JPanel buttonHolder = new JPanel();
 		buttonHolder.setLayout(new BorderLayout());
-		buttonHolder.add(buttonsPanel, BorderLayout.NORTH);
+		buttonHolder.add(rubricFileListener.getTestSourceButtons(), BorderLayout.NORTH);
 		JPanel namePanel = createNamePanel();
 		JPanel nameAndButtons = new JPanel();
-		nameAndButtons.setLayout(new BorderLayout());
-		nameAndButtons.add(fileScroll, BorderLayout.CENTER);
+		nameAndButtons.setLayout(new BorderLayout());		
 		nameAndButtons.add(explanation, BorderLayout.NORTH);
 		nameAndButtons.add(namePanel, BorderLayout.CENTER);
 		nameAndButtons.add(buttonHolder, BorderLayout.EAST);
-
-		
-		
-		setLayout(new BorderLayout());
 		add(nameAndButtons, BorderLayout.CENTER);
-		
-		
-	
-		addFilesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				addFile();
-			}
-		});
-		
-
 		methodToCallCombo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				methodSelected();
 			}
 		});
-		addItems(rubric, elementIndex);
+		addItems(rubric, elementID);
+		setEnableEditing(enableEditing);
 	}
 	
 	private JPanel createNamePanel() {
 		JPanel namePanel = new JPanel();
 		namePanel.setLayout(new GridBagLayout());
-		final int SPACE = 5;
-		
+		final int SPACE = 5;		
 		JLabel fileToUseLabel = new JLabel("File To Use: ");
-		fileToUseList = new JTable();
+		fileToUseList = new JTable(); 
 		fileToUseModel = new RunCodeFileListTableModel(this);
 		fileToUseList.setModel(fileToUseModel);
 		fileToUseList.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
@@ -119,19 +110,43 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 		methodToCallLabel = new JLabel("Method to call: ");
 		methodToCallLabel.setToolTipText("Method's signature should be public static double methodName()."
 				+ " Enter only the name of the method, without parameters or return type.");
-		fileScroll = new JScrollPane();
-		fileScroll.setViewportView(fileToUseList);
-		//fileScroll.setPreferredSize(new Dimension(0, fileToUseList.getRowHeight() * 5 + 1));
+		JScrollPane fileScroll = new JScrollPane(fileToUseList);
 		JPanel filePanel = new JPanel();
 		filePanel.setLayout(new BorderLayout());
-		filePanel.add(fileScroll, BorderLayout.CENTER);
-		filePanel.setPreferredSize(new Dimension(0, fileToUseList.getRowHeight() * 5 + 1));
+		//filePanel.add(fileScroll, BorderLayout.CENTER);
 		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), explanation, 0);
+		SimpleUtils.addLabel(namePanel, fileToUseLabel, 1);
 		//SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
-		SimpleUtils.addLabelAndComponent(namePanel, fileToUseLabel, filePanel, 1);
-		SimpleUtils.addLabelAndComponent(namePanel, methodToCallLabel, methodToCallCombo, 2);
+		addFileTable(namePanel, fileScroll);
+		SimpleUtils.addLabel(namePanel, methodToCallLabel, 2);
+		addMethodCombo(namePanel, methodToCallCombo);
 		return namePanel;
-
+	}
+	private void addFileTable(JPanel namePanel, JScrollPane fileToUseTable) {
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(3, 3, 3, 0);
+		c.weightx = 1.0;
+		c.weighty = 1.0;
+		c.fill = GridBagConstraints.BOTH;
+		c.anchor = GridBagConstraints.LINE_START;
+		//c.gridwidth = GridBagConstraints.REMAINDER;
+		c.gridheight = 1;
+		c.gridx = 1;
+		c.gridy = 1;
+		namePanel.add(fileToUseTable, c);
+	}
+	private void addMethodCombo(JPanel namePanel, JComboBox methoToCallCombo) {
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(3, 3, 3, 0);
+		c.weightx = 1.0;
+		c.weighty = 1.0;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.LINE_START;
+		//c.gridwidth = GridBagConstraints.REMAINDER;
+		c.gridheight = 1;
+		c.gridx = 1;
+		c.gridy = 2;
+		namePanel.add(methoToCallCombo, c);
 	}
 	
 	private void registerListeners() {
@@ -159,11 +174,8 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 	}
 
 
-	@Override
-	public void addItems(Rubric rubricToModify, int index) {
-		this.rubricToModify = rubricToModify;
-
-		RubricEntry associatedEntry = rubricToModify.getEntry(index);
+	public void addItems(Rubric rubricToModify, int elementID) {
+		RubricEntry associatedEntry = rubricToModify.getEntryByID(elementID);
 		if (associatedEntry.getAutomation() == null || !(associatedEntry.getAutomation() instanceof RubricEntryRunCode)) {
 			associatedEntry.setAutomation(new RubricEntryRunCode());
 		}
@@ -185,21 +197,15 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 		
 	}
 	
-	private void fillRunCode() {				
-		methodToCallCombo.setSelectedItem(associatedAutomation.getMethodToCall());
+	@Override
+	public void testSourceChanged() {
+		fileToUseModel.fireTableDataChanged();
+		fillMethodCombo();
+		
 	}
 	
-
-	
-	private void addFile() {
-		if (rubricToModify != null) {
-
-
-			List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
-			if (allFiles != null) {
-				rubricToModify.addTestCode(allFiles);
-			}
-		}
+	private void fillRunCode() {				
+		methodToCallCombo.setSelectedItem(associatedAutomation.getMethodToCall());
 	}
 	
 	private void methodSelected() {
@@ -216,33 +222,18 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 	}
 
 	
-
-	
-	public void fillMethodCombo() {
-		StudentWorkCompiler compiler = (StudentWorkCompiler)ListenerCoordinator.runQuery(GetCompilerQuery.class);
-		List<Method> methods = associatedAutomation.getPossibleMethods(rubricToModify.getReferenceSource(), compiler, rubricToModify.getTestCode());
-		if (methods == null) {
-			methodToCallCombo.removeAllItems();
-			methodMap.clear();
-		}
-		else {				
-			boolean changed = false;
-			for (Method method : methods) {
-				if (methodMap.containsKey(method.getName()) == false) {
-					changed = true;
-					break;
-				}
-			}
-			if (changed) {
-				methodToCallCombo.removeAllItems();
-				methodMap.clear();				
+	public void fillMethodCombo() {		
+		methodToCallCombo.removeAllItems();
+		methodMap.clear();
+		for (String file : associatedAutomation.getTestCodeSourceToUse()) {
+			List<Method> methods = possibleMethodMap.get(file);
+			if (methods != null) {
 				for (Method method : methods) {
 					methodToCallCombo.addItem(method.getName());
 					methodMap.put(method.getName(), method);
-					
 				}
-			}				
-		}			
+			}
+		}							
 	}
 
 	@Override
@@ -273,11 +264,91 @@ public class RubricEntryRunCodeCard extends JPanel implements RunCodeFileListTab
 	
 	@Override
 	public List<FileData> getFiles() {
-		if (rubricToModify != null) {
-			return rubricToModify.getTestCode();
-		}
-		return null;
+		return rubricFileListener.getTestSource();
 	}
+	
+	@Override
+	public void setEnableEditing(boolean enable) {
+		methodToCallCombo.setEnabled(enable);
+		fileToUseModel.setEditable(enable);
+		
+	}
+	
+	@Override
+	public AutomationTypes getAutomationType() {
+		// TODO Auto-generated method stub
+		return RubricEntry.AutomationTypes.RUN_CODE;
+	}
+
+	
+	public static void main(String args[]) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				new TestFrame().setVisible(true);
+			}
+		});
+	}
+	private static class TestFrame extends JFrame implements RubricFileListener{
+		List<FileData> refSource;
+		List<FileData> testSource;
+		public TestFrame() {
+			try {
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnsupportedLookAndFeelException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			setSize(800, 500);
+			refSource = new ArrayList<FileData>();
+			testSource = new ArrayList<FileData>();
+			refSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\BigIntAddition.java"));
+			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\ConvertStringTest.java"));
+			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\AddBigIntTest.java"));
+			StudentWorkCompiler compiler = new StudentWorkCompiler(null);
+			Map<String, List<Method>> possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, compiler, testSource);
+			Rubric rubric = new Rubric();
+			rubric.addNewEntry(0);
+			RubricEntry e = rubric.getEntry(0);
+			e.setName("Test");
+			e.setValue(5);
+			e.setAutomation(new RubricEntryRunCode());
+			JPanel testPanel = new RubricEntryRunCodeCard(true, possibleMethodMap, this, rubric, e.getUniqueID());
+			add(testPanel);
+			setVisible(true);
+		}
+		
+		
+
+		@Override
+		public List<FileData> getReferenceSource() {
+			return refSource;
+		}
+
+		@Override
+		public List<FileData> getTestSource() {
+			// TODO Auto-generated method stub
+			return testSource;
+		}
+
+		@Override
+		public JPanel getTestSourceButtons() {
+			// TODO Auto-generated method stub
+			JPanel temp = new JPanel();
+			temp.setLayout(new BorderLayout());
+			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
+			return temp;
+		}
+	}
+
 
 
 

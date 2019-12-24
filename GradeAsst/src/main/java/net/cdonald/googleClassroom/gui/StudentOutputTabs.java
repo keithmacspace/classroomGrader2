@@ -193,6 +193,7 @@ public class StudentOutputTabs extends JPanel {
 			JScrollPane scrollPane = new JScrollPane(outputAreas.getOutputArea());
 			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 			out.add(scrollPane, BorderLayout.CENTER);
+			outputAreas.clear();
 			outputAreas.appendOutput(initialText, true);
 
 		}
@@ -232,10 +233,12 @@ public class StudentOutputTabs extends JPanel {
 							String rubricName = rubricEntry.getName();		
 							String tip = "";
 
-							if (rubricEntry.getValue() > 0) {
+							if (rubricEntry.getValue() > 0 &&  rubricEntry.getValue() != 0) {
 								tip += "Max Val = " + rubricEntry.getValue() + ": ";
 							}
-							tip += rubricEntry.getDescription();					
+							if (rubricEntry.getDescription() != null) { 
+								tip += rubricEntry.getDescription();		
+							}
 							addCard(rubricName, studentID, currentAreas.getRubricArea(rubricName), tip);
 						}
 					}

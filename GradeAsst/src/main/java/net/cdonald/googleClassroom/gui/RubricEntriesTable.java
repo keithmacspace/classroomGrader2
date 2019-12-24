@@ -3,15 +3,11 @@ package net.cdonald.googleClassroom.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.EventObject;
 
 import javax.swing.AbstractCellEditor;
-import javax.swing.DefaultCellEditor;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JMenuItem;
@@ -19,20 +15,15 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
-
+import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntry.HeadingNames;
@@ -44,6 +35,7 @@ public class RubricEntriesTable extends JTable {
 	private Rubric associatedRubric;
 	private ExcelAdapter excelAdapter;
 	private static final RubricEntry.HeadingNames [] headingNames = {RubricEntry.HeadingNames.NAME, RubricEntry.HeadingNames.VALUE, RubricEntry.HeadingNames.AUTOMATION_TYPE};
+	private boolean editingEnabled;
 
 	public RubricEntriesTable(RubricElementListener listener) {
 		super();
@@ -117,6 +109,7 @@ public class RubricEntriesTable extends JTable {
 					int selectedIndex = selectionModel.getMinSelectionIndex();
 					associatedRubric.removeEntry(selectedIndex);
 					rubricEntryTableModel.fireTableDataChanged();
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
 				}
 
 			}
@@ -130,6 +123,7 @@ public class RubricEntriesTable extends JTable {
 					int selectedIndex = selectionModel.getMinSelectionIndex();
 					associatedRubric.swapEntries(selectedIndex, selectedIndex - 1);
 					rubricEntryTableModel.fireTableDataChanged();
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
 				}
 
 			}
@@ -143,6 +137,7 @@ public class RubricEntriesTable extends JTable {
 					int selectedIndex = selectionModel.getMinSelectionIndex();
 					associatedRubric.swapEntries(selectedIndex, selectedIndex + 1);
 					rubricEntryTableModel.fireTableDataChanged();
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
 				}
 			}
 		});
@@ -154,6 +149,7 @@ public class RubricEntriesTable extends JTable {
 					int selectedIndex = selectionModel.getMinSelectionIndex();
 					associatedRubric.addNewEntry(selectedIndex);
 					rubricEntryTableModel.fireTableDataChanged();
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
 				}
 			}
 		});
@@ -165,6 +161,7 @@ public class RubricEntriesTable extends JTable {
 				if (associatedRubric != null) {
 					associatedRubric.addNewEntry(selectedIndex + 1);
 					rubricEntryTableModel.fireTableDataChanged();
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
 				}
 			}
 		});
@@ -179,6 +176,14 @@ public class RubricEntriesTable extends JTable {
 		associatedRubric = associatedEntry;
 		fireTableDataChanged();
 
+	}
+
+	public boolean isEditingEnabled() {
+		return editingEnabled;
+	}
+
+	public void setEditingEnabled(boolean editingEnabled) {
+		this.editingEnabled = editingEnabled;
 	}
 
 	public void stopEditing() {
@@ -279,7 +284,7 @@ public class RubricEntriesTable extends JTable {
 
 		@Override
 		public boolean isCellEditable(int row, int column) {
-			return true;
+			return editingEnabled;
 		}
 
 		@Override
@@ -328,9 +333,17 @@ public class RubricEntriesTable extends JTable {
 		public void setValueAt(Object aValue, int row, int column) {
 			if (associatedRubric == null) {
 				return;
-			}
-			RubricEntry entry = associatedRubric.getEntry(row);
+			}			
+			
+			RubricEntry entry = associatedRubric.getEntry(row);			
 			if (entry != null) {
+				if ((entry.getName() == null || entry.getName().length() == 0) ||
+					 entry.getValue() == 0){
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);		
+				}
+				else {
+					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, false);		
+				}
 				entry.setTableValue(getColumnHeading(column), aValue);
 				if (row == getRowCount() - 1) {
 					Object [] rowData = {null, null, null, null};

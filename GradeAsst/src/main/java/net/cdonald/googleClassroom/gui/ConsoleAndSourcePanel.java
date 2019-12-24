@@ -179,7 +179,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 	private void registerListeners() {
 		ListenerCoordinator.addListener(AddRubricTabsListener.class, new AddRubricTabsListener() {
 			@Override
-			public void fired(Rubric rubric) {
+			public void fired(Rubric rubric, boolean structureChanged) {
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
 						rubricTabPanel.changeRubricTabs(rubric, undoManager);

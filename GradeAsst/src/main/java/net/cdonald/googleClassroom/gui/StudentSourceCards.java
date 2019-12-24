@@ -83,11 +83,11 @@ public class StudentSourceCards extends JPanel {
 	private class StudentSourceCard extends JTabbedPane{
 		private static final long serialVersionUID = -8611112574356174862L;
 		private String studentID;	
-		private List<JTextArea> sourceTextArea;
+		private List<LineNumberTextArea> sourceTextArea;
 		public StudentSourceCard(UndoManager undoManager, String studentID, JTabbedPane overallTabPane, int overallTabIndex, JPopupMenu popupSource) {
 			super();
 			this.studentID = studentID;
-			sourceTextArea = new ArrayList<JTextArea>();
+			sourceTextArea = new ArrayList<LineNumberTextArea>();
 			new TabbedUndoListener(undoManager, this);
 			@SuppressWarnings("unchecked")
 			List<FileData> fileDataList = (List<FileData>) ListenerCoordinator.runQuery(GetStudentFilesQuery.class, studentID);		
@@ -128,8 +128,11 @@ public class StudentSourceCards extends JPanel {
 				for (FileData fileData : fileDataList) {
 					String name = fileData.getName();
 					for (int i = 0; i < getTabCount(); i++) {
-						if (getTitleAt(i).equals(name)) {						
-							fileData.setFileContents(sourceTextArea.get(i).getText());
+						if (getTitleAt(i).equals(name)) {
+							LineNumberTextArea sourceArea = sourceTextArea.get(i);
+							if (sourceArea.isModified()) {
+								fileData.setFileContents(sourceArea.getText());
+							}
 						}
 					}
 				}

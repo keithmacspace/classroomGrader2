@@ -448,6 +448,18 @@ public class DataController implements StudentListInfo {
 				updateListener.dataUpdated();				
 			}
 		});
+		
+		ListenerCoordinator.addListener(AddRubricTabsListener.class, new AddRubricTabsListener() {
+			@Override
+			public void fired(Rubric rubric, boolean structureChanged) {
+				if (structureChanged) {
+					updateListener.structureChanged();
+				}
+				else {
+					updateListener.dataUpdated();
+				}
+			}			
+		});
 
 		ListenerCoordinator.addListener(SetRubricListener.class, new SetRubricListener() {
 			@Override
@@ -582,18 +594,14 @@ public class DataController implements StudentListInfo {
 		ListenerCoordinator.fire(StudentInfoChangedListener.class);
 		
 		if (rubric != null) {
-			ListenerCoordinator.fire(AddRubricTabsListener.class, rubric);
-
-
+			ListenerCoordinator.fire(AddRubricTabsListener.class, rubric, false);
 			if ((rubricType != RubricType.RUBRIC_BEING_EDITED) && (isAlreadyLoaded == false) && studentData.size() > 1) {
 				loadGrades();
 			}
-
-			if (rubric.isInModifiedState() && rubricType == RubricType.PRIMARY) {
-				saveRubric(rubric);
-			}
 		}
-		updateListener.dataUpdated();
+		else {
+			updateListener.dataUpdated();
+		}
 	}
 
 	private void setRubricBeingEdited(Rubric rubricBeingEdited) {
@@ -833,7 +841,7 @@ public class DataController implements StudentListInfo {
 	@Override
 	public void setValueAt(Object value, int rowIndex, int columnIndex) {
 		// If we are in the middle of save/load do not allow modifications
-		if (Rubric.getModifiableState() == Rubric.ModifiableState.LOCK_USER_MODIFICATIONS) {
+		if (Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.LOCK_USER_MODIFICATIONS) {
 			return;
 		}
 		int index = getRubricIndex(columnIndex);
@@ -1046,7 +1054,7 @@ public class DataController implements StudentListInfo {
 		
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null && testFile == null) {
 			try {
-				Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
+				Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 				@SuppressWarnings("unchecked")
 				Map<String, String> modifiedNotes = (Map<String, String>)ListenerCoordinator.runQuery(GetAndClearModifiedNotes.class);
@@ -1073,7 +1081,7 @@ public class DataController implements StudentListInfo {
 				worked = false;
 				DebugLogDialog.appendException(e);
 			}			
-			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
+			Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.TRACK_MODIFICATIONS);
 			
 		}		
 		return worked;
@@ -1082,7 +1090,7 @@ public class DataController implements StudentListInfo {
 	public void loadGrades() {
 		if (currentRubric != null && gradeURL != null && currentRubric != rubricBeingEdited) {
 			ListenerCoordinator.fire(AddProgressBarListener.class, "Loading Grades");
-			Rubric.setModifiableState(Rubric.ModifiableState.LOCK_USER_MODIFICATIONS);
+			Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.LOCK_USER_MODIFICATIONS);
 			try {				
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, null, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
@@ -1093,7 +1101,7 @@ public class DataController implements StudentListInfo {
 						JOptionPane.ERROR_MESSAGE);
 				DebugLogDialog.appendException(e);
 			}
-			Rubric.setModifiableState(Rubric.ModifiableState.TRACK_MODIFICATIONS);
+			Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.TRACK_MODIFICATIONS);
 
 			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Loading Grades");
 			

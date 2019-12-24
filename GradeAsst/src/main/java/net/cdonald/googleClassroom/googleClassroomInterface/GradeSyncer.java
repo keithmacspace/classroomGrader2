@@ -600,7 +600,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 		}
 		VerifySave verify = new VerifySave();
 		verify.verifyWrite();
-		rubric.clearModifiedFlag();
+		rubric.clearStudentScoreModifiedFlag();
 	}
 	
 	/**

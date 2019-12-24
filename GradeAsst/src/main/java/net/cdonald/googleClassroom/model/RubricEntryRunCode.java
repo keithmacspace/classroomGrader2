@@ -61,6 +61,10 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return testCodeSourceToUse.contains(name);
 	}
 	
+	public Set<String> getTestCodeSourceToUse() {
+		return testCodeSourceToUse;
+	}
+
 	public RubricEntryRunCode(RubricEntryRunCode other) {
 		methodToCall = other.methodToCall;		
 		referenceSourceClassNames = new ArrayList<String>();
@@ -82,23 +86,17 @@ public class RubricEntryRunCode extends  RubricAutomation {
 
 	
 	
-	public List<Method> getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) {
+	public static Map<String, List<Method> > getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) {
 
 		if (referenceSource == null || referenceSource.size() == 0) {
 			return null;
 		}
 		
-		referenceSourceClassNames.clear();		
-		for (FileData fileData : referenceSource) {
-			referenceSourceClassNames.add(fileData.getClassName());
-		}
-		
+
 		List<FileData> rubricFiles = new ArrayList<FileData>(referenceSource);
 		
-		for (FileData sourceFile : testCodeFiles) {				
-			if (testCodeSourceToUse.contains(sourceFile.getName())){
-				rubricFiles.add(sourceFile);
-			}
+		for (FileData sourceFile : testCodeFiles) {							
+				rubricFiles.add(sourceFile);			
 		}
 
 		
@@ -111,20 +109,19 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			DebugLogDialog.appendException(e);
 			return null;
 		}
-		List<Method> methods = new ArrayList<Method>();
+		Map<String, List<Method> > methods = new HashMap<String, List<Method> >();
 		for (FileData sourceFile : testCodeFiles) {
-			if (testCodeSourceToUse.contains(sourceFile.getName())){
-				Class<?> aClass = compiled.get(sourceFile.getClassName());
-				if (aClass != null ) {
-					for (Method method : aClass.getMethods()) {
-
-						boolean validReturn = (method.getReturnType() == double.class || method.getReturnType() == Double.class);
-						if (method.getParameterCount() == 0 && validReturn) {
-							methods.add(method);
-						}
+			List<Method> fileMethods = new ArrayList<Method>();
+			methods.put(sourceFile.getName(), fileMethods);
+			Class<?> aClass = compiled.get(sourceFile.getClassName());
+			if (aClass != null ) {
+				for (Method method : aClass.getMethods()) {					
+					boolean validReturn = (method.getReturnType() == double.class || method.getReturnType() == Double.class);
+					if (method.getParameterCount() == 0 && validReturn) {
+						fileMethods.add(method);
 					}
 				}
-			}
+			}			
 		}
 		return methods;
 	}

@@ -719,9 +719,7 @@ public class GoogleClassroomCommunicator {
 				columnName += "" + rowNum;
 				String stringRange = sheetName + "!" + columnName + ":" + columnName;
 				labelRange.setRange(stringRange);
-				labelRange.setValues(nameList2d);
-				UpdateValuesResponse result = sheetsService.spreadsheets().values().update(id, stringRange, labelRange).setValueInputOption("RAW").execute();
-				DebugLogDialog.appendln(result.getUpdatedCells().toString());
+				labelRange.setValues(nameList2d);								
 			}
 		} catch (IOException e) {
 			DebugLogDialog.appendException(e);
