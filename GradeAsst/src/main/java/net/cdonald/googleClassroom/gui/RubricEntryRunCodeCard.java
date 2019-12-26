@@ -14,6 +14,7 @@ import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -44,13 +45,14 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	private JTable fileToUseList;	
 	private RunCodeFileListTableModel fileToUseModel;
 	private JComboBox<String> methodToCallCombo;
-	private JLabel methodToCallLabel;
-	private Map<String, List<Method>> possibleMethodMap;	
+	private JLabel methodToCallLabel;	
 	private RubricEntryRunCode associatedAutomation;
 	private JLabel explanation;	
 	private Map<String, Method> methodMap;
 	private RubricFileListener rubricFileListener;
-	public RubricEntryRunCodeCard(boolean enableEditing, Map<String, List<Method>> possibleMethodMap, RubricFileListener rubricFileListener, Rubric rubric, int elementID){		
+	private JCheckBox updateOnlyOnPassBox;
+	private Map<String, List<Method>> possibleMethodMap;
+	public RubricEntryRunCodeCard(boolean enableEditing, Map<String, List<Method>> possibleMethodMap, RubricFileListener rubricFileListener, Rubric rubric, int elementID){
 		this.possibleMethodMap = possibleMethodMap;
 		this.rubricFileListener = rubricFileListener;
 		setLayout(new BorderLayout());
@@ -61,10 +63,8 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 
 		explanation = new JLabel("<html>Load new or select an already loaded test file that contains the code to run."
 				+ " Then select the method that will be run. "
-				+ "The method should have the signature: <br/> <i>public static double methodName()</i> <br/>"
-				+ "The return value should be between 0 and 1 inclusive (calculated by dividing numTestsPassing/numTestRun)."
-				+  "<br/>Test by selecting the \"Test Run\" button."
-				+ "<br/>View results on the main screen (including rubric run output).</html>");
+				+ "The method should have the signature: <br/> <i>public static double methodName()</i> OR <i>public static Double methodName()</i><br/>"
+				+ "The return value should be between 0 and 1 inclusive (calculated by dividing numTestsPassing/numTestRun).<br/></html>");
 
 
 		
@@ -86,14 +86,18 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 				methodSelected();
 			}
 		});
-		addItems(rubric, elementID);
+		addItems(rubric, elementID, possibleMethodMap);
 		setEnableEditing(enableEditing);
 	}
 	
 	private JPanel createNamePanel() {
 		JPanel namePanel = new JPanel();
 		namePanel.setLayout(new GridBagLayout());
-		final int SPACE = 5;		
+		final int SPACE = 5;
+		
+		updateOnlyOnPassBox = new JCheckBox("Update grades only on 100% pass.");
+		addUpdateOnFail(namePanel, updateOnlyOnPassBox);
+		
 		JLabel fileToUseLabel = new JLabel("File To Use: ");
 		fileToUseList = new JTable(); 
 		fileToUseModel = new RunCodeFileListTableModel(this);
@@ -115,12 +119,27 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		filePanel.setLayout(new BorderLayout());
 		//filePanel.add(fileScroll, BorderLayout.CENTER);
 		SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), explanation, 0);
-		SimpleUtils.addLabel(namePanel, fileToUseLabel, 1);
+		SimpleUtils.addLabel(namePanel, fileToUseLabel, 2);
 		//SimpleUtils.addLabelAndComponent(namePanel, new JLabel(), new JLabel("                 "), 1);
 		addFileTable(namePanel, fileScroll);
-		SimpleUtils.addLabel(namePanel, methodToCallLabel, 2);
+		SimpleUtils.addLabel(namePanel, methodToCallLabel, 3);
 		addMethodCombo(namePanel, methodToCallCombo);
 		return namePanel;
+	}
+	
+	private void addUpdateOnFail(JPanel namePanel, JCheckBox updateOnFailBox) {
+		GridBagConstraints c = new GridBagConstraints();
+		//c.insets = new Insets(3, 3, 3, 0);
+		c.weightx = 1.0;
+		c.weighty = 0.1;
+		c.fill = GridBagConstraints.NONE;
+		c.anchor = GridBagConstraints.LINE_START;
+		//c.gridwidth = GridBagConstraints.REMAINDER;
+		//c.gridheight = 1;
+		c.gridx = 1;
+		c.gridy = 0;
+		namePanel.add(updateOnFailBox, c);
+		
 	}
 	private void addFileTable(JPanel namePanel, JScrollPane fileToUseTable) {
 		GridBagConstraints c = new GridBagConstraints();
@@ -132,10 +151,10 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		//c.gridwidth = GridBagConstraints.REMAINDER;
 		c.gridheight = 1;
 		c.gridx = 1;
-		c.gridy = 1;
+		c.gridy = 2;
 		namePanel.add(fileToUseTable, c);
 	}
-	private void addMethodCombo(JPanel namePanel, JComboBox methoToCallCombo) {
+	private void addMethodCombo(JPanel namePanel, JComboBox<String> methoToCallCombo) {
 		GridBagConstraints c = new GridBagConstraints();
 		c.insets = new Insets(3, 3, 3, 0);
 		c.weightx = 1.0;
@@ -145,22 +164,8 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		//c.gridwidth = GridBagConstraints.REMAINDER;
 		c.gridheight = 1;
 		c.gridx = 1;
-		c.gridy = 2;
+		c.gridy = 3;
 		namePanel.add(methoToCallCombo, c);
-	}
-	
-	private void registerListeners() {
-		ListenerCoordinator.addListener(RubricTestCodeChanged.class, new RubricTestCodeChanged() {
-			@Override
-			public void fired() {
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						addSources();
-					}
-				});
-				
-			}
-		});
 	}
 	
 
@@ -168,22 +173,20 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 
 		
 	}
-	
-	private void addSources() {
-		fileToUseModel.fireTableDataChanged();
-	}
 
 
-	public void addItems(Rubric rubricToModify, int elementID) {
+	public void addItems(Rubric rubricToModify, int elementID, Map<String, List<Method>> possibleMethodMap) {
 		RubricEntry associatedEntry = rubricToModify.getEntryByID(elementID);
 		if (associatedEntry.getAutomation() == null || !(associatedEntry.getAutomation() instanceof RubricEntryRunCode)) {
 			associatedEntry.setAutomation(new RubricEntryRunCode());
 		}
 		associatedAutomation = (RubricEntryRunCode)associatedEntry.getAutomation();
-		
-		fillRunCode();		
-		fillMethodCombo();
-		fileToUseModel.fireTableDataChanged();
+		if (associatedAutomation != null) {
+			updateOnlyOnPassBox.setSelected(associatedAutomation.isUpdateOnlyOnPass());
+			fillRunCode();		
+			fillMethodCombo(possibleMethodMap);
+			fileToUseModel.fireTableDataChanged();
+		}
 	}
 	
 	@Override
@@ -194,13 +197,28 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	
 	@Override
 	public void saving() {
+		if (associatedAutomation != null) {
+			String methodName = (String)methodToCallCombo.getSelectedItem();
+			if (methodName != null) {
+				for (int i = 0; i < fileToUseList.getRowCount(); i++) {
+					Boolean isChecked = (Boolean)fileToUseModel.getValueAt(i, 0);
+					if (isChecked == Boolean.TRUE) {
+						FileData fileData = (FileData) fileToUseList.getValueAt(i, 1);
+						associatedAutomation.addTestCodeSourceName(fileData.getName());
+					}
+				}
+				associatedAutomation.setMethodToCall(methodName);
+				associatedAutomation.setUpdateOnlyOnPass(updateOnlyOnPassBox.isSelected());
+			}			
+		}
 		
 	}
 	
 	@Override
-	public void testSourceChanged() {
+	public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {
+		this.possibleMethodMap = possibleMethodMap;
 		fileToUseModel.fireTableDataChanged();
-		fillMethodCombo();
+		fillMethodCombo(possibleMethodMap);
 		
 	}
 	
@@ -213,8 +231,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			@Override
 			public void run() {
 				String methodName = (String)methodToCallCombo.getSelectedItem();
-				if (methodName != null) {
-					Method method = methodMap.get(methodName);
+				if (methodName != null) {					
 					associatedAutomation.setMethodToCall(methodName);
 				}
 			}
@@ -222,11 +239,14 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	}
 
 	
-	public void fillMethodCombo() {		
+	public void fillMethodCombo(Map<String, List<Method>> possibleMethodMap) {		
 		methodToCallCombo.removeAllItems();
 		methodMap.clear();
 		for (String file : associatedAutomation.getTestCodeSourceToUse()) {
-			List<Method> methods = possibleMethodMap.get(file);
+			List<Method> methods = null;
+			if (possibleMethodMap != null) {
+				methods = possibleMethodMap.get(file);
+			}
 			if (methods != null) {
 				for (Method method : methods) {
 					methodToCallCombo.addItem(method.getName());
@@ -240,7 +260,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	public void addRunCodeFile(FileData fileData) {
 		if (associatedAutomation != null) {
 			associatedAutomation.addTestCodeSourceName(fileData.getName());
-			fillMethodCombo();
+			fillMethodCombo(possibleMethodMap);
 		}
 		
 	}
@@ -249,7 +269,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	public void removeRunCodeFile(FileData fileData) {
 		if (associatedAutomation != null) {
 			associatedAutomation.removeTestCodeSource(fileData.getName());
-			fillMethodCombo();
+			fillMethodCombo(possibleMethodMap);
 		}
 		
 	}
@@ -271,6 +291,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	public void setEnableEditing(boolean enable) {
 		methodToCallCombo.setEnabled(enable);
 		fileToUseModel.setEditable(enable);
+		updateOnlyOnPassBox.setEnabled(enable);
 		
 	}
 	
@@ -346,6 +367,13 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			temp.setLayout(new BorderLayout());
 			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
 			return temp;
+		}
+
+
+
+		@Override
+		public boolean isReferenceSourceSet() {
+			return true;
 		}
 	}
 

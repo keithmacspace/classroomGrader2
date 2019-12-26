@@ -47,6 +47,11 @@ public abstract class RubricAutomation {
 	protected void addOutput(String id, String text) {
 		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n", false);
 	}
+	
+	protected void addOutput(String id, String text, boolean clearData) {
+		ListenerCoordinator.fire(AppendOutputTextListener.class, id, ownerName, text + "\n", clearData);
+	}
+
 	public abstract RubricAutomation newCopy();	
 	protected abstract Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData);
 	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData);

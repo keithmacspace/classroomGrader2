@@ -231,11 +231,7 @@ public class StudentOutputTabs extends JPanel {
 						for (int i = 0; i < currentRubric.getEntryCount(); i++) {
 							RubricEntry rubricEntry = currentRubric.getEntry(i); 
 							String rubricName = rubricEntry.getName();		
-							String tip = "";
-
-							if (rubricEntry.getValue() > 0 &&  rubricEntry.getValue() != 0) {
-								tip += "Max Val = " + rubricEntry.getValue() + ": ";
-							}
+							String tip = rubricEntry.getTipMessage();
 							if (rubricEntry.getDescription() != null) { 
 								tip += rubricEntry.getDescription();		
 							}

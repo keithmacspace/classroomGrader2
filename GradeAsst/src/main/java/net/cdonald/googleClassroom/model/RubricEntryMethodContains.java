@@ -99,7 +99,7 @@ public class RubricEntryMethodContains extends RubricAutomation {
 		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running: " + owner.getName());
 				
 		consoleData.runStarted(studentId, getOwnerName());
-
+		addOutput(studentId, owner.getTipMessage());
 		Double value = runAutomationWrapped(studentName, studentId, compiler, consoleData);
 		System.out.println("\0");
 		waitForTestFinish();

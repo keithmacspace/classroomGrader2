@@ -36,9 +36,11 @@ public class RubricEntriesTable extends JTable {
 	private ExcelAdapter excelAdapter;
 	private static final RubricEntry.HeadingNames [] headingNames = {RubricEntry.HeadingNames.NAME, RubricEntry.HeadingNames.VALUE, RubricEntry.HeadingNames.AUTOMATION_TYPE};
 	private boolean editingEnabled;
+	private RubricElementListener rubricElementListener;
 
 	public RubricEntriesTable(RubricElementListener listener) {
 		super();
+		this.rubricElementListener = listener;
 
 		setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		rubricEntryTableModel = new RubricEntryTableModel();
@@ -49,7 +51,7 @@ public class RubricEntriesTable extends JTable {
 			switch (rubricEntryTableModel.getColumnHeading(i)) {
 			case AUTOMATION_TYPE:
 				column.setCellEditor(new RubricAutomationEditor());
-				column.setCellRenderer(new AutomationCellRenderer(listener));
+				column.setCellRenderer(new AutomationCellRenderer());
 				break;
 			case NAME:
 				break;
@@ -212,7 +214,15 @@ public class RubricEntriesTable extends JTable {
 		@Override
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
 				int colum) {
-			combo.setSelectedItem(value);
+			boolean valid = true;
+			if (rubricElementListener != null) {
+				valid = rubricElementListener.typeSelected((RubricEntry.AutomationTypes) value, row, isSelected);
+			}
+			if (valid == true) {
+				combo.setSelectedItem(value);
+			}
+			else {
+			}
 
 			combo.addActionListener(new ActionListener() {
 
@@ -234,13 +244,12 @@ public class RubricEntriesTable extends JTable {
 	}
 
 	private class AutomationCellRenderer implements TableCellRenderer {
-		private RubricElementListener rubricElementListener;
+
 		private JComboBox<RubricEntry.AutomationTypes> automationCombo;
 
-		public AutomationCellRenderer(RubricElementListener rubricElementListener) {
+		public AutomationCellRenderer() {
 			automationCombo = new JComboBox<RubricEntry.AutomationTypes>(RubricEntry.AutomationTypes.values());
-			automationCombo.setBackground(Color.WHITE);
-			this.rubricElementListener = rubricElementListener;
+			automationCombo.setBackground(Color.WHITE);			
 		}
 
 		@Override
@@ -248,10 +257,13 @@ public class RubricEntriesTable extends JTable {
 				int row, int column) {
 			boolean valid = true;
 			if (rubricElementListener != null) {
-				valid = rubricElementListener.typeSelected((RubricEntry.AutomationTypes) value, isSelected);
+				valid = rubricElementListener.typeSelected((RubricEntry.AutomationTypes) value, row, hasFocus);
 			}
 			if (valid == true) {
 				automationCombo.setSelectedItem(value);
+			}
+			else {
+				automationCombo.setSelectedIndex(0);
 			}
 			return automationCombo;
 		}

@@ -6,6 +6,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
@@ -135,7 +138,7 @@ public class RubricEntryPointLossForLateCard extends  RubricEntryAutomationCardI
 	}
 
 	@Override
-	public void testSourceChanged() {
+	public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {
 		// TODO Auto-generated method stub
 		
 	}

@@ -39,8 +39,9 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	private String methodToCall;
 	private Set<String> testCodeSourceToUse;
 	private List<String> referenceSourceClassNames;
-	boolean checkSystemOut;		
-	private enum ColumnNames {METHOD_TO_CALL, CLASS_NAMES_TO_REPLACE, SOURCE_FILE};
+	boolean updateOnlyOnPass;		
+	private enum ColumnNames {METHOD_TO_CALL, UPDATE_ONLY_ON_PASS, CLASS_NAMES_TO_REPLACE, SOURCE_FILE};
+	
 
 
 	
@@ -65,6 +66,14 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return testCodeSourceToUse;
 	}
 
+	public boolean isUpdateOnlyOnPass() {
+		return updateOnlyOnPass;
+	}
+
+	public void setUpdateOnlyOnPass(boolean updateOnlyOnPass) {
+		this.updateOnlyOnPass = updateOnlyOnPass;
+	}
+
 	public RubricEntryRunCode(RubricEntryRunCode other) {
 		methodToCall = other.methodToCall;		
 		referenceSourceClassNames = new ArrayList<String>();
@@ -76,7 +85,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			testCodeSourceToUse.add(name);
 		}
 
-		checkSystemOut = other.checkSystemOut;
+		updateOnlyOnPass = other.updateOnlyOnPass;
 	}
 	
 	public RubricAutomation newCopy() {
@@ -89,6 +98,9 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	public static Map<String, List<Method> > getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) {
 
 		if (referenceSource == null || referenceSource.size() == 0) {
+			return null;
+		}
+		if (testCodeFiles == null || testCodeFiles.size() == 0) {
 			return null;
 		}
 		
@@ -136,11 +148,11 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 
 			List<FileData> studentFiles = compiler.getSourceCode(studentId);
-			return runAutomation_(studentFiles, studentId, compiler, referenceSource, testCodeSource, consoleData);
+			return runAutomation_(entry, studentFiles, studentId, compiler, referenceSource, testCodeSource, consoleData);
 		}
 		return null;
 	}
-	protected Double runAutomation_(List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
+	protected Double runAutomation_(RubricEntry entry, List<FileData> studentFiles, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)
 		{
 			if (methodToCall == null || testCodeSourceToUse.size() == 0 || referenceSourceClassNames == null || referenceSourceClassNames.size() == 0) {
@@ -151,6 +163,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			List<FileData> rubricFiles = new ArrayList<FileData>(studentFiles);
 			consoleData.runStarted(studentId, getOwnerName());				
 			prepareForNextTest();
+			addOutput(studentId, entry.getTipMessage());
 
 			String error = replaceClassNames(studentFiles, rubricFiles, studentId, compiler, referenceSource, testCodeSource);
 			if (error != null) {
@@ -173,20 +186,30 @@ public class RubricEntryRunCode extends  RubricAutomation {
 				System.out.println("\0");					
 				return null;
 			}
+			
 
 			if (returnValue == null) {
 				System.out.println("\0");
+				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 				return null;
 			}
 			double value = 0.0;
 			if (returnValue != null) {
 				value = Double.parseDouble(returnValue.toString());
 			}
+			if (value > 1.0) {
+				addOutput(studentId, "The test code returned a value greater than 1.0. Test code should return values only between 0.0 and 1.0 (numTestPassed/numTestsRun)");
+			}
+			else if (value != 1.0 && updateOnlyOnPass) {
+				addOutput(studentId, "This test only updates scores that fully pass. The tests cannot accurately say what % of the possible points should be assigned, so you will have to look at the source + pass/fail info to assign partial credit.");
+				System.out.println("\0");
+				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
+				return null;
+			}
 
 			waitForTestFinish();
 
-
-			ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
+			ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");			
 			return value;
 		}
 		return null;
@@ -428,6 +451,8 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		content.add(classes);
 		labels.add(ColumnNames.METHOD_TO_CALL.toString());
 		content.add(methodToCall);
+		labels.add(ColumnNames.UPDATE_ONLY_ON_PASS.toString());
+		content.add((Boolean)updateOnlyOnPass);
 		columnData.add(labels);
 		columnData.add(content);
 		String sourceFileNames = "";
@@ -473,6 +498,12 @@ public class RubricEntryRunCode extends  RubricAutomation {
 					}
 					else if (label.equalsIgnoreCase(ColumnNames.CLASS_NAMES_TO_REPLACE.toString())) {
 						referenceSourceClassNames = SimpleUtils.breakUpCommaList(columns.get(1).get(row));
+					}
+					else if (label.equalsIgnoreCase(ColumnNames.UPDATE_ONLY_ON_PASS.toString())) {
+						Object update = columns.get(1).get(row);
+						if (update != null) {
+							updateOnlyOnPass = Boolean.parseBoolean("" + update);
+						}
 					}
 				}
 			}

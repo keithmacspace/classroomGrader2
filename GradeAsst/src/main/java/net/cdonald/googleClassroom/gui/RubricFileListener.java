@@ -8,7 +8,8 @@ import net.cdonald.googleClassroom.model.FileData;
 
 public interface RubricFileListener {
 	public List<FileData> getReferenceSource();
-	public List<FileData> getTestSource();	
+	public List<FileData> getTestSource();
+	public boolean isReferenceSourceSet();
 	public JPanel getTestSourceButtons();
 
 }

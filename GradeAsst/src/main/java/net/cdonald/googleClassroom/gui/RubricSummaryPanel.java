@@ -2,6 +2,7 @@ package net.cdonald.googleClassroom.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -40,24 +42,35 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	private JPanel automationPanel;
 	private JPanel defaultPanel;
 	private JPanel descriptionPanel;
+	private JSplitPane automationSplit;
+	private JSplitPane mainSplit;
 	private Map<Integer, RubricEntryAutomationCardInterface> automationAssignmentMap;
 	private Map<Integer, JTextArea> descriptionAssignmentMap;
 	private Map<String, List<Method>> possibleMethodMap;
 	private RubricFileListener rubricFileListener;
 	private boolean enableEditing;
+	private volatile static int lastErrorId = -1;
+	private volatile static RubricEntry.AutomationTypes lastErrorType = RubricEntry.AutomationTypes.NONE;
  
 
 	RubricSummaryPanel(UndoManager undoManager, RubricFileListener rubricFileListener) {
-		super();
+		super();	
 		this.undoManager = undoManager;
 		this.rubricFileListener = rubricFileListener;		
-		this.enableEditing = false;
-		possibleMethodMap = new HashMap<String, List<Method>>();
-		automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
-		descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
-		createLayout();
-		automationPanel.add(new EmptyCard(), "Empty Card");
-		enableEditing(false);
+		this.enableEditing = false;	
+		//SwingUtilities.invokeLater(new Runnable() {
+			//public void run() {
+				possibleMethodMap = new HashMap<String, List<Method>>();
+				automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
+				descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
+				createLayout();
+				JPanel emptyText = new JPanel();
+				emptyText.setPreferredSize(new Dimension(0, 40));
+				descriptionPanel.add(emptyText, "Empty Card");
+				automationPanel.add(new EmptyCard(), "Empty Card");
+				enableEditing(false);
+			//}
+//		});
 
 	}
 	
@@ -79,6 +92,8 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 				descriptionAssignmentMap.clear();
 				entriesTable.setAssociatedRubric(rubric);				
 				initPossibleMethodMap();
+				automationSplit.setDividerLocation(0.3);
+				mainSplit.setDividerLocation(0.5);
 			}
 		});
 	}
@@ -111,7 +126,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			public void run() {
 				initPossibleMethodMap();
 				for (RubricEntryAutomationCardInterface automation : automationAssignmentMap.values()) {
-					automation.testSourceChanged();
+					automation.testSourceChanged(possibleMethodMap);
 				}				
 			}
 		});
@@ -131,10 +146,10 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		automationPanel.setLayout(new CardLayout());
 		descriptionPanel = new JPanel();
 		descriptionPanel.setLayout(new CardLayout());
-		JSplitPane automationSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, descriptionPanel, automationPanel);
-		JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, defaultPanel, automationSplit);
-		mainSplit.setResizeWeight(0.5);
-		automationSplit.setResizeWeight(0.3);
+		automationSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, descriptionPanel, automationPanel);
+		mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, defaultPanel, automationSplit);
+
+		
 		add(mainSplit, BorderLayout.CENTER);
 		
 		ListSelectionModel selectionModel = entriesTable.getSelectionModel();
@@ -165,7 +180,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	
 	public void enableEditing(boolean enableEditing) {
 		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
+			public void run() {				
 				RubricSummaryPanel.this.enableEditing = enableEditing;
 				if (rubricToModify != null) {
 					rubricToModify.setAllowEntryAddition(enableEditing);
@@ -200,8 +215,10 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			JTextArea area = descriptionAssignmentMap.get(id);
 			if (area != null) {
 				RubricEntry localEntry = rubricToModify.getEntryByID(id);
-				if (!localEntry.getDescription().equals(area.getText())) {
-					localEntry.setDescription(area.getText());
+				if (localEntry != null) {
+					if (!localEntry.getDescription().equals(area.getText())) {
+						localEntry.setDescription(area.getText());
+					}
 				}
 			}
 		}
@@ -265,28 +282,58 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	}
 
 	@Override
-	public boolean typeSelected(RubricEntry.AutomationTypes typeSelected, boolean isSelected) {		
+	public boolean typeSelected(RubricEntry.AutomationTypes typeSelected, int row, boolean hasFocus) {		
 		boolean validSelection = true;
-		if (isSelected) {
-						
-			RubricEntry entry = getCurrentEntry();
-			if (entry != null) {
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						entry.setAutomationType(typeSelected);
-						int index = entriesTable.getSelectedRow();
+		if (hasFocus) {
+
+			if (typeSelected == RubricEntry.AutomationTypes.CODE_CONTAINS_METHOD || typeSelected == RubricEntry.AutomationTypes.RUN_CODE) {
+				if (rubricFileListener.isReferenceSourceSet() == false) {
+					RubricEntry entry = null;
+					if (rubricToModify != null) {
+						entry = rubricToModify.getEntry(row);
+					}
+					if (hasFocus && entry != null && (entry.getUniqueID() != lastErrorId || typeSelected != lastErrorType )) {
+						lastErrorId = entry.getUniqueID();
+						lastErrorType = typeSelected; 
+
+						SwingUtilities.invokeLater(new Runnable() {	
+							public void run() {
+								System.out.println("would have created dialog box");
+								JOptionPane.showMessageDialog(null, "Before selecting this automation type, you must load some reference source.\n" +
+										"Go to the reference source tab and add source there", "Reference Source Required",
+										JOptionPane.ERROR_MESSAGE);
+							}
+						});
+					}
+					System.out.println("returning false");
+					return false;
+				}			
+			}
+
+
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					RubricEntry entry = null;
+					if (rubricToModify != null) {
+						entry = rubricToModify.getEntry(row);
+					}
+					if (entry != null) {
+						entry.setAutomationType(typeSelected);						
 						assignAutomation(typeSelected, entry.getUniqueID());
 						CardLayout c1 = (CardLayout)automationPanel.getLayout();
-						c1.show(automationPanel, "" + entry.getUniqueID());						
+						c1.show(automationPanel, "" + entry.getUniqueID());
 					}
-				});
-			}
+				}
+			});
+
 		}
 		return validSelection;
 	}
 	
 	private class EmptyCard extends RubricEntryAutomationCardInterface {
-
+		public EmptyCard() {
+			this.setPreferredSize(new Dimension(10, 40));
+		}
 
 
 		@Override
@@ -294,7 +341,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		}
 
 		@Override
-		public void testSourceChanged() {						
+		public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {						
 		}
 
 		@Override
@@ -388,6 +435,13 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			temp.setLayout(new BorderLayout());
 			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
 			return temp;
+		}
+
+
+
+		@Override
+		public boolean isReferenceSourceSet() {
+			return true;
 		}
 	}
 

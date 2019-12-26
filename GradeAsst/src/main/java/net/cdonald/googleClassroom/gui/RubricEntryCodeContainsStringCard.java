@@ -63,9 +63,7 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 				+ "  The method must be part of your reference source. "
 				+ "By default, all of the method names in the reference source are possible strings to find.<br/>"
 				+ "This automaton will only search for method calls and field use i.e. Math.pow or Math.PI.<br/>"
-				+ "It will not search for things like variable declarations, local variable use, comments etc.<br/>"
-				+ "<br/>Test by selecting the \"Test Run\" button."
-				+ "<br/>View results on the main screen (including rubric run output).<br/></html>");
+				+ "It will not search for things like variable declarations, local variable use, comments etc.</html>");
 
 		JPanel namePanel = createNamePanel();
 		
@@ -283,7 +281,7 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 
 
 	@Override
-	public void testSourceChanged() {
+	public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {
 		// TODO Auto-generated method stub
 		
 	}

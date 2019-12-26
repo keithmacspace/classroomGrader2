@@ -85,9 +85,10 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		if (submitDate == null) {
 			return null;
 		}
+		addOutput(studentName, owner.getTipMessage(), true);
 		
 		if (pointsLostPerTimeUnit == 0.0 || timeUnit == TimeUnit.NONE) {
-			System.err.println(getOwnerName() + " is not fully defined ");
+			addOutput(studentName, getOwnerName() + " is not fully defined ");
 			return null;
 		}
 		
@@ -97,7 +98,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 		if (submitDate.compareTo(dueDate) <= 0) {
 			addOutput(studentId, "On time");
 			return 1.0;
-		}
+		}		
 		
 		double difference = SimpleUtils.calculateDifference(submitDate, dueDate, timeUnit);
 		double reportDifference = difference;

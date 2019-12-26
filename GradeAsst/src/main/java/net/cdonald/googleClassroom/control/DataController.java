@@ -879,13 +879,10 @@ public class DataController implements StudentListInfo {
 		if (columnIndex >= NUM_DEFAULT_COLUMNS && currentRubric != null) {
 			int rubricIndex = getRubricIndex(columnIndex);
 			if (rubricIndex != -1) {
-				String tip = "";
 				RubricEntry entry = currentRubric.getEntry(rubricIndex);
-				if (entry.getValue() > 0) {
-					tip += "Max Val = " + entry.getValue() + ": ";
-				}
-				tip += entry.getDescription();
-				return tip;
+				if (entry != null) {
+					return entry.getTipMessage();
+				}				
 			}
 		}
 		return "";

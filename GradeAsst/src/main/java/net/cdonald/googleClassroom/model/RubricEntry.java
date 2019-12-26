@@ -507,5 +507,16 @@ public class RubricEntry {
 		isRubricDefinitionModified = false;
 	}
 
+	public String getTipMessage() {
+		String tip = "";
+		if (getValue() > 0) {
+			tip += "Max Val = " + getValue() + ": ";
+		}
+		if (getDescription() != null) {
+			tip += getDescription();
+		}
+		return tip;		
+	}
+
 
 }

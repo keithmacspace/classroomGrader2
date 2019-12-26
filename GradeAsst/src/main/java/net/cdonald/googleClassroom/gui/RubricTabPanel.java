@@ -64,7 +64,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private Rubric rubric;
 	private UndoManager undoManager;
 	private RubricSummaryPanel rubricSummaryPanel;
-	private Rubric formerRubric;
+	private volatile Rubric formerRubric;	
 	private enum RubricTabNames {Summary("Summary"), Reference("Reference Source"), TestCode("Test Code");
 		private String name;
 		RubricTabNames(String name) {
@@ -160,6 +160,25 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		rubricSummaryPanel.saving();
 
 	}
+	
+	private void setFormerRubric(boolean set) {
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				synchronized(RubricTabPanel.this) 
+				{
+					if (set) {
+						formerRubric = new Rubric(rubric);
+					}
+					else {
+						rubric = formerRubric;
+						formerRubric = null;
+					}
+				}
+			}
+		});
+	}
+
 	private void addButtonBar() {
 		JPanel buttonBar = new JPanel();
 		buttonBar.setLayout(new FlowLayout(FlowLayout.LEFT));		
@@ -183,7 +202,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				saveAllChanges();
-				formerRubric = new Rubric(rubric);
+				setFormerRubric(true);
 				ListenerCoordinator.fire(SaveRubricListener.class);
 			}
 		});
@@ -192,8 +211,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				ListenerCoordinator.fire(SetRubricListener.class, formerRubric, RubricType.PRIMARY);
-				rubric = formerRubric;
-				formerRubric = null;
+				setFormerRubric(false);
 				rubric.clearRubricDefinitionModified();
 				enableEditingBox.setSelected(false);
 				enableEditing(false);
@@ -218,10 +236,11 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 				for (RubricSourcePanel sourcePanel : sourcePanelMap.values()) {
 					sourcePanel.enableEditing(enableEditing);
 				}
-				if (enableEditing == true && rubric != null && formerRubric == null) {					
-					formerRubric = new Rubric(rubric);
+				if (enableEditing == true && rubric != null && formerRubric == null) {
+					setFormerRubric(true);
 				}				
 				rubricSummaryPanel.enableEditing(enableEditing);
+				revalidate();
 
 			}
 		});
@@ -242,9 +261,9 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	public void changeRubricTabs(Rubric localRubric, UndoManager undoManager) {		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				if (rubric != localRubric) {
+				if (rubric != localRubric) {					
+					setFormerRubric(false);
 					rubric = localRubric;
-					formerRubric = null;
 					addSources();
 					rubricSummaryPanel.setRubricToModify(localRubric);
 					rubricSummaryPanel.enableEditing(false);
@@ -258,14 +277,14 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private void addSources() {
 		if (rubric != null) {
 			List<FileData> referenceSoure = rubric.getReferenceSource();
-			addSource(referenceSoure, RubricTabNames.Reference);						
+			addSource(referenceSoure, RubricTabNames.Reference, false);						
 			List<FileData> rubricTestCode = rubric.getTestCode();
-			addSource(rubricTestCode, RubricTabNames.TestCode);			
+			addSource(rubricTestCode, RubricTabNames.TestCode, false);			
 		}
 
 	}
 
-	private JTabbedPane addSource(List<FileData> files, RubricTabNames tabName) {
+	private JTabbedPane addSource(List<FileData> files, RubricTabNames tabName, boolean setModified) {
 		Map<String, LineNumberTextArea> sourceMap = sourceCodeMap.get(tabName);
 		if (sourceMap == null) {
 			sourceCodeMap.put(tabName, new HashMap<String, LineNumberTextArea>());
@@ -282,6 +301,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 					sourceTabs.addTab(file.getName(), testSource.getScrollPane());									
 					testSource.getDocument().addUndoableEditListener(undoManager);
 					sourceMap.put(file.getName(), testSource);
+					testSource.setModified(setModified);
 				}
 			}
 		}
@@ -461,7 +481,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 										@SuppressWarnings( "unchecked" )
 										List<FileData> studentSource = (List<FileData>)ListenerCoordinator.runQuery(GetStudentFilesQuery.class, id);
 										if (studentSource != null && studentSource.size() != 0) {
-											addSource(studentSource, tabName);
+											addSource(studentSource, tabName, true);
 										}
 									}
 								}
@@ -562,14 +582,16 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		loadSource.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				SwingUtilities.invokeLater(new Runnable() {
-					@Override
-					public void run() {
-						@SuppressWarnings("unchecked")
-						List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
-						addSource(allFiles, tabName);							
-					}						
-				});					
+				if (enableEditingBox.isSelected()) {
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							@SuppressWarnings("unchecked")
+							List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
+							addSource(allFiles, tabName, true);							
+						}						
+					});					
+				}
 			}				
 		});
 		
@@ -602,6 +624,12 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	public JPanel getTestSourceButtons() {
 		return getSourceButtons(RubricTabNames.TestCode);
 	}
+	
+	@Override
+	public boolean isReferenceSourceSet() {
+		Map<String, LineNumberTextArea> sourceMap = sourceCodeMap.get(RubricTabNames.Reference);
+		return (sourceMap != null && sourceMap.size() != 0); 
+	} 
 
 	public static void main(String args[]) {
 		SwingUtilities.invokeLater(new Runnable() {
@@ -696,6 +724,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			e.setName("Test");
 			e.setValue(5);
 			e.setAutomation(new RubricEntryRunCode());
+			rubric.clearRubricDefinitionModified();
 			UndoManager undoManager = new UndoManager();
 			RubricTabPanel testPanel = new RubricTabPanel(undoManager, null, null);
 			testPanel.changeRubricTabs(rubric, undoManager);
@@ -722,6 +751,12 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			temp.setLayout(new BorderLayout());
 			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
 			return temp;
+		}
+
+
+		@Override
+		public boolean isReferenceSourceSet() {
+			return true;
 		}
 	}
 
