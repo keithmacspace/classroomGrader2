@@ -3,6 +3,7 @@ package net.cdonald.googleClassroom.gui;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.JPanel;
 
@@ -14,7 +15,9 @@ public abstract class RubricEntryAutomationCardInterface  extends JPanel {
 	public abstract String getDescription();
 	public abstract RubricEntry.AutomationTypes getAutomationType();
 	public abstract void setEnableEditing(boolean enable);
+	public void referenceSourceChanged(Map<String, Set<String>> methodMap) {}
 	public RubricEntryAutomationCardInterface() {
 		super();
 	}
+
 }

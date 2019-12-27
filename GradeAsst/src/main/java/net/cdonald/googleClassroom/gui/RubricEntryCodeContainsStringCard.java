@@ -50,15 +50,15 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 	private JTable valuesToSearchForTable;
 	private DefaultTableModel valuesToSearchForModel;
 	private JLabel explanation;
-	private RubricEntryMethodContains associatedAutomation;
-	private RubricFileListener rubricFileListener;
+	private RubricEntryMethodContains associatedAutomation;	
 	private Map<String, Set<String> > methodMap;
-	public RubricEntryCodeContainsStringCard(boolean enableEditing, RubricFileListener rubricFileListener, Rubric rubricToModify, int elementID) {
+	public RubricEntryCodeContainsStringCard(boolean enableEditing, Map<String, Set<String> > methodMap, Rubric rubricToModify, int elementID) {
 		super();
+		this.methodMap = methodMap;
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createTitledBorder("Automation Options"));
-		this.rubricFileListener = rubricFileListener;
-		methodMap = new HashMap<String, Set<String>>(); 
+		
+ 
 		explanation = new JLabel("<html>Method to search is the one that should contain the string(s) of interest.<br/>"
 				+ "  The method must be part of your reference source. "
 				+ "By default, all of the method names in the reference source are possible strings to find.<br/>"
@@ -172,6 +172,13 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 		description += "If the automation does not set a grade, see the rubric tab for more info.";
 		return description;					
 	}
+	
+	@Override
+	public void referenceSourceChanged(Map<String, Set<String>> methodMap) {
+		this.methodMap = methodMap;
+		fillMethodCombo();
+	}
+
 
 
 	public void referenceSourceEnabled(boolean enable) {
@@ -205,34 +212,31 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 
 
 	private void fillMethodCombo() {
-		methodMap.clear();
 		methodToSearchCombo.removeAllItems();
 		methodToSearchCombo.addItem(null);
 		
 		
 
-		List<FileData> referenceSource = rubricFileListener.getReferenceSource();
-		methodMap = RubricEntryMethodContains.createCallMap(referenceSource);
-
-		List<String> sortedNames = new ArrayList<String>();		
-		for (String methodName : methodMap.keySet()) {
-			boolean inserted = false;
-			for (int i = 0; i < sortedNames.size(); i++) {
-				if (methodName.compareTo(sortedNames.get(i)) < 0) {
-					inserted = true;
-					sortedNames.add(i, methodName);
-
-					break;
+		if (methodMap != null) {	
+			List<String> sortedNames = new ArrayList<String>();		
+			for (String methodName : methodMap.keySet()) {
+				boolean inserted = false;
+				for (int i = 0; i < sortedNames.size(); i++) {
+					if (methodName.compareTo(sortedNames.get(i)) < 0) {
+						inserted = true;
+						sortedNames.add(i, methodName);
+	
+						break;
+					}
+				}
+				if (inserted == false) {
+					sortedNames.add(methodName);	
 				}
 			}
-			if (inserted == false) {
-				sortedNames.add(methodName);
-
+			for (String methodName : sortedNames) {					
+				methodToSearchCombo.addItem(methodName);
 			}
 		}
-		for (String methodName : sortedNames) {					
-			methodToSearchCombo.addItem(methodName);
-		}		
 	}
 	
 	private void fillMethodToFindTable(String methodSelected) {
@@ -240,7 +244,7 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 		while (valuesToSearchForModel.getRowCount() > 0) {
 			valuesToSearchForModel.removeRow(0);
 		}
-		if (methodSelected != null ) {
+		if (methodSelected != null && methodMap != null ) {
 			Set<String> calls = methodMap.get(methodSelected);
 			for (String call : calls) {
 				Boolean value = Boolean.FALSE;

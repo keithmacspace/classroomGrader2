@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -32,6 +33,7 @@ import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntry.AutomationTypes;
+import net.cdonald.googleClassroom.model.RubricEntryMethodContains;
 import net.cdonald.googleClassroom.model.RubricEntryRunCode;
 
 public class RubricSummaryPanel extends JPanel implements RubricElementListener {
@@ -46,10 +48,12 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	private JSplitPane mainSplit;
 	private Map<Integer, RubricEntryAutomationCardInterface> automationAssignmentMap;
 	private Map<Integer, JTextArea> descriptionAssignmentMap;
-	private Map<String, List<Method>> possibleMethodMap;
 	private RubricFileListener rubricFileListener;
 	private boolean enableEditing;
+	private boolean sourceModified;
 	private volatile static int lastErrorId = -1;
+	private volatile Map<String, List<Method>> possibleMethodMap;
+	private volatile Map<String, Set<String> > referenceMethodMap;
 	private volatile static RubricEntry.AutomationTypes lastErrorType = RubricEntry.AutomationTypes.NONE;
  
 
@@ -58,19 +62,15 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		this.undoManager = undoManager;
 		this.rubricFileListener = rubricFileListener;		
 		this.enableEditing = false;	
-		//SwingUtilities.invokeLater(new Runnable() {
-			//public void run() {
-				possibleMethodMap = new HashMap<String, List<Method>>();
-				automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
-				descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
-				createLayout();
-				JPanel emptyText = new JPanel();
-				emptyText.setPreferredSize(new Dimension(0, 40));
-				descriptionPanel.add(emptyText, "Empty Card");
-				automationPanel.add(new EmptyCard(), "Empty Card");
-				enableEditing(false);
-			//}
-//		});
+
+		automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
+		descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
+		createLayout();
+		JPanel emptyText = new JPanel();
+		emptyText.setPreferredSize(new Dimension(0, 40));
+		descriptionPanel.add(emptyText, "Empty Card");
+		automationPanel.add(new EmptyCard(), "Empty Card");
+		enableEditing(false);
 
 	}
 	
@@ -87,8 +87,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 					}
 				}
 				descriptionPanel.removeAll();
-				automationAssignmentMap.clear();
-				possibleMethodMap.clear();
+				automationAssignmentMap.clear();				
 				descriptionAssignmentMap.clear();
 				entriesTable.setAssociatedRubric(rubric);				
 				initPossibleMethodMap();
@@ -97,6 +96,23 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			}
 		});
 	}
+	
+	public void gainedFocus() {
+		if (sourceModified) {
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					initPossibleMethodMap();
+					initReferenceSourceMap();
+					for (RubricEntryAutomationCardInterface automation : automationAssignmentMap.values()) {
+						automation.testSourceChanged(possibleMethodMap);
+						automation.referenceSourceChanged(referenceMethodMap);
+					}
+				}
+			});
+		}
+		sourceModified = false;
+		
+	}
 
 	private void addRubricEntryCards(int index) {
 		RubricEntry entry = rubricToModify.getEntry(index);
@@ -104,32 +120,23 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		assignAutomation(entry.getAutomationType(), entry.getUniqueID());
 	}
 	
-	private void initPossibleMethodMap() {
+	private void  initPossibleMethodMap() {
 		StudentWorkCompiler compiler = (StudentWorkCompiler)ListenerCoordinator.runQuery(GetCompilerQuery.class);
 		possibleMethodMap = RubricEntryRunCode.getPossibleMethods(rubricFileListener.getReferenceSource(), compiler, rubricFileListener.getTestSource());
-		
-
+	}
+	
+	private void initReferenceSourceMap() {
+		List<FileData> referenceSource = rubricFileListener.getReferenceSource();
+		referenceMethodMap = RubricEntryMethodContains.createCallMap(referenceSource);
 	}
 	@Override
 	public void referenceSourceChanged() {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				initPossibleMethodMap();
-			}
-		});
-		
+		sourceModified = true;
 	}
 
 	@Override
-	public void testSourceChanged() {		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				initPossibleMethodMap();
-				for (RubricEntryAutomationCardInterface automation : automationAssignmentMap.values()) {
-					automation.testSourceChanged(possibleMethodMap);
-				}				
-			}
-		});
+	public void testSourceChanged() {
+		sourceModified = true;
 	}
 	
 	
@@ -162,7 +169,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 				}
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
-						int selectedIndex = selectionModel.getMinSelectionIndex();						
+						int selectedIndex = selectionModel.getMinSelectionIndex();
 						RubricEntry entry = rubricToModify.getEntry(selectedIndex);						
 						if (entry != null) {
 							addRubricEntryCards(selectedIndex);
@@ -260,7 +267,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			panel = new RubricEntryRunCodeCard(enableEditing, possibleMethodMap, rubricFileListener, rubricToModify, uniqueID);;
 			break;
 		case CODE_CONTAINS_METHOD:
-			panel = new RubricEntryCodeContainsStringCard(enableEditing, rubricFileListener, rubricToModify, uniqueID);
+			panel = new RubricEntryCodeContainsStringCard(enableEditing, referenceMethodMap, rubricToModify, uniqueID);
 			break;
 		case POINT_LOSS_FOR_LATE:
 			panel = new RubricEntryPointLossForLateCard(enableEditing, rubricToModify, uniqueID);
@@ -357,6 +364,11 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		@Override
 		public void setEnableEditing(boolean enable) {
 		}
+
+
+		@Override
+		public void referenceSourceChanged(Map<String, Set<String>> methodMap) {						
+		}
 		
 	}
 	public static void main(String args[]) {
@@ -444,6 +456,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			return true;
 		}
 	}
+
 
 	
 

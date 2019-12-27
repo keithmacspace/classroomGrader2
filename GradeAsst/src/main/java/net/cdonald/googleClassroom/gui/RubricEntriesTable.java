@@ -288,8 +288,7 @@ public class RubricEntriesTable extends JTable {
 			int min = 30;
 			if (associatedRubric != null) {
 				min = Math.max(min, associatedRubric.getEntryCount());
-				min++;
-				System.err.println(min);
+				min++;				
 			}
 			return min;
 		}

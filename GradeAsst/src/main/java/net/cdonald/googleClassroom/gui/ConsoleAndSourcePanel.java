@@ -155,7 +155,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 
 		setVisible(true);
 		
-		rubricTabPanel = new RubricTabPanel(undoManager, popupSource, popupDisplays);
+		rubricTabPanel = new RubricTabPanel(undoManager);
 		studentSourceCards = new StudentSourceCards();		
 		overallTabbedPane = new JTabbedPane();
 		new TabbedUndoListener(undoManager, overallTabbedPane);
