@@ -12,7 +12,11 @@ import java.text.ParsePosition;
  * parse the value.</p>
  */
 public class ParseAllFormat extends Format {
-  private final Format fDelegate;
+  /**
+	 * 
+	 */
+	private static final long serialVersionUID = -6288397978452301236L;
+private final Format fDelegate;
 
   /**
    * Decorate <code>aDelegate</code> to make sure if parser everything or nothing

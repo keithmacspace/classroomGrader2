@@ -82,7 +82,6 @@ import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.TextFormat;
 import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
-import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -396,8 +395,7 @@ public class GoogleClassroomCommunicator {
 						if (cancelCurrentStudentWorkRead) {
 							break;
 						}
-						DriveFile driveFile = attachment.getDriveFile();
-						String title = driveFile.getTitle();
+						DriveFile driveFile = attachment.getDriveFile();						
 						String fileContents = "";
 						if (/*title.contains(".java") == */ true) {
 

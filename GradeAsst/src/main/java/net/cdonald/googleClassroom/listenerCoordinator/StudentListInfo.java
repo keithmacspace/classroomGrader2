@@ -1,7 +1,5 @@
 package net.cdonald.googleClassroom.listenerCoordinator;
 
-import java.util.Map;
-
 
 public interface StudentListInfo {
 	public static final int LAST_NAME_COLUMN = 0;

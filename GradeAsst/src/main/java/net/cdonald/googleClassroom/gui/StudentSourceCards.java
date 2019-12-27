@@ -14,13 +14,16 @@ import javax.swing.SwingUtilities;
 import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
-import net.cdonald.googleClassroom.listenerCoordinator.GetStudentIDListQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.RecompileListener;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveSourceListener;
 import net.cdonald.googleClassroom.model.FileData;
 
 public class StudentSourceCards extends JPanel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8382429905694434119L;
 	private Map<String, StudentSourceCard> sourceCardMap;
 	public StudentSourceCards() {
 		super();

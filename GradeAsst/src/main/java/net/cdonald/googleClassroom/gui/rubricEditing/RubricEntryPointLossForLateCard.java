@@ -26,6 +26,10 @@ import net.cdonald.googleClassroom.model.RubricEntryPointLossForLate;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class RubricEntryPointLossForLateCard extends  RubricEntryAutomationCardInterface {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3317365606077732607L;
 	private JComboBox<SimpleUtils.TimeUnit> timeUnitCombo;
 	private JTextField pointsLost;
 	private RubricEntryPointLossForLate associatedAutomation;

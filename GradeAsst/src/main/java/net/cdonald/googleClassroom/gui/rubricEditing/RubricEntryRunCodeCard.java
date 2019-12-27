@@ -26,8 +26,6 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
-import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
-import net.cdonald.googleClassroom.listenerCoordinator.RubricTestCodeChanged;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
@@ -305,6 +303,10 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		});
 	}
 	private static class TestFrame extends JFrame implements RubricFileListener{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -8389731518262159090L;
 		List<FileData> refSource;
 		List<FileData> testSource;
 		public TestFrame() {

@@ -1,7 +1,6 @@
 package net.cdonald.googleClassroom.model;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +15,6 @@ import net.cdonald.googleClassroom.googleClassroomInterface.LoadSheetData;
 import net.cdonald.googleClassroom.googleClassroomInterface.SaveSheetData;
 import net.cdonald.googleClassroom.googleClassroomInterface.SheetAccessorInterface;
 import net.cdonald.googleClassroom.gui.DataUpdateListener;
-import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -293,8 +291,7 @@ public class Rubric implements SheetAccessorInterface {
 	public int getEntryCount() {
 		if (entries != null) {
 			if (allowEntryAddition) {
-				synchronized(entries) {
-					Iterator<RubricEntry> it = entries.iterator();
+				synchronized(entries) {					
 					for (int i = entries.size() - 1; i >= 0; i--) {
 						RubricEntry entry = entries.get(i);
 						if (entry.getName() != null && entry.getName().length() != 0) {

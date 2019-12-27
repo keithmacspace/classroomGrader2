@@ -316,6 +316,10 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private static class TestFrame extends JFrame implements RubricFileListener{
 
 	
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 6493675455296312016L;
 		List<FileData> refSource;
 		List<FileData> testSource;
 		public TestFrame() {

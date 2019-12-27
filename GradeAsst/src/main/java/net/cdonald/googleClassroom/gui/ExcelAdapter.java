@@ -34,8 +34,7 @@ import org.jsoup.select.Elements;
  * format used by Excel. This provides for clipboard interoperability between
  * enabled JTables and Excel.
  */
-public class ExcelAdapter  {
-	private String rowstring, value;
+public class ExcelAdapter  {	
 	private Clipboard system;
 	private StringSelection stsel;
 	private JTable jTable1;

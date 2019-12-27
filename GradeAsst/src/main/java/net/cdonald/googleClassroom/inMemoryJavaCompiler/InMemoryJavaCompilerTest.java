@@ -3,8 +3,6 @@ package net.cdonald.googleClassroom.inMemoryJavaCompiler;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 import org.mdkt.compiler.CompilationException;
 import org.mdkt.compiler.InMemoryJavaCompiler;
 
@@ -54,11 +52,11 @@ public class InMemoryJavaCompilerTest {
 	}
 
 	
-	public void compileAll_WhenTypical() throws Exception {
-		String cls1 = "public class A{ public B b() { return new B(); }}";
-		String cls2 = "public class B{ public String toString() { return \"B!\"; }}";
+	//public void compileAll_WhenTypical() throws Exception {
+		//String cls1 = "public class A{ public B b() { return new B(); }}";
+		//String cls2 = "public class B{ public String toString() { return \"B!\"; }}";
 
-		Map<String, Class<?>> compiled = InMemoryJavaCompiler.newInstance().addSource("A", cls1).addSource("B", cls2).compileAll();
+		//Map<String, Class<?>> compiled = InMemoryJavaCompiler.newInstance().addSource("A", cls1).addSource("B", cls2).compileAll();
 
 		//Assert.//AssertNotNull(compiled.get("A"));
 		//Assert.//AssertNotNull(compiled.get("B"));
@@ -66,7 +64,7 @@ public class InMemoryJavaCompilerTest {
 		//Class<?> aClass = compiled.get("A");
 		//Object a = aClass.newInstance();
 		//Assert.//AssertEquals("B!", aClass.getMethod("b").invoke(a).toString());
-	}
+	//}
 
 	
 	public void compile_WhenSourceContainsInnerClasses() throws Exception {

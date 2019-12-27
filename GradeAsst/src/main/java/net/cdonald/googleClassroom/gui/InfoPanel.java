@@ -15,6 +15,10 @@ import net.cdonald.googleClassroom.listenerCoordinator.SetInfoLabelListener;
 
 
 public class InfoPanel extends JPanel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3650819366942415507L;
 	private Map<String, JProgressBar> progressBars;
 	private JLabel [] infoLabels;
 	private String [] defaultStrings;

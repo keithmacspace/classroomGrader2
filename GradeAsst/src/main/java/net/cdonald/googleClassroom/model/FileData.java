@@ -202,8 +202,7 @@ public class FileData extends ClassroomData {
 		return false;
 	}
 	
-	public static FileData initFromDisk(String path) {
-		int lastDivider = path.lastIndexOf(File.separator);
+	public static FileData initFromDisk(String path) {		
 		File file = new File(path);
 		String fileName = file.getName();
 		String content = null;

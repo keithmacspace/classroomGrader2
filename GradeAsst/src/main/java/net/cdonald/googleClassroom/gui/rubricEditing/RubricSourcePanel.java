@@ -30,7 +30,6 @@ import javax.swing.undo.UndoManager;
 
 import net.cdonald.googleClassroom.gui.LineNumberTextArea;
 import net.cdonald.googleClassroom.gui.TabbedUndoListener;
-import net.cdonald.googleClassroom.gui.rubricEditing.RubricTabPanel.RubricTabNames;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentIDListQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentNameQuery;
@@ -344,6 +343,7 @@ public class RubricSourcePanel extends JPanel {
 			}
 		}
 
+		@SuppressWarnings("unchecked")
 		private void setStudentNames(int row) {
 			if (allIDs == null  || row >= allIDs.size()) {
 				allIDs = (ArrayList<String>)ListenerCoordinator.runQuery(GetStudentIDListQuery.class);

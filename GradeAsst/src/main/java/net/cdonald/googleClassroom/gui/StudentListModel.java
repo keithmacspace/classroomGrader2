@@ -1,7 +1,6 @@
 package net.cdonald.googleClassroom.gui;
 
 
-import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.CompilerMessage;

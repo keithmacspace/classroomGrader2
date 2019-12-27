@@ -19,6 +19,10 @@ import javax.swing.JTextArea;
 import net.cdonald.googleClassroom.model.ConsoleData;
 
 public class DebugLogDialog extends JDialog {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8504450430102266002L;
 	private static DebugLogDialog dbg = null;
 	private static boolean enable = true;
 	private Map<Long, JTextArea> checkPointAreaMap; 

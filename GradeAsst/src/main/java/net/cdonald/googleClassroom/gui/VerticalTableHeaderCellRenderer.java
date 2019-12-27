@@ -53,13 +53,17 @@ public class VerticalTableHeaderCellRenderer
   protected Icon getIcon(JTable table, int column) {
     SortKey sortKey = getSortKey(table, column);
     if (sortKey != null && table.convertColumnIndexToView(sortKey.getColumn()) == column) {
-      SortOrder sortOrder = sortKey.getSortOrder();
-      switch (sortOrder) {
-        case ASCENDING:
-          return VerticalSortIcon.ASCENDING;
-        case DESCENDING:
-          return VerticalSortIcon.DESCENDING;
-      }
+    	SortOrder sortOrder = sortKey.getSortOrder();
+    	switch (sortOrder) {
+    	case ASCENDING:
+    		return VerticalSortIcon.ASCENDING;
+    	case DESCENDING:
+    		return VerticalSortIcon.DESCENDING;
+    	case UNSORTED:
+    		break;
+    	default:
+    		break;
+    	}
     }
     return null;
   }

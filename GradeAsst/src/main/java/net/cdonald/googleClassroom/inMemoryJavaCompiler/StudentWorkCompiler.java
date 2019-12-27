@@ -393,14 +393,6 @@ public class StudentWorkCompiler {
 		return result;
 	}
 	
-	
-		
-
-	private void runCore(Method method) {
-		Object[] args = {null};
-		runCore(false, method, args);
-	}
-	
 	public boolean isRunnable(String id) {
 		if (studentBuildInfoMap.containsKey(id) == true) {
 			StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(id);

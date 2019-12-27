@@ -10,6 +10,10 @@ import javax.swing.JPanel;
 import net.cdonald.googleClassroom.model.RubricEntry;
 
 public abstract class RubricEntryAutomationCardInterface  extends JPanel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 153883969297856883L;
 	public abstract void saving();
 	public abstract void testSourceChanged(Map<String, List<Method>> possibleMethodMap);	
 	public abstract RubricEntry.AutomationTypes getAutomationType();

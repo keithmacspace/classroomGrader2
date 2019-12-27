@@ -21,6 +21,10 @@ import net.cdonald.googleClassroom.listenerCoordinator.GetRubricNamesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 
 public class NewRubricDialog extends JDialog {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3213979563844588316L;
 	private JTextField rubricNameField;
 	private String rubricName;
 

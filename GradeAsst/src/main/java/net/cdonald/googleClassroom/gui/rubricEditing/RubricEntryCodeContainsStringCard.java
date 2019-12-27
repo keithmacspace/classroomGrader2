@@ -1,37 +1,22 @@
 package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTable;
-import javax.swing.ListCellRenderer;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 
-import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.FieldAccessExpr;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntry.AutomationTypes;
@@ -250,32 +235,6 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 		}		
 
 	}
-
-
-	private class MethodComboRenderer extends JLabel implements ListCellRenderer<Method>{
-
-		@Override
-		public Component getListCellRendererComponent(JList list, Method value, int index, boolean isSelected,
-				boolean cellHasFocus) {
-			if (value != null && value instanceof Method) {
-				Method method = (Method)value;
-				String comboDisplay = method.toString();
-				int methodIndex = comboDisplay.indexOf(method.getName());
-				String finalDisplay = comboDisplay;
-				if (methodIndex != -1) {
-					finalDisplay = comboDisplay.substring(methodIndex);
-				}
-				setText(finalDisplay);
-			}
-			else {
-				setText("");
-			}
-
-
-			return this;
-		}
-	}
-
 
 
 	@Override

@@ -1,22 +1,17 @@
 package net.cdonald.googleClassroom.gui;
 
 import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 import javax.swing.Action;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
@@ -36,7 +31,6 @@ import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.PreRunBlockingListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StudentSelectedListener;
 import net.cdonald.googleClassroom.model.ClassroomData;
-import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 
 public class ConsoleAndSourcePanel extends JPanel {

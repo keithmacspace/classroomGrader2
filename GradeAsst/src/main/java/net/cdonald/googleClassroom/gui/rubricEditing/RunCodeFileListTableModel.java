@@ -1,12 +1,10 @@
 package net.cdonald.googleClassroom.gui.rubricEditing;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.table.AbstractTableModel;
 
 import net.cdonald.googleClassroom.model.FileData;
-import net.cdonald.googleClassroom.model.Rubric;
 
 
 public class RunCodeFileListTableModel extends AbstractTableModel {

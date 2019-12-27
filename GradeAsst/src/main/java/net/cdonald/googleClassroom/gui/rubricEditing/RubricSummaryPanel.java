@@ -416,6 +416,11 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	}
 	
 	private class EmptyCard extends EmptyAutomationCard {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -1392802686485082310L;
+
 		@Override
 		public String getDescription() {
 			return "";		
@@ -456,8 +461,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			refSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\BigIntAddition.java"));
 			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\ConvertStringTest.java"));
 			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\AddBigIntTest.java"));
-			StudentWorkCompiler compiler = new StudentWorkCompiler(null);
-			Map<String, List<Method>> possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, compiler, testSource);
+			StudentWorkCompiler compiler = new StudentWorkCompiler(null);			
 			ListenerCoordinator.addQueryResponder(GetCompilerQuery.class, new GetCompilerQuery() {
 
 				@Override
