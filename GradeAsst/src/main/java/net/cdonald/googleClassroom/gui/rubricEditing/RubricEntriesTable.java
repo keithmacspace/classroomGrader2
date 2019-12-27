@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -22,6 +22,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+import net.cdonald.googleClassroom.gui.ExcelAdapter;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.model.Rubric;
@@ -348,9 +349,11 @@ public class RubricEntriesTable extends JTable {
 			
 			RubricEntry entry = associatedRubric.getEntry(row);			
 			if (entry != null) {
-				if ((entry.getName() == null || entry.getName().length() == 0) ||
-					 entry.getValue() == 0){
-					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);		
+				if ((entry.getName() == null || entry.getName().length() == 0) || entry.getValue() == 0){
+					// Only update when we have both a name and a value
+					if (entry.getValue() > 0 || (entry.getName() != null && entry.getName().length() > 0)) {
+						ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, true);
+					}
 				}
 				else {
 					ListenerCoordinator.fire(AddRubricTabsListener.class, associatedRubric, false);		

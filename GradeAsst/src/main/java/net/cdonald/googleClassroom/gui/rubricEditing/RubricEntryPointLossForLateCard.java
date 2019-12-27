@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -30,7 +30,7 @@ public class RubricEntryPointLossForLateCard extends  RubricEntryAutomationCardI
 	private JTextField pointsLost;
 	private RubricEntryPointLossForLate associatedAutomation;
 
-	public RubricEntryPointLossForLateCard(boolean enableEditing, Rubric rubricToModify, int elementID) {
+	public RubricEntryPointLossForLateCard(boolean enableEditing, Rubric rubricToModify, int elementID) {		
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createTitledBorder("Automation Options"));
 		JPanel valuePanel = new JPanel();
@@ -143,11 +143,7 @@ public class RubricEntryPointLossForLateCard extends  RubricEntryAutomationCardI
 		
 	}
 
-	@Override
-	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 
 	@Override
 	public AutomationTypes getAutomationType() {

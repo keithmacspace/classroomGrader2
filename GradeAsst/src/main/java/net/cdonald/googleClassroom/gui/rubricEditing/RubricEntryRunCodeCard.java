@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
@@ -54,7 +54,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	private Map<String, List<Method>> possibleMethodMap;
 	public RubricEntryRunCodeCard(boolean enableEditing, Map<String, List<Method>> possibleMethodMap, RubricFileListener rubricFileListener, Rubric rubric, int elementID){
 		this.possibleMethodMap = possibleMethodMap;
-		this.rubricFileListener = rubricFileListener;
+		this.rubricFileListener = rubricFileListener;		
 		setLayout(new BorderLayout());
 		setBorder(BorderFactory.createTitledBorder("Run Code Automation Options"));
 		methodMap = new HashMap<String, Method>();
@@ -189,11 +189,6 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		}
 	}
 	
-	@Override
-	public String getDescription() {
-		return "Automated.  After you run rubrics, if no value is filled in for a student, check this tab for more information";		
-	}
-
 	
 	@Override
 	public void saving() {

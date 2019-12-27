@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -65,13 +65,13 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 
 		automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
 		descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
+		fillSourceMaps();
 		createLayout();
 		JPanel emptyText = new JPanel();
 		emptyText.setPreferredSize(new Dimension(0, 40));
 		descriptionPanel.add(emptyText, "Empty Card");
-		automationPanel.add(new EmptyCard(), "Empty Card");
-		enableEditing(false);
-
+		automationPanel.add(new EmptyAutomationCard(), "Empty Card");
+		enableEditing(false);		
 	}
 	
 	public void setRubricToModify(Rubric rubric) {
@@ -96,19 +96,22 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			}
 		});
 	}
+	private void fillSourceMaps() {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				initPossibleMethodMap();
+				initReferenceSourceMap();
+				for (RubricEntryAutomationCardInterface automation : automationAssignmentMap.values()) {
+					automation.testSourceChanged(possibleMethodMap);
+					automation.referenceSourceChanged(referenceMethodMap);
+				}
+			}
+		});
+	}
 	
 	public void gainedFocus() {
 		if (sourceModified) {
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					initPossibleMethodMap();
-					initReferenceSourceMap();
-					for (RubricEntryAutomationCardInterface automation : automationAssignmentMap.values()) {
-						automation.testSourceChanged(possibleMethodMap);
-						automation.referenceSourceChanged(referenceMethodMap);
-					}
-				}
-			});
+			fillSourceMaps();
 		}
 		sourceModified = false;
 		
@@ -116,8 +119,8 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 
 	private void addRubricEntryCards(int index) {
 		RubricEntry entry = rubricToModify.getEntry(index);
-		addDescriptionCard(entry);
-		assignAutomation(entry.getAutomationType(), entry.getUniqueID());
+		addDescriptionCard(entry.getDescription(), entry.getUniqueID());
+		assignAutomation(entry.getAutomationType(), entry);
 	}
 	
 	private void  initPossibleMethodMap() {
@@ -138,7 +141,6 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	public void testSourceChanged() {
 		sourceModified = true;
 	}
-	
 	
 	
 	private void createLayout() {
@@ -231,8 +233,8 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		}
 	}
 	
-	private void addDescriptionCard(RubricEntry entry) {
-		if (descriptionAssignmentMap.containsKey(entry.getUniqueID())) {
+	private void addDescriptionCard(String description, int uniqueID) {
+		if (descriptionAssignmentMap.containsKey(uniqueID)) {
 			return;
 		}
 		JPanel panel = new JPanel();
@@ -243,17 +245,26 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		JTextArea textArea = new JTextArea();
 		textArea.setToolTipText(hint);
 		textArea.getDocument().addUndoableEditListener(undoManager);
-		textArea.setText(entry.getDescription());
+		if (description != null) {
+			textArea.setText(description);
+		}
+		else {
+			textArea.setText("");
+		}
 		textArea.setWrapStyleWord(true);
 		textArea.setLineWrap(true);
 		textArea.setEditable(enableEditing);
 		panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
-		descriptionAssignmentMap.put(entry.getUniqueID(), textArea);
-		descriptionPanel.add(panel, "" + entry.getUniqueID());
+		descriptionAssignmentMap.put(uniqueID, textArea);
+		descriptionPanel.add(panel, "" + uniqueID);
 	}
 	
 	
-	private void assignAutomation(RubricEntry.AutomationTypes automationType, int uniqueID) {
+	private void assignAutomation(RubricEntry.AutomationTypes automationType, RubricEntry entry) {
+		if (entry == null) {
+			return;
+		}
+		int uniqueID = entry.getUniqueID();
 		RubricEntryAutomationCardInterface old = automationAssignmentMap.get(uniqueID);
 		if (old != null)  {
 			if ( old.getAutomationType() == automationType) {
@@ -272,12 +283,44 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		case POINT_LOSS_FOR_LATE:
 			panel = new RubricEntryPointLossForLateCard(enableEditing, rubricToModify, uniqueID);
 			break;
-		default:
+		case NONE:
 			panel = new EmptyCard();
+			break;
+		default:
+			panel = new EmptyAutomationCard();
 			break;					
 		}
 		automationAssignmentMap.put(uniqueID, panel);
-		automationPanel.add(panel, "" + uniqueID);		
+		automationPanel.add(panel, "" + uniqueID);
+		modifyDescription(entry, panel.getDescription());
+	}
+	
+	public void modifyDescription(RubricEntry entry, String newDescription) {
+		final String start = "**";
+		final String end = "**";
+		if (entry != null) {
+			int uniqueID = entry.getUniqueID();
+			String description = "";
+			if (newDescription != null && newDescription.length() != 0) {
+				description = start + newDescription + end;
+			}
+			JTextArea currentDescription = descriptionAssignmentMap.get(uniqueID);		
+			if (currentDescription == null) {
+				addDescriptionCard(entry.getDescription(), uniqueID);
+			}
+			currentDescription = descriptionAssignmentMap.get(uniqueID);
+			String oldDescription = currentDescription.getText();
+			int htmlStart = oldDescription.indexOf(start);
+			int htmlEnd = oldDescription.lastIndexOf(end);
+			if (htmlStart != -1 && htmlEnd != -1) {
+				String temp = oldDescription.substring(0, htmlStart);
+				temp += oldDescription.substring(htmlEnd + end.length());
+				oldDescription = temp;					
+			}
+			//description += "\n" + oldDescription;
+			entry.setDescription(description);
+			currentDescription.setText(description);
+		}		
 	}
 	
 	public RubricEntry getCurrentEntry() {
@@ -326,7 +369,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 					}
 					if (entry != null) {
 						entry.setAutomationType(typeSelected);						
-						assignAutomation(typeSelected, entry.getUniqueID());
+						assignAutomation(typeSelected, entry);
 						CardLayout c1 = (CardLayout)automationPanel.getLayout();
 						c1.show(automationPanel, "" + entry.getUniqueID());
 					}
@@ -337,9 +380,13 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		return validSelection;
 	}
 	
-	private class EmptyCard extends RubricEntryAutomationCardInterface {
-		public EmptyCard() {
-			this.setPreferredSize(new Dimension(10, 40));
+	
+	
+	private class EmptyAutomationCard extends RubricEntryAutomationCardInterface {
+		private static final long serialVersionUID = -3013431743093417345L;
+
+		public EmptyAutomationCard() {
+			this.setPreferredSize(new Dimension(10, 40));			
 		}
 
 
@@ -351,10 +398,6 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {						
 		}
 
-		@Override
-		public String getDescription() {
-			return "";
-		}
 
 		@Override
 		public AutomationTypes getAutomationType() {			
@@ -369,6 +412,14 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		@Override
 		public void referenceSourceChanged(Map<String, Set<String>> methodMap) {						
 		}
+	
+	}
+	
+	private class EmptyCard extends EmptyAutomationCard {
+		@Override
+		public String getDescription() {
+			return "";		
+		}
 		
 	}
 	public static void main(String args[]) {
@@ -379,6 +430,8 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		});
 	}
 	private static class TestFrame extends JFrame implements RubricFileListener{
+
+		private static final long serialVersionUID = -228872435733451730L;
 		List<FileData> refSource;
 		List<FileData> testSource;
 		public TestFrame() {

@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -52,6 +52,7 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 	private JLabel explanation;
 	private RubricEntryMethodContains associatedAutomation;	
 	private Map<String, Set<String> > methodMap;
+	
 	public RubricEntryCodeContainsStringCard(boolean enableEditing, Map<String, Set<String> > methodMap, Rubric rubricToModify, int elementID) {
 		super();
 		this.methodMap = methodMap;
@@ -165,14 +166,7 @@ public class RubricEntryCodeContainsStringCard extends RubricEntryAutomationCard
 		return namePanel;
 
 	}
-	@Override
-	public String getDescription() {
-		String description = "Automated. Checks the following:\n";
-		description += associatedAutomation.createCompleteCallList();
-		description += "If the automation does not set a grade, see the rubric tab for more info.";
-		return description;					
-	}
-	
+
 	@Override
 	public void referenceSourceChanged(Map<String, Set<String>> methodMap) {
 		this.methodMap = methodMap;

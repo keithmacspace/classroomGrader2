@@ -61,6 +61,8 @@ public class FileData extends ClassroomData {
 		isRubricCode = other.isRubricCode;
 	}
 	
+
+	
 	public static FileData newFromSheet(String fileName, List<List<Object>> sourceInfo) {
 		FileData fileData = null;
 		if (sourceInfo != null) {
@@ -91,6 +93,12 @@ public class FileData extends ClassroomData {
 
 	public String getFileContents() {
 		return fileContents;
+	}
+	
+	public static String stripPackage(String fileContents) {
+		CompilationUnit compilationUnit = StaticJavaParser.parse(fileContents);		
+		compilationUnit.setPackageDeclaration((PackageDeclaration)null);
+		return compilationUnit.toString();
 	}
 
 	public void setFileContents(String fileContents) {
@@ -214,11 +222,16 @@ public class FileData extends ClassroomData {
 	
 
 	public static void main(String[] args) {
-		FileData fileData = new FileData("file.java", "", "0", null);
-		String contents = "// this is a test\n" + "while(a != b && (c != d))\n /*{\n" + "here is a comment\n" + "*/{\n";
-		fileData.setFileContents(contents);
-		//fileData.instrumentFile("words.words.call()");
-		System.out.println(fileData.getFileContents());
+		String testPackageRemove = "package x;"
+				+ "\n"
+				+ "public class empty {"
+				+ "}";
+		System.out.println(FileData.stripPackage(testPackageRemove));
+//		FileData fileData = new FileData("file.java", "", "0", null);
+//		String contents = "// this is a test\n" + "while(a != b && (c != d))\n /*{\n" + "here is a comment\n" + "*/{\n";
+//		fileData.setFileContents(contents);
+//		//fileData.instrumentFile("words.words.call()");
+//		System.out.println(fileData.getFileContents());
 	} 
 	// This is used when the student uploads the file as a google document. In those cases
 	// the name of the file is not className.java, and so we have to create it

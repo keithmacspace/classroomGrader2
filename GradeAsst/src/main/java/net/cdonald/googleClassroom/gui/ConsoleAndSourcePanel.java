@@ -25,6 +25,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.undo.UndoManager;
 
+import net.cdonald.googleClassroom.gui.rubricEditing.RubricTabPanel;
 import net.cdonald.googleClassroom.listenerCoordinator.AddRubricTabsListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AllStudentFilesLoadedListener;
 import net.cdonald.googleClassroom.listenerCoordinator.AssignmentSelected;

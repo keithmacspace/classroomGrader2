@@ -1,4 +1,4 @@
-package net.cdonald.googleClassroom.gui;
+package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -21,7 +21,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.undo.UndoManager;
 
+import net.cdonald.googleClassroom.gui.SetRubricListener;
 import net.cdonald.googleClassroom.gui.SetRubricListener.RubricType;
+import net.cdonald.googleClassroom.gui.TabbedUndoListener;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
@@ -44,7 +46,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private JButton cancelChangesButton;
 
 	private volatile Rubric rubric;
-	private UndoManager undoManager;
+	
 	private RubricSummaryPanel rubricSummaryPanel;
 	private volatile Rubric formerRubric;	
 	public enum RubricTabNames {Summary("Summary"), Reference("Reference Source"), TestCode("Test Code");
@@ -58,8 +60,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 	}
 	public RubricTabPanel(UndoManager undoManager) {
-		super();
-		this.undoManager = undoManager;		
+		super();			
 		sourcePanelMap = new HashMap<RubricTabNames, RubricSourcePanel>();
 		createLayout(undoManager);
 		registerListeners();
