@@ -96,9 +96,14 @@ public class FileData extends ClassroomData {
 	}
 	
 	public static String stripPackage(String fileContents) {
-		CompilationUnit compilationUnit = StaticJavaParser.parse(fileContents);		
-		compilationUnit.setPackageDeclaration((PackageDeclaration)null);
-		return compilationUnit.toString();
+		try {
+			CompilationUnit compilationUnit = StaticJavaParser.parse(fileContents);		
+			compilationUnit.setPackageDeclaration((PackageDeclaration)null);
+			return compilationUnit.toString();
+		}catch (Exception e){
+			return fileContents.replaceAll("package.*;", "");
+ 
+		}
 	}
 
 	public void setFileContents(String fileContents) {

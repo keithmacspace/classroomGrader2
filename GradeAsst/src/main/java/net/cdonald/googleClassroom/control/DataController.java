@@ -1057,7 +1057,7 @@ public class DataController implements StudentListInfo {
 				Map<String, String> modifiedNotes = (Map<String, String>)ListenerCoordinator.runQuery(GetAndClearModifiedNotes.class);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, modifiedNotes, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
-				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments());
+				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments(), false);
 				if (currentRubric.areGradesModified() || modifiedNotes.size() > 0 || currentRubric.isLoadedFromFile() == false) {
 					for (StudentDataClass student : studentData) {
 						String studentID = student.getStudent(false).getId();
@@ -1091,7 +1091,7 @@ public class DataController implements StudentListInfo {
 			try {				
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
 				GradeSyncer grades = new GradeSyncer(googleClassroom, null, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
-				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments());
+				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments(), true);
 				updateListener.structureChanged();
 			} catch (Exception e) {
 				JOptionPane.showMessageDialog(null, "Error loading grades from google sheet " + e.getMessage(),  "Save problem",

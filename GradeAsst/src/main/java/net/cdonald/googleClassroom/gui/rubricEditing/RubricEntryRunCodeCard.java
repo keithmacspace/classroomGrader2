@@ -25,6 +25,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import org.mdkt.compiler.CompilationException;
+
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
@@ -70,7 +72,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			
 		JPanel buttonHolder = new JPanel();
 		buttonHolder.setLayout(new BorderLayout());
-		buttonHolder.add(rubricFileListener.getTestSourceButtons(), BorderLayout.NORTH);
+		buttonHolder.add(rubricFileListener.getAddSourceButtons(), BorderLayout.NORTH);
 		JPanel namePanel = createNamePanel();
 		JPanel nameAndButtons = new JPanel();
 		nameAndButtons.setLayout(new BorderLayout());		
@@ -210,8 +212,13 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	@Override
 	public void testSourceChanged(Map<String, List<Method>> possibleMethodMap) {
 		this.possibleMethodMap = possibleMethodMap;
-		fileToUseModel.fireTableDataChanged();
-		fillMethodCombo(possibleMethodMap);
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				fileToUseModel.fireTableDataChanged();
+				fillMethodCombo(possibleMethodMap);				
+			}
+		});
+
 		
 	}
 	
@@ -232,21 +239,30 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 	}
 
 	
-	public void fillMethodCombo(Map<String, List<Method>> possibleMethodMap) {		
-		methodToCallCombo.removeAllItems();
-		methodMap.clear();
-		for (String file : associatedAutomation.getTestCodeSourceToUse()) {
-			List<Method> methods = null;
-			if (possibleMethodMap != null) {
-				methods = possibleMethodMap.get(file);
-			}
-			if (methods != null) {
-				for (Method method : methods) {
-					methodToCallCombo.addItem(method.getName());
-					methodMap.put(method.getName(), method);
+	public void fillMethodCombo(Map<String, List<Method>> possibleMethodMap) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				methodToCallCombo.removeAllItems();
+				methodMap.clear();
+				if (possibleMethodMap != null) {
+					synchronized(possibleMethodMap) {
+						for (String file : associatedAutomation.getTestCodeSourceToUse()) {
+							List<Method> methods = null;
+							if (possibleMethodMap != null) {
+								methods = possibleMethodMap.get(file);
+							}
+							if (methods != null) {
+								for (Method method : methods) {
+									methodToCallCombo.addItem(method.getName());
+									methodMap.put(method.getName(), method);
+								}
+							}
+						}
+					}
 				}
+				revalidate();
 			}
-		}							
+		});
 	}
 
 	@Override
@@ -332,7 +348,13 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\ConvertStringTest.java"));
 			testSource.add(FileData.initFromDisk("C:\\Users\\kdmacdon\\Documents\\Teals\\EclipseWork\\BigIntAddition\\src\\AddBigIntTest.java"));
 			StudentWorkCompiler compiler = new StudentWorkCompiler(null);
-			Map<String, List<Method>> possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, compiler, testSource);
+			Map<String, List<Method>> possibleMethodMap = null;
+			try {
+				possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, compiler, testSource);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			Rubric rubric = new Rubric();
 			rubric.addNewEntry(0);
 			RubricEntry e = rubric.getEntry(0);
@@ -358,12 +380,9 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		}
 
 		@Override
-		public JPanel getTestSourceButtons() {
-			// TODO Auto-generated method stub
-			JPanel temp = new JPanel();
-			temp.setLayout(new BorderLayout());
-			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
-			return temp;
+		public JButton getAddSourceButtons() {
+			return new JButton("Add Source");
+
 		}
 
 
@@ -371,6 +390,30 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		@Override
 		public boolean isReferenceSourceSet() {
 			return true;
+		}
+
+
+
+		@Override
+		public void addCompilerMessage(String message) {
+			// TODO Auto-generated method stub
+			
+		}
+
+
+
+		@Override
+		public void sourceIsChanged() {
+			// TODO Auto-generated method stub
+			
+		}
+
+
+
+		@Override
+		public void compileSource(RubricTabNames sourceType) {
+			// TODO Auto-generated method stub
+			
 		}
 	}
 

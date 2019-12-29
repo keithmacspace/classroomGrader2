@@ -2,9 +2,13 @@ package net.cdonald.googleClassroom.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
@@ -25,21 +29,26 @@ import net.cdonald.googleClassroom.listenerCoordinator.SystemInListener;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 
-public class StudentOutputTabs extends JPanel {
+public class StudentOutputTabs extends JPanel implements RubricTabInterface {
 	private static final long serialVersionUID = -935623321670090415L;
 	private List<JPanel> cardPanels;		
 	private JTextArea consoleInput;
 	private JTextArea currentInputHistory;
 	private String runningStudent;
 	private JTabbedPane outputTabs;
-	private JCheckBox followInput; 
+	private JCheckBox followInput;
+	private volatile Map<String, Component> rubricTabMap;
+	private volatile boolean rubricTabsHidden;
 	public static String CONSOLE_TAB_NAME = "Console";
 	public static String INPUT_HISTORY_TAB_NAME = "In Hist.";
+	
 
 
 	public StudentOutputTabs(JPopupMenu popupInput, JPopupMenu popupDisplays) {
 		super();
+		rubricTabMap = Collections.synchronizedMap(new HashMap<String, Component>());
 		cardPanels = new ArrayList<JPanel>();
+		rubricTabsHidden = true;
 		createConsoleTabs(popupInput, popupDisplays);
 		createLayout();
 	}
@@ -217,9 +226,20 @@ public class StudentOutputTabs extends JPanel {
 	public void bindStudentAreas(List<String> studentIDs, Rubric currentRubric) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				while(outputTabs.getTabCount() > 2) {
-					outputTabs.removeTabAt(outputTabs.getTabCount() - 1);
+				int selectedTab = outputTabs.getSelectedIndex();
+				Component selectedTabComponent = null;
+				if (selectedTab >= 0 && selectedTab < outputTabs.getTabCount()) {
+					selectedTabComponent = outputTabs.getComponentAt(selectedTab);
 				}
+
+				for (int i = outputTabs.getTabCount() - 1; i >= 0; i--) {
+					String tabName = outputTabs.getTitleAt(i);						
+					boolean isConsole = CONSOLE_TAB_NAME.equals(tabName);
+					boolean isInputHistory = INPUT_HISTORY_TAB_NAME.equals(tabName);
+					if (!isConsole && !isInputHistory) {
+						outputTabs.removeTabAt(i);
+					}
+				}				
 				while (cardPanels.size() > 1) {
 					cardPanels.remove(cardPanels.size() - 1);
 				}
@@ -232,9 +252,6 @@ public class StudentOutputTabs extends JPanel {
 							RubricEntry rubricEntry = currentRubric.getEntry(i); 
 							String rubricName = rubricEntry.getName();		
 							String tip = rubricEntry.getTipMessage();
-							if (rubricEntry.getDescription() != null) { 
-								tip += rubricEntry.getDescription();		
-							}
 							addCard(rubricName, studentID, currentAreas.getRubricArea(rubricName), tip);
 						}
 					}
@@ -247,7 +264,10 @@ public class StudentOutputTabs extends JPanel {
 						addCard(rubricName, "null", null, "");
 					}
 				}
-			}
+				showRubricTabsIfVisible();
+				if (selectedTabComponent != null)
+					outputTabs.setSelectedComponent(selectedTabComponent);
+			}		
 		});
 
 
@@ -256,6 +276,66 @@ public class StudentOutputTabs extends JPanel {
 
 	public void setRunningStudent(String studentName) {
 		runningStudent = studentName;		
+	}
+	
+
+	@Override
+	public void addAndSelectRubricTab(String tabName, Component component) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				if (rubricTabMap.containsKey(tabName) == false || rubricTabMap.get(tabName) != component) {
+					if (rubricTabsHidden == false) {
+						outputTabs.addTab(tabName, component);
+					}
+					rubricTabMap.put(tabName, component);
+				}
+				if (rubricTabsHidden == false) {
+					outputTabs.setSelectedComponent(component);
+				}
+			}
+		});
+	}
+	public void clearRubricTabs() {
+		
+	}
+	
+	public void showRubricTabsIfVisible() {
+		if (rubricTabsHidden == false) {
+			synchronized(rubricTabMap) {
+				for (String tabName : rubricTabMap.keySet()) {
+					boolean found = false;
+					for (int i = outputTabs.getTabCount() - 1; i >= 0; i--) {
+						if (outputTabs.getTitleAt(i).equals(tabName)) {
+							found = true;
+						}
+					}
+					if (found == false) {
+						outputTabs.addTab(tabName, rubricTabMap.get(tabName));
+					}
+				}
+				revalidate();
+			}
+		}
+	}
+	
+	public void showRubricTabs() {
+		rubricTabsHidden = false;
+		showRubricTabsIfVisible();
+	}
+
+	@Override
+	public void hideRubricTabs() {
+		rubricTabsHidden = true;
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				synchronized(rubricTabMap) {
+					for (Component component : rubricTabMap.values()) {
+						outputTabs.remove(component);
+					}
+					revalidate();
+				}
+			}
+		});
 	}
 
 }

@@ -290,19 +290,17 @@ public class Rubric implements SheetAccessorInterface {
 
 	public int getEntryCount() {
 		if (entries != null) {
-			if (allowEntryAddition) {
-				synchronized(entries) {					
-					for (int i = entries.size() - 1; i >= 0; i--) {
-						RubricEntry entry = entries.get(i);
-						if (entry.getName() != null && entry.getName().length() != 0) {
-							return i + 1;
-						}
-					}
-				}			
-			} else {
+//			if (allowEntryAddition) {
+//				synchronized(entries) {					
+//					for (int i = entries.size() - 1; i >= 0; i--) {
+//						RubricEntry entry = entries.get(i);
+//						if (entry.getName() != null && entry.getName().length() != 0) {
+//							return i + 1;
+//						}
+//					}
+//				}			
+//			} else {
 				return entries.size();
-			}
-
 		}
 		return 0;
 	}

@@ -34,6 +34,16 @@ public class LoadSheetData {
 		return null;
 	}
 	
+	public void colInserted(int colIndex) {
+		for (int i = 0; i < sheetInfo.size(); i++) {
+			
+			List<Object> row = sheetInfo.get(i);
+			if (row.size() >= colIndex) {
+				row.add(colIndex, null);
+			}
+		}
+	}
+	
 
 	
 	public List<Object> readColumn(int columnIndex) {

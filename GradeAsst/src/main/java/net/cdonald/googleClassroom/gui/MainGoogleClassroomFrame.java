@@ -312,7 +312,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		ListenerCoordinator.addListener(LaunchRubricEditorDialogListener.class, new LaunchRubricEditorDialogListener() {
 			@Override
 			public void fired() {
-				editRubric(dataController.getRubric());
+				consoleAndSourcePanel.editRubric();
 			}
 		});
 		
@@ -324,8 +324,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				if (rubricName != null) {
 					Rubric temp = dataController.newRubric(rubricName);
 					mainToolBar.addRubricInfo(temp.getSheetInfo(), true);
-					editRubric(temp);
-					
+					consoleAndSourcePanel.editRubric();					
 				}
 			}
 		});
@@ -484,10 +483,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Syncing Grades");
 		return worked;
 	}
-	
-	private void editRubric(Rubric rubricToModify) {
-		 //rubricElementDialog.modifyRubric(rubricToModify); 
-	}
+
 	
 	private void runRubricOrCode(boolean runSource, boolean runAll) {
 		runWorker = new SwingWorker<Void, String>() {

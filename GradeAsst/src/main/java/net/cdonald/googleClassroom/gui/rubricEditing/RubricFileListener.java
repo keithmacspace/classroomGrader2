@@ -2,14 +2,26 @@ package net.cdonald.googleClassroom.gui.rubricEditing;
 
 import java.util.List;
 
-import javax.swing.JPanel;
+import javax.swing.JButton;
 
 import net.cdonald.googleClassroom.model.FileData;
 
 public interface RubricFileListener {
+	public enum RubricTabNames {Summary("Summary"), Reference("Reference Source"), TestCode("Test Code");
+		private String name;
+		RubricTabNames(String name) {
+			this.name = name;
+		};
+		public String toString() {
+			return name;
+		}
+	}
 	public List<FileData> getReferenceSource();
 	public List<FileData> getTestSource();
 	public boolean isReferenceSourceSet();
-	public JPanel getTestSourceButtons();
+	public JButton getAddSourceButtons();
+	public void addCompilerMessage(String message);
+	public void sourceIsChanged();
+	public void compileSource(RubricTabNames sourceType);
 
 }

@@ -51,11 +51,14 @@ public class RubricSourcePanel extends JPanel {
 	private JPopupMenu displayPopup;
 	private boolean enableEditing;
 	private UndoManager undoManager;
+	private RubricFileListener rubricFileListener;
 
-	RubricSourcePanel(UndoManager undoManager, RubricTabPanel.RubricTabNames tabName) {
+	RubricSourcePanel(UndoManager undoManager, RubricTabPanel.RubricTabNames tabName, RubricFileListener rubricFileListener) {
 		super();
+		this.rubricFileListener = rubricFileListener;
 		this.undoManager = undoManager;
 		this.tabName = tabName;
+		this.rubricFileListener = rubricFileListener;
 		enableEditing = false;
 		sourceCodeMap = new HashMap<String, LineNumberTextArea>();
 		isModified = false;
@@ -66,6 +69,7 @@ public class RubricSourcePanel extends JPanel {
 
 	public void setSourceTabs(List<FileData> files, boolean setModified) {
 		JTabbedPane sourceTabs = new JTabbedPane();
+		sourceCodeMap.clear();		
 		new TabbedUndoListener(undoManager, sourceTabs);
 		if (files != null) {						
 			if (files != null && files.size() > 0) {								
@@ -80,6 +84,7 @@ public class RubricSourcePanel extends JPanel {
 				}
 			}
 		}
+		rubricFileListener.sourceIsChanged();
 		setSourceTabs(sourceTabs);
 		enableEditing(enableEditing);
 	}
@@ -121,29 +126,37 @@ public class RubricSourcePanel extends JPanel {
 		}
 	}
 	
+	public JButton getSourceButton(boolean addSource) {
+		JButton loadSource = new JButton(addSource ? "Add Source" : "Load Source");
+		loadSource.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (enableEditing) {
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							@SuppressWarnings("unchecked")
+							List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
+							if (addSource) {
+								List<FileData> currentFiles = createFileData(tabName.toString());
+								allFiles.addAll(currentFiles);
+							}
+							setSourceTabs(allFiles, true);							
+						}						
+					});					
+				}
+			}				
+		});
+		return loadSource;
+	}
+	
+	
 	public JPanel getSourceButtons() {
 
-			JPanel buttonSource;
-			buttonSource = new JPanel();		
-			JButton loadSource = new JButton("Load Source");
-			loadSource.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					if (enableEditing) {
-						SwingUtilities.invokeLater(new Runnable() {
-							@Override
-							public void run() {
-								@SuppressWarnings("unchecked")
-								List<FileData> allFiles = (List<FileData>)ListenerCoordinator.runQuery(LoadSourceQuery.class);
-								setSourceTabs(allFiles, true);							
-							}						
-						});					
-					}
-				}				
-			});
-			
-
-			buttonSource.setLayout(new GridBagLayout());
+		JPanel buttonSource;
+		buttonSource = new JPanel();		
+		buttonSource.setLayout(new GridBagLayout());
+		for (int i = 0; i < 2; i++) {
 			GridBagConstraints c = new GridBagConstraints();
 			c.insets = new Insets(3, 3, 3, 0);
 			c.weightx = 0.3;
@@ -153,11 +166,10 @@ public class RubricSourcePanel extends JPanel {
 			//c.gridwidth = GridBagConstraints.REMAINDER;
 			//c.gridheight = 1;
 			c.gridx = 0;
-			c.gridy = 0;
-			buttonSource.add(loadSource, c);		
-			return buttonSource;
-
-
+			c.gridy = i;
+			buttonSource.add(getSourceButton(i != 0), c);
+		}
+		return buttonSource;
 	}
 
 
@@ -371,6 +383,18 @@ public class RubricSourcePanel extends JPanel {
 		paste.putValue(Action.NAME, "Paste");
 		paste.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
 		editablePopup.add(paste);
+		
+
+
+
+		JMenuItem compileSource = new JMenuItem("Compile");
+		editablePopup.add(compileSource);		
+		compileSource.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				rubricFileListener.compileSource(tabName);
+			}
+		});
 
 
 		JMenuItem removeSource = new JMenuItem("Remove Source");

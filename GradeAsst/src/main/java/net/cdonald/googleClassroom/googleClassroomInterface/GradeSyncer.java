@@ -456,13 +456,16 @@ public class GradeSyncer implements SheetAccessorInterface {
 					columnIndex++;
 				}
 				int col = SUBMIT_DATA_COLUMN;
-				possiblyInsertColumn(SUBMIT_DATE_STRING, col++);
-				possiblyInsertColumn(LATE_INFO_COLUMN_KEY, col++);
-				possiblyInsertColumn(TOTAL_STRING, col++);
+				possiblyInsertColumn(data, SUBMIT_DATE_STRING, col++);
+				possiblyInsertColumn(data, LATE_INFO_COLUMN_KEY, col++);
+				possiblyInsertColumn(data, TOTAL_STRING, col++);
 				for (int i = 0; i < rubric.getEntryCount(); i++) {
-					possiblyInsertColumn(rubric.getEntry(i).getName(), col++);
+					RubricEntry entry = rubric.getEntry(i);
+					if (entry != null) {
+						possiblyInsertColumn(data, entry.getName(), col++);
+					}
 				}
-				possiblyInsertColumn(NOTES_COLUMN_NAME, col++);
+				possiblyInsertColumn(data, NOTES_COLUMN_NAME, col++);
 
 			}
 		}
@@ -473,7 +476,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 	 * This is used when we are processing the rubric names.  If we find one is missing then we will insert
 	 * a column to add the missing one. 
 	 */
-	private void possiblyInsertColumn(String columnName, int desiredSpot) {
+	private void possiblyInsertColumn(LoadSheetData data, String columnName, int desiredSpot) {
 		if (getColumnLocation(columnName) == null) {
 			int rowNum = rowLocations.get(RowTypes.RUBRIC_NAME);
 			communicator.insertColumn(targetFile, desiredSpot, columnName, rowNum);
@@ -483,6 +486,7 @@ public class GradeSyncer implements SheetAccessorInterface {
 					columnLocations.put(key, location + 1);
 				}
 			}
+			data.colInserted(desiredSpot);
 			addColumnLocation(columnName, desiredSpot);			
 		}
 	}

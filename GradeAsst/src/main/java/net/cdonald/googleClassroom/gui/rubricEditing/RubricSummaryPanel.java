@@ -5,6 +5,7 @@ import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,11 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.undo.UndoManager;
 
+import org.mdkt.compiler.CompilationException;
+
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+import net.cdonald.googleClassroom.gui.RubricTabInterface;
+import net.cdonald.googleClassroom.gui.StudentOutputTabs;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -44,24 +50,29 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	private JPanel automationPanel;
 	private JPanel defaultPanel;
 	private JPanel descriptionPanel;
-	private JSplitPane automationSplit;
+	//private JSplitPane automationSplit;
 	private JSplitPane mainSplit;
 	private Map<Integer, RubricEntryAutomationCardInterface> automationAssignmentMap;
 	private Map<Integer, JTextArea> descriptionAssignmentMap;
 	private RubricFileListener rubricFileListener;
+	private RubricTabInterface rubricTabInterface;
 	private boolean enableEditing;
 	private boolean sourceModified;
+	private volatile boolean hasFocus;
 	private volatile static int lastErrorId = -1;
 	private volatile Map<String, List<Method>> possibleMethodMap;
 	private volatile Map<String, Set<String> > referenceMethodMap;
 	private volatile static RubricEntry.AutomationTypes lastErrorType = RubricEntry.AutomationTypes.NONE;
+	
  
 
-	RubricSummaryPanel(UndoManager undoManager, RubricFileListener rubricFileListener) {
+	RubricSummaryPanel(UndoManager undoManager, RubricFileListener rubricFileListener, RubricTabInterface rubricTabInterface) {
 		super();	
 		this.undoManager = undoManager;
 		this.rubricFileListener = rubricFileListener;		
 		this.enableEditing = false;	
+		this.rubricTabInterface = rubricTabInterface;
+		this.hasFocus = false;
 
 		automationAssignmentMap = new HashMap<Integer, RubricEntryAutomationCardInterface>();
 		descriptionAssignmentMap = new HashMap<Integer, JTextArea>();
@@ -91,7 +102,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 				descriptionAssignmentMap.clear();
 				entriesTable.setAssociatedRubric(rubric);				
 				initPossibleMethodMap();
-				automationSplit.setDividerLocation(0.3);
+				//automationSplit.setDividerLocation(0.3);
 				mainSplit.setDividerLocation(0.5);
 			}
 		});
@@ -105,17 +116,28 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 					automation.testSourceChanged(possibleMethodMap);
 					automation.referenceSourceChanged(referenceMethodMap);
 				}
+				automationPanel.revalidate();
 			}
 		});
 	}
-	
-	public void gainedFocus() {
-		if (sourceModified) {
+	public void hasFocus(boolean hasFocus) {
+		this.hasFocus = hasFocus;
+		if (hasFocus) { 
+			if (sourceModified) {
+				fillSourceMaps();
+			}
+			sourceModified = false;
+		}
+	}
+	public void sourceIsChanged() {
+		if (hasFocus) {
 			fillSourceMaps();
 		}
-		sourceModified = false;
-		
+		else {
+			sourceModified = true;
+		}
 	}
+	
 
 	private void addRubricEntryCards(int index) {
 		RubricEntry entry = rubricToModify.getEntry(index);
@@ -125,22 +147,28 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	
 	private void  initPossibleMethodMap() {
 		StudentWorkCompiler compiler = (StudentWorkCompiler)ListenerCoordinator.runQuery(GetCompilerQuery.class);
-		possibleMethodMap = RubricEntryRunCode.getPossibleMethods(rubricFileListener.getReferenceSource(), compiler, rubricFileListener.getTestSource());
+		try {
+			possibleMethodMap = RubricEntryRunCode.getPossibleMethods(rubricFileListener.getReferenceSource(), compiler, rubricFileListener.getTestSource());
+		} catch (CompilationException e) {
+			rubricFileListener.addCompilerMessage(e.getLocalizedMessage());			
+		} catch (Exception e) {
+			DebugLogDialog.appendException(e);
+		}
+		if (possibleMethodMap != null) {
+			possibleMethodMap = Collections.synchronizedMap(possibleMethodMap);
+			rubricFileListener.addCompilerMessage("");
+		}
 	}
 	
 	private void initReferenceSourceMap() {
 		List<FileData> referenceSource = rubricFileListener.getReferenceSource();
 		referenceMethodMap = RubricEntryMethodContains.createCallMap(referenceSource);
+		if (referenceMethodMap != null) {
+			referenceMethodMap = Collections.synchronizedMap(referenceMethodMap);
+		}
 	}
-	@Override
-	public void referenceSourceChanged() {
-		sourceModified = true;
-	}
+	
 
-	@Override
-	public void testSourceChanged() {
-		sourceModified = true;
-	}
 	
 	
 	private void createLayout() {
@@ -155,8 +183,8 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		automationPanel.setLayout(new CardLayout());
 		descriptionPanel = new JPanel();
 		descriptionPanel.setLayout(new CardLayout());
-		automationSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, descriptionPanel, automationPanel);
-		mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, defaultPanel, automationSplit);
+		//automationSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, descriptionPanel, automationPanel);
+		mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, defaultPanel, descriptionPanel);
 
 		
 		add(mainSplit, BorderLayout.CENTER);
@@ -175,10 +203,12 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 						RubricEntry entry = rubricToModify.getEntry(selectedIndex);						
 						if (entry != null) {
 							addRubricEntryCards(selectedIndex);
+							rubricTabInterface.addAndSelectRubricTab("Automation", automationPanel);
 							CardLayout cardLayout = (CardLayout) automationPanel.getLayout();
 							cardLayout.show(automationPanel, "" + entry.getUniqueID());
 							cardLayout = (CardLayout)descriptionPanel.getLayout();
 							cardLayout.show(descriptionPanel, "" + entry.getUniqueID());
+							automationPanel.revalidate();
 						}
 						
 					}
@@ -211,10 +241,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	
 	public void saving() {
 		entriesTable.stopEditing();
-		RubricEntry entry = getCurrentEntry();
-		if (entry != null) {
-			Integer id = entry.getUniqueID();
-			RubricEntryAutomationCardInterface card = automationAssignmentMap.get(id);
+		for (RubricEntryAutomationCardInterface card : automationAssignmentMap.values()) {
 			if (card != null) {
 				card.saving();
 			}
@@ -477,10 +504,13 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			e.setName("Test");
 			e.setValue(5);
 			e.setAutomation(new RubricEntryRunCode());
-			RubricSummaryPanel testPanel = new RubricSummaryPanel(new UndoManager(), this);
+			UndoManager undoManager = new UndoManager();
+			StudentOutputTabs studentTabs = new StudentOutputTabs(null, null);
+			RubricSummaryPanel testPanel = new RubricSummaryPanel(undoManager, this, studentTabs);
+			
 			testPanel.setRubricToModify(rubric);
 			testPanel.enableEditing(true);
-			add(testPanel);
+			add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, testPanel, studentTabs));
 			setVisible(true);
 		}
 		
@@ -498,12 +528,9 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		}
 
 		@Override
-		public JPanel getTestSourceButtons() {
+		public JButton getAddSourceButtons() {
 			// TODO Auto-generated method stub
-			JPanel temp = new JPanel();
-			temp.setLayout(new BorderLayout());
-			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
-			return temp;
+			return new JButton("Add Source");
 		}
 
 
@@ -511,6 +538,30 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 		@Override
 		public boolean isReferenceSourceSet() {
 			return true;
+		}
+
+
+
+		@Override
+		public void addCompilerMessage(String message) {
+			// TODO Auto-generated method stub
+			
+		}
+
+
+
+		@Override
+		public void sourceIsChanged() {
+			// TODO Auto-generated method stub
+			
+		}
+
+
+
+		@Override
+		public void compileSource(RubricTabNames sourceType) {
+			// TODO Auto-generated method stub
+			
 		}
 	}
 

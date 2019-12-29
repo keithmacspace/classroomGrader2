@@ -333,6 +333,9 @@ public class RubricEntriesTable extends JTable {
 			if (associatedRubric == null) {
 				return null;
 			}
+			if (row >= associatedRubric.getEntryCount()) {
+				return null;
+			}
 			RubricEntry entry = associatedRubric.getEntry(row);
 			Object retVal = null;
 			if (entry != null) {

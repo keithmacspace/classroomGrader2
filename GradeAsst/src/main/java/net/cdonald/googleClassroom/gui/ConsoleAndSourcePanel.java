@@ -17,6 +17,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.undo.UndoManager;
 
@@ -149,26 +151,39 @@ public class ConsoleAndSourcePanel extends JPanel {
 		setLayout(new BorderLayout());
 
 		setVisible(true);
-		
-		rubricTabPanel = new RubricTabPanel(undoManager);
+		studentOutputTabs = new StudentOutputTabs(popupInput, popupDisplays);
+		rubricTabPanel = new RubricTabPanel(undoManager, studentOutputTabs);		
 		studentSourceCards = new StudentSourceCards();		
 		overallTabbedPane = new JTabbedPane();
 		new TabbedUndoListener(undoManager, overallTabbedPane);
 		overallTabbedPane.addTab(OverallTabNames.Source.toString(), studentSourceCards);
 		overallTabbedPane.addTab(OverallTabNames.Rubric.toString(), rubricTabPanel);
 		
-
-		studentOutputTabs = new StudentOutputTabs(popupInput, popupDisplays);
-		
 		JSplitPane sourceOutputSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, overallTabbedPane, studentOutputTabs);
 		sourceOutputSplit.setResizeWeight(0.7);
 		add(sourceOutputSplit, BorderLayout.CENTER);
+		overallTabbedPane.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				possiblyHideRubricCards();
+			}
+
+		});
 		
 		
 		
 		
 
 
+	}
+	
+	private void possiblyHideRubricCards() {
+		if (overallTabbedPane.getSelectedIndex() != OverallTabNames.Rubric.ordinal()) {
+			studentOutputTabs.hideRubricTabs();
+		}
+		else {
+			studentOutputTabs.showRubricTabs();
+		}
 	}
 
 	private void registerListeners() {
@@ -182,6 +197,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 						@SuppressWarnings("unchecked")
 						List<String> studentIDs = (ArrayList<String>)ListenerCoordinator.runQuery(GetStudentIDListQuery.class);
 						studentOutputTabs.bindStudentAreas(studentIDs, rubric);
+						possiblyHideRubricCards();
 					}
 
 				});
@@ -244,6 +260,7 @@ public class ConsoleAndSourcePanel extends JPanel {
 				// Only bind if we don't have a rubric, if we do we already have all the tabs we need.
 				if (rubric == null) {
 					studentOutputTabs.bindStudentAreas(allIDs, rubric);
+					possiblyHideRubricCards();
 				}
 			}			
 		});
@@ -260,7 +277,13 @@ public class ConsoleAndSourcePanel extends JPanel {
 		
 	
 	public void updateRubricCode(Rubric rubric) {
-		rubricTabPanel.updateRubricCode();
+		rubricTabPanel.saveAllChanges();
+	}
+
+	public void editRubric() {
+
+		overallTabbedPane.setSelectedIndex(OverallTabNames.Rubric.ordinal());
+		
 	}	
 
     

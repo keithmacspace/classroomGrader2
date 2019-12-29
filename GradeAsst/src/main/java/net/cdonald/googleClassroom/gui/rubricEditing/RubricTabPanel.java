@@ -13,16 +13,21 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.undo.UndoManager;
-
+import net.cdonald.googleClassroom.gui.DebugLogDialog;
+import net.cdonald.googleClassroom.gui.RubricTabInterface;
 import net.cdonald.googleClassroom.gui.SetRubricListener;
 import net.cdonald.googleClassroom.gui.SetRubricListener.RubricType;
+import net.cdonald.googleClassroom.gui.StudentOutputTabs;
 import net.cdonald.googleClassroom.gui.TabbedUndoListener;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerQuery;
@@ -44,25 +49,21 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private Map<RubricTabNames, RubricSourcePanel> sourcePanelMap;
 	private JButton saveRubricButton;
 	private JButton cancelChangesButton;
+	private JPanel compilerOutput;
+	private JTextArea compilerOutputArea;
+	private RubricTabInterface rubricTabInterface;
 
 	private volatile Rubric rubric;
 	
 	private RubricSummaryPanel rubricSummaryPanel;
 	private volatile Rubric formerRubric;	
-	public enum RubricTabNames {Summary("Summary"), Reference("Reference Source"), TestCode("Test Code");
-		private String name;
-		RubricTabNames(String name) {
-			this.name = name;
-		};
-		public String toString() {
-			return name;
-		}
+	
 
-	}
-	public RubricTabPanel(UndoManager undoManager) {
-		super();			
+	public RubricTabPanel(UndoManager undoManager, RubricTabInterface rubricTabInterface) {
+		super();
+		this.rubricTabInterface = rubricTabInterface;
 		sourcePanelMap = new HashMap<RubricTabNames, RubricSourcePanel>();
-		createLayout(undoManager);
+		createLayout(undoManager, rubricTabInterface);
 		registerListeners();
 	}
 
@@ -89,13 +90,16 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		}
 	}
 
-	private void createLayout(UndoManager undoManager) {
+	private void createLayout(UndoManager undoManager, RubricTabInterface rubricTabInterface) {
 		setLayout(new BorderLayout());
-		
+		compilerOutput = new JPanel();
+		compilerOutput.setLayout(new BorderLayout());
+		compilerOutputArea = new JTextArea();
+		compilerOutput.add(new JScrollPane(compilerOutputArea), BorderLayout.CENTER);
 		addButtonBar();	
-		rubricSummaryPanel = new RubricSummaryPanel(undoManager, this);
-		sourcePanelMap.put(RubricTabNames.Reference, new RubricSourcePanel(undoManager, RubricTabNames.Reference));
-		sourcePanelMap.put(RubricTabNames.TestCode, new RubricSourcePanel(undoManager, RubricTabNames.TestCode));
+		rubricSummaryPanel = new RubricSummaryPanel(undoManager, this, rubricTabInterface);
+		sourcePanelMap.put(RubricTabNames.Reference, new RubricSourcePanel(undoManager, RubricTabNames.Reference, this));
+		sourcePanelMap.put(RubricTabNames.TestCode, new RubricSourcePanel(undoManager, RubricTabNames.TestCode, this));
 		rubricTabbedPane = new JTabbedPane();		
 		rubricTabbedPane.addTab(RubricTabNames.Reference.toString(), sourcePanelMap.get(RubricTabNames.Reference));
 		rubricTabbedPane.addTab(RubricTabNames.TestCode.toString(), sourcePanelMap.get(RubricTabNames.TestCode));
@@ -109,9 +113,16 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				if (rubricTabbedPane.getTitleAt(rubricTabbedPane.getSelectedIndex()).equals(RubricTabNames.Summary.toString())) {
-					rubricSummaryPanel.gainedFocus();
-				}				
+				boolean summaryFocus =  rubricTabbedPane.getTitleAt(rubricTabbedPane.getSelectedIndex()).equals(RubricTabNames.Summary.toString());
+				if (summaryFocus) {
+					for (RubricSourcePanel sourcePanel : sourcePanelMap.values()) {
+						if (sourcePanel.isModified()) {
+							rubricSummaryPanel.sourceIsChanged();
+							break;
+						}
+					}
+				}
+				rubricSummaryPanel.hasFocus(summaryFocus);
 			}			
 		});
 
@@ -204,6 +215,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		buttonBar.add(cancelChangesButton);
 		add(buttonBar, BorderLayout.NORTH);
 	}
+	
 
 	private void enableEditing(boolean enableEditing) {
 
@@ -254,12 +266,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 	private void addSource(List<FileData> files, RubricTabNames tabName, boolean setModified) {		
 		sourcePanelMap.get(tabName).setSourceTabs(files, setModified);
-		if (tabName == RubricTabNames.Reference) {
-			rubricSummaryPanel.referenceSourceChanged();
-		}
-		else {
-			rubricSummaryPanel.testSourceChanged();
-		}		
+		
 	}
 	
 	public List<FileData> createFileData(RubricTabNames rubricTabs) {
@@ -282,14 +289,55 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		return createFileData(RubricTabNames.TestCode);	}
 
 	@Override
-	public JPanel getTestSourceButtons() {
-		return getSourceButtons(RubricTabNames.TestCode);
+	public JButton getAddSourceButtons() {
+		return sourcePanelMap.get(RubricTabNames.TestCode).getSourceButton(true);
+
 	}
 	
 	@Override
 	public boolean isReferenceSourceSet() {		
 		return sourcePanelMap.get(RubricTabNames.Reference).containsFiles();
 	} 
+	
+	@Override
+	public void addCompilerMessage(String text) {
+		rubricTabInterface.addAndSelectRubricTab("Compiler Message", compilerOutput);
+		compilerOutputArea.setText(text);
+	}
+	@Override
+	public void sourceIsChanged() {
+		rubricSummaryPanel.sourceIsChanged();
+	}
+	@Override
+	public void compileSource(RubricTabNames sourceType) {
+		List<FileData> refFiles = null;
+		StudentWorkCompiler compiler = (StudentWorkCompiler)ListenerCoordinator.runQuery(GetCompilerQuery.class);
+
+		switch(sourceType) {
+		case Reference:
+			refFiles = createFileData(RubricTabNames.Reference);
+			break;
+		case Summary:
+			refFiles = createFileData(RubricTabNames.Reference);
+			refFiles.addAll(createFileData(sourceType));
+			break;
+		case TestCode:
+			break;
+		}
+
+		if (refFiles != null) {
+			try {
+				compiler.compile(refFiles);
+			} catch (org.mdkt.compiler.CompilationException e) {
+				addCompilerMessage(e.getLocalizedMessage());
+				return;
+			} catch (Exception e) {
+				DebugLogDialog.appendException(e);
+			}
+		}	
+		addCompilerMessage("");		
+
+	}
 
 	public static void main(String args[]) {
 		SwingUtilities.invokeLater(new Runnable() {
@@ -308,17 +356,8 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
     	
     }
 
-
-	private JPanel getSourceButtons(RubricTabNames tabName) {
-		return sourcePanelMap.get(tabName).getSourceButtons();
-	}
 	
-	private static class TestFrame extends JFrame implements RubricFileListener{
-
-	
-		/**
-		 * 
-		 */
+	private static class TestFrame extends JFrame {
 		private static final long serialVersionUID = 6493675455296312016L;
 		List<FileData> refSource;
 		List<FileData> testSource;
@@ -396,38 +435,14 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			e.setAutomation(new RubricEntryRunCode());
 			rubric.clearRubricDefinitionModified();
 			UndoManager undoManager = new UndoManager();
-			RubricTabPanel testPanel = new RubricTabPanel(undoManager);
+			StudentOutputTabs studentTabs = new StudentOutputTabs(null, null);
+			RubricTabPanel testPanel = new RubricTabPanel(undoManager, studentTabs);
 			testPanel.changeRubricTabs(rubric, undoManager);
-			add(testPanel);
+			add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, testPanel, studentTabs));
 			setVisible(true);
 		}
 
 
-		@Override
-		public List<FileData> getReferenceSource() {
-			return refSource;
-		}
-
-		@Override
-		public List<FileData> getTestSource() {
-			// TODO Auto-generated method stub
-			return testSource;
-		}
-
-		@Override
-		public JPanel getTestSourceButtons() {
-			// TODO Auto-generated method stub
-			JPanel temp = new JPanel();
-			temp.setLayout(new BorderLayout());
-			temp.add(new JButton("Load Source"), BorderLayout.CENTER);
-			return temp;
-		}
-
-
-		@Override
-		public boolean isReferenceSourceSet() {
-			return true;
-		}
 	}
 
 

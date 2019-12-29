@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.undo.UndoManager;
@@ -57,9 +58,19 @@ public class GraderCommentCards extends JPanel {
 			}
 		});
 		ListenerCoordinator.addListener(GradesSyncedListener.class, new GradesSyncedListener() {
-			public void fired(Map<String, String> commentMap) {
-				initComments(commentMap);
-			}			
+			public void fired(Map<String, String> commentMap, boolean clearMap) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						if (clearMap) {
+							for (TrackModifiedTextArea textArea : notesAreas.values()) {
+								textArea.setText("");
+								textArea.setModified(false);
+							}
+						}
+						initComments(commentMap);
+					}
+				});
+			}
 		});
 
 		ListenerCoordinator.addQueryResponder(GetAndClearModifiedNotes.class, new GetAndClearModifiedNotes() {
@@ -79,7 +90,7 @@ public class GraderCommentCards extends JPanel {
 		return null;
 	}
 	
-	public void initComments(Map<String, String> comments) {		
+	private void initComments(Map<String, String> comments) {		
 		for (String studentID : comments.keySet()) {
 			TrackModifiedTextArea textArea = notesAreas.get(studentID);
 			if (textArea != null) {

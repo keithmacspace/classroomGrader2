@@ -717,7 +717,8 @@ public class GoogleClassroomCommunicator {
 				columnName += "" + rowNum;
 				String stringRange = sheetName + "!" + columnName + ":" + columnName;
 				labelRange.setRange(stringRange);
-				labelRange.setValues(nameList2d);								
+				labelRange.setValues(nameList2d);
+				sheetsService.spreadsheets().values().update(id,  stringRange,  labelRange).setValueInputOption("RAW").execute();
 			}
 		} catch (IOException e) {
 			DebugLogDialog.appendException(e);
