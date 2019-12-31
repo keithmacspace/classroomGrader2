@@ -141,7 +141,8 @@ public class RubricSourcePanel extends JPanel {
 								List<FileData> currentFiles = createFileData(tabName.toString());
 								allFiles.addAll(currentFiles);
 							}
-							setSourceTabs(allFiles, true);							
+							setSourceTabs(allFiles, true);
+							rubricFileListener.compileSource(tabName);
 						}						
 					});					
 				}
@@ -270,6 +271,7 @@ public class RubricSourcePanel extends JPanel {
 									List<FileData> studentSource = (List<FileData>)ListenerCoordinator.runQuery(GetStudentFilesQuery.class, id);
 									if (studentSource != null && studentSource.size() != 0) {
 										setSourceTabs(studentSource, true);
+										rubricFileListener.compileSource(tabName);
 									}
 								}
 							}

@@ -186,6 +186,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			fillRunCode();		
 			fillMethodCombo(possibleMethodMap);
 			fileToUseModel.fireTableDataChanged();
+			
 		}
 	}
 	
@@ -245,20 +246,24 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 				methodToCallCombo.removeAllItems();
 				methodMap.clear();
 				if (possibleMethodMap != null) {
-					synchronized(possibleMethodMap) {
-						for (String file : associatedAutomation.getTestCodeSourceToUse()) {
-							List<Method> methods = null;
-							if (possibleMethodMap != null) {
-								methods = possibleMethodMap.get(file);
-							}
-							if (methods != null) {
-								for (Method method : methods) {
-									methodToCallCombo.addItem(method.getName());
-									methodMap.put(method.getName(), method);
-								}
+
+					for (String file : associatedAutomation.getTestCodeSourceToUse()) {
+						List<Method> methods = null;
+						if (possibleMethodMap != null) {
+							methods = possibleMethodMap.get(file);
+						}
+						if (methods != null) {
+							for (Method method : methods) {
+								methodToCallCombo.addItem(method.getName());
+								methodMap.put(method.getName(), method);
 							}
 						}
 					}
+					
+				}
+				String methodSelected = associatedAutomation.getMethodToCall();
+				if (methodSelected != null) {
+					methodToCallCombo.setSelectedItem(methodSelected);
 				}
 				revalidate();
 			}

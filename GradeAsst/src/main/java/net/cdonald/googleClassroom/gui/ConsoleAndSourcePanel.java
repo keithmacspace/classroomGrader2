@@ -280,11 +280,15 @@ public class ConsoleAndSourcePanel extends JPanel {
 		rubricTabPanel.saveAllChanges();
 	}
 
+	public void newRubric(Rubric rubric) {
+		rubricTabPanel.newRubric(rubric, undoManager);
+		overallTabbedPane.setSelectedIndex(OverallTabNames.Rubric.ordinal());		
+	}
+	
 	public void editRubric() {
-
 		overallTabbedPane.setSelectedIndex(OverallTabNames.Rubric.ordinal());
-		
-	}	
+		rubricTabPanel.editRubric();
+	}
 
     
 

@@ -17,6 +17,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.CannotRedoException;
@@ -479,7 +480,12 @@ public class DataController implements StudentListInfo {
 		ListenerCoordinator.addListener(LoadGradesListener.class, new LoadGradesListener() {
 			@Override
 			public void fired() {
-				loadGrades();
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						loadGrades();						
+					}
+				});
+
 			}			
 		});		
 		ListenerCoordinator.addListener(GradeFileSelectedListener.class, new GradeFileSelectedListener() {
@@ -1011,17 +1017,23 @@ public class DataController implements StudentListInfo {
 	
 	private void saveRubric(Rubric rubricToSave) {
 		if (rubricToSave != null) {
-			try {
-				ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Rubric");
-				googleClassroom.writeSheet(rubricToSave);				
-			}
-			catch(IOException e) {
-				JOptionPane.showMessageDialog(null, e.getMessage(), "Error saving to rubric db sheet",
-						JOptionPane.ERROR_MESSAGE);
-				DebugLogDialog.appendException(e);
-				
-			}
-			ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Rubric");
+//			SwingUtilities.invokeLater(new Runnable() {
+				//public void run() {
+
+					try {
+						ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Rubric");
+						googleClassroom.writeSheet(rubricToSave);
+						rubricToSave.clearRubricDefinitionModified();
+					}
+					catch(IOException e) {
+						JOptionPane.showMessageDialog(null, e.getMessage(), "Error saving to rubric db sheet",
+								JOptionPane.ERROR_MESSAGE);
+						DebugLogDialog.appendException(e);
+
+					}
+					ListenerCoordinator.fire(RemoveProgressBarListener.class, "Saving Rubric");
+				//}
+			//});
 		}
 		
 	}

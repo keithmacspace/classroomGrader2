@@ -26,7 +26,6 @@ public class CourseFetcher extends ClassroomDataFetcher {
 	protected Void doInBackground() throws Exception {
 		ListenerCoordinator.fire(AddProgressBarListener.class, PROGRESS_BAR_NAME);
 		authorize.getClasses(this);
-		ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
 		return null;
 	}
 

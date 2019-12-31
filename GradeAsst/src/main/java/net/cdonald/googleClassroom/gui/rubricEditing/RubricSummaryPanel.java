@@ -155,7 +155,6 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			DebugLogDialog.appendException(e);
 		}
 		if (possibleMethodMap != null) {
-			possibleMethodMap = Collections.synchronizedMap(possibleMethodMap);
 			rubricFileListener.addCompilerMessage("");
 		}
 	}
@@ -163,9 +162,6 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	private void initReferenceSourceMap() {
 		List<FileData> referenceSource = rubricFileListener.getReferenceSource();
 		referenceMethodMap = RubricEntryMethodContains.createCallMap(referenceSource);
-		if (referenceMethodMap != null) {
-			referenceMethodMap = Collections.synchronizedMap(referenceMethodMap);
-		}
 	}
 	
 

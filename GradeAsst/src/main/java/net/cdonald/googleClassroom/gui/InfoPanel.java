@@ -1,12 +1,18 @@
 package net.cdonald.googleClassroom.gui;
 
 import java.awt.FlowLayout;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
 
 import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
@@ -19,14 +25,20 @@ public class InfoPanel extends JPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = 3650819366942415507L;
+	private List<JProgressBar> freeProgressBars;
 	private Map<String, JProgressBar> progressBars;
 	private JLabel [] infoLabels;
 	private String [] defaultStrings;
 	private final String INFO_STRING = "                                                                      ";
 	private final String RUNNING_STRING = "                           ";
 	private final String GRADE_FILE_STRING = "                          ";
+	private Set<String> alreadyRemoved;
+	private Set<String> running;
 	public InfoPanel() {
 		super();
+		freeProgressBars = Collections.synchronizedList(new ArrayList<JProgressBar>());
+		alreadyRemoved = Collections.synchronizedSet(new HashSet<String>());
+		running = Collections.synchronizedSet(new HashSet<String>());
 		infoLabels = new JLabel[SetInfoLabelListener.LabelTypes.values().length];
 		defaultStrings = new String[infoLabels.length];		
 		progressBars = new HashMap<String, JProgressBar>();
@@ -34,6 +46,7 @@ public class InfoPanel extends JPanel {
 		defaultStrings[SetInfoLabelListener.LabelTypes.RUNNING.ordinal()] = RUNNING_STRING;
 		defaultStrings[SetInfoLabelListener.LabelTypes.RUBRIC_INFO.ordinal()] = INFO_STRING;
 		setLayout(new FlowLayout(FlowLayout.LEFT));
+		
 		for (int i = 0; i < defaultStrings.length; i++) {
 			infoLabels[i] = new JLabel(defaultStrings[i]);
 			add(infoLabels[i]);
@@ -41,15 +54,35 @@ public class InfoPanel extends JPanel {
 		ListenerCoordinator.addBlockingListener(AddProgressBarListener.class, new AddProgressBarListener() {
 			@Override
 			public void fired(String progressBarName) {
-				removeProgressBar(progressBarName);
-				JProgressBar progress = new JProgressBar();
+				synchronized(alreadyRemoved) {
+					if (alreadyRemoved.contains(progressBarName)) {
+						alreadyRemoved.remove(progressBarName);
+						return;
+					}
+					if (running.contains(progressBarName)) {
+						return;
+					}
+					running.add(progressBarName);
+				}
+				JProgressBar progress = null;
+				synchronized(freeProgressBars) {
+					if (freeProgressBars.size() == 0) {						
+						progress = new JProgressBar();
+						progress.setIndeterminate(true);
+						progress.setStringPainted(true);
+						add(progress);
+					}
+					else {
+						progress = freeProgressBars.remove(0);					
+					}
+				}
 				progress.setString(progressBarName);	
-				progress.setIndeterminate(true);
-				progress.setStringPainted(true);
 				progressBars.put(progressBarName, progress);
-				add(progress);
+				progress.setVisible(true);
 				revalidate();
-				repaint();
+				repaint();						
+//					}
+//				});
 			}
 		});
 		
@@ -83,11 +116,23 @@ public class InfoPanel extends JPanel {
 		
 	}
 	private void removeProgressBar(String progressBarName) {
-		JProgressBar progress = progressBars.remove(progressBarName);
-		if (progress != null) {
-			progress.setVisible(false);
-			remove(progress);
+		synchronized(alreadyRemoved) {
+			if (running.contains(progressBarName)) {
+				running.remove(progressBarName);
+			}
+			else {
+				alreadyRemoved.add(progressBarName);
+			}
 		}
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				JProgressBar progress = progressBars.remove(progressBarName);
+				if (progress != null) {
+					freeProgressBars.add(progress);
+					progress.setVisible(false);
+				}
+			}
+		});
 		
 	}
 

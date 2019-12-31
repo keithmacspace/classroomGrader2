@@ -23,6 +23,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.undo.UndoManager;
+
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
 import net.cdonald.googleClassroom.gui.RubricTabInterface;
 import net.cdonald.googleClassroom.gui.SetRubricListener;
@@ -30,6 +31,7 @@ import net.cdonald.googleClassroom.gui.SetRubricListener.RubricType;
 import net.cdonald.googleClassroom.gui.StudentOutputTabs;
 import net.cdonald.googleClassroom.gui.TabbedUndoListener;
 import net.cdonald.googleClassroom.inMemoryJavaCompiler.StudentWorkCompiler;
+import net.cdonald.googleClassroom.listenerCoordinator.AddProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.GetCompilerQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentFilesQuery;
 import net.cdonald.googleClassroom.listenerCoordinator.GetStudentIDListQuery;
@@ -95,6 +97,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		compilerOutput = new JPanel();
 		compilerOutput.setLayout(new BorderLayout());
 		compilerOutputArea = new JTextArea();
+		compilerOutputArea.setText("");
 		compilerOutput.add(new JScrollPane(compilerOutputArea), BorderLayout.CENTER);
 		addButtonBar();	
 		rubricSummaryPanel = new RubricSummaryPanel(undoManager, this, rubricTabInterface);
@@ -187,6 +190,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		saveRubricButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				ListenerCoordinator.fire(AddProgressBarListener.class, "Saving Rubric");
 				saveAllChanges();
 				setFormerRubric(rubric);
 				ListenerCoordinator.fire(SaveRubricListener.class);
@@ -197,7 +201,7 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				rubric = null;
-				synchronized(formerRubric) {
+				synchronized(RubricTabPanel.this) {
 					ListenerCoordinator.fire(SetRubricListener.class, formerRubric, RubricType.PRIMARY);
 				}
 				setFormerRubric(null);
@@ -236,22 +240,33 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 	}
 
-
-
-	public void changeRubricTabs(Rubric localRubric, UndoManager undoManager) {		
+	public void newRubric(Rubric rubric2, UndoManager undoManager) {
+		setRubric(rubric2, undoManager, true);		
+	}
+	
+	public void editRubric() {
+		enableEditingBox.setSelected(true);
+		enableEditing(true);		
+	}
+	private void setRubric(Rubric localRubric, UndoManager undoManager, boolean enableEditing) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				if (rubric != localRubric) {					
+				if (rubric != localRubric) {
 					setFormerRubric(null);
 					rubric = localRubric;
 					addSources();
-					rubricSummaryPanel.setRubricToModify(localRubric);
-					rubricSummaryPanel.enableEditing(false);
-					enableEditingBox.setSelected(false);
-					enableEditing(false);
+					rubricSummaryPanel.setRubricToModify(localRubric);					
+					enableEditingBox.setSelected(enableEditing);
+					enableEditing(enableEditing);
 				}
 			}
 		});
+	}
+
+	public void changeRubricTabs(Rubric localRubric, UndoManager undoManager) {
+		boolean saveEnableState = (rubric != null && localRubric != null && rubric.getName().equals(localRubric.getName()));
+		boolean enable = saveEnableState ? enableEditingBox.isSelected() : false;
+		setRubric(localRubric, undoManager, enable);
 	}
 
 	private void addSources() {
@@ -301,8 +316,10 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	
 	@Override
 	public void addCompilerMessage(String text) {
-		rubricTabInterface.addAndSelectRubricTab("Compiler Message", compilerOutput);
-		compilerOutputArea.setText(text);
+		if (!compilerOutputArea.getText().equals(text)) {
+			rubricTabInterface.addAndSelectRubricTab("Compiler Message", compilerOutput);
+			compilerOutputArea.setText(text);
+		}
 	}
 	@Override
 	public void sourceIsChanged() {
@@ -317,11 +334,11 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		case Reference:
 			refFiles = createFileData(RubricTabNames.Reference);
 			break;
-		case Summary:
+		case TestCode:
 			refFiles = createFileData(RubricTabNames.Reference);
 			refFiles.addAll(createFileData(sourceType));
 			break;
-		case TestCode:
+		case Summary:
 			break;
 		}
 
@@ -444,6 +461,8 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 
 	}
+
+
 
 
 

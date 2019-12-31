@@ -25,15 +25,15 @@ public class Rubric implements SheetAccessorInterface {
 		TRACK_MODIFICATIONS, LOCK_USER_MODIFICATIONS
 	}
 	public enum RubricModifiableState {
-		
+
 	}
 	private static ScoreModifiableState scoreModifiableState = ScoreModifiableState.TRACK_MODIFICATIONS;
 	private GoogleSheetData sheetData;
-	
+
 	private boolean isRubricDefinitionModified = false;
 	private List<FileData> referenceSource;
 	private List<FileData> testCodeSource;
-	private List<RubricEntry> entries = Collections.synchronizedList(new ArrayList<RubricEntry>());
+	private List<RubricEntry> entries = new ArrayList<RubricEntry>();
 	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";		
 	private boolean loadedFromFile = false;
 	private boolean allowEntryAddition = false;
@@ -50,8 +50,8 @@ public class Rubric implements SheetAccessorInterface {
 		super();
 		this.sheetData = sheetData;
 		loadedFromFile = false;
-		Collections.synchronizedCollection(new ArrayList<RubricEntry>());		
-		entries = Collections.synchronizedList(new ArrayList<RubricEntry>());
+
+		entries = new ArrayList<RubricEntry>();
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
 
@@ -65,18 +65,18 @@ public class Rubric implements SheetAccessorInterface {
 			sheetData = null;
 		}		
 		loadedFromFile = other.loadedFromFile;
-		synchronized(other.entries) {
-			other.entries.forEach((e)->
-			{
-				entries.add(e);
-			});
-		}
+
+		other.entries.forEach((e)->
+		{
+			entries.add(e);
+		});
+
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
 		setSource(testCodeSource, other.testCodeSource);
 		setSource(referenceSource, other.referenceSource);
 		isRubricDefinitionModified = other.isRubricDefinitionModified;
-		
+
 	}
 
 	// This form is used when we are creating a new rubric from scratch
@@ -91,7 +91,7 @@ public class Rubric implements SheetAccessorInterface {
 	public List<FileData> getReferenceSource() {
 		return referenceSource;
 	}
-	
+
 	public boolean isAllowEntryAddition() {
 		return allowEntryAddition;
 	}
@@ -114,7 +114,7 @@ public class Rubric implements SheetAccessorInterface {
 	public void setReferenceSource(List<FileData> fileDataList) {
 		setSource(referenceSource, fileDataList);
 	}
-	
+
 	public void setTestCode(List<FileData> fileDataList) {
 		setSource(testCodeSource, fileDataList);
 	}
@@ -139,16 +139,16 @@ public class Rubric implements SheetAccessorInterface {
 
 	public double getTotalValue(String id) {
 		double value = 0.0;
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				RubricEntry.StudentScore studentValue = entry.getStudentScore(id);
-				if (studentValue != null && studentValue.getScore() != null) {
-					value += studentValue.getScore();
-				}				
-			}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			RubricEntry.StudentScore studentValue = entry.getStudentScore(id);
+			if (studentValue != null && studentValue.getScore() != null) {
+				value += studentValue.getScore();
+			}				
 		}
+
 		// Keep 1 unit of precision
 		value *= 10;
 		value = Math.round(value);
@@ -163,14 +163,12 @@ public class Rubric implements SheetAccessorInterface {
 	}
 
 	public List<String> getRubricTabs() {
-		List<String> rubricTabs = new ArrayList<String>();
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				entry.addRubricTab(rubricTabs);
-			}
-		}
+		List<String> rubricTabs = new ArrayList<String>();		
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			entry.addRubricTab(rubricTabs);
+		}		
 		return rubricTabs;
 	}
 
@@ -192,19 +190,19 @@ public class Rubric implements SheetAccessorInterface {
 
 	public void addNewEntry() {
 		entries.add(new RubricEntry());
-		
+
 	}
 
 	public boolean areGradesModified() {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				if (entry.anyGradesModified()) {
-					return true;
-				}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			if (entry.anyGradesModified()) {
+				return true;
 			}
-		}		
+		}
+
 		return false;
 	}
 
@@ -215,71 +213,71 @@ public class Rubric implements SheetAccessorInterface {
 
 	public void modifyEntry(RubricEntry entry) {
 		isRubricDefinitionModified = true;
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			int index = -1;
-			boolean found = false;
-			while (it.hasNext() && found == false) {
-				RubricEntry currentEntry = it.next();
-				if (currentEntry.getName().equalsIgnoreCase(entry.getName())) {
-					found = true;
-				}
-				else {
-					index++;
-				}
-			}
-			if (found) {
-				entries.set(index, entry);
+
+		Iterator<RubricEntry> it = entries.iterator();
+		int index = -1;
+		boolean found = false;
+		while (it.hasNext() && found == false) {
+			RubricEntry currentEntry = it.next();
+			if (currentEntry.getName().equalsIgnoreCase(entry.getName())) {
+				found = true;
 			}
 			else {
-				entries.add(entry);
+				index++;
 			}
 		}
+		if (found) {
+			entries.set(index, entry);
+		}
+		else {
+			entries.add(entry);
+		}
+
 	}
 
 	public void removeEntry(String name) {
 		isRubricDefinitionModified = true;
-		synchronized(entries) {
-			for (int i = 0; i < entries.size(); i++) {
-				RubricEntry entry = entries.get(i);
-				if (entry.getName().compareToIgnoreCase(name) == 0) {
-					entries.remove(i);
-					break;
-				}
+
+		for (int i = 0; i < entries.size(); i++) {
+			RubricEntry entry = entries.get(i);
+			if (entry.getName().compareToIgnoreCase(name) == 0) {
+				entries.remove(i);
+				break;
 			}
 		}
+
 	}
 
 	public void removeEntry(int index) {
 		isRubricDefinitionModified = true;
-		synchronized(entries) {
-			if (index >= 0 && index <= entries.size()) {
-				entries.remove(index);
-			}
+
+		if (index >= 0 && index <= entries.size()) {
+			entries.remove(index);
 		}
+
 	}
 
 	public void swapEntries(int index, int otherIndex) {
 		isRubricDefinitionModified = true;
-		synchronized(entries) {
-			if (index >= 0 && index < entries.size() && otherIndex >= 0 && otherIndex < entries.size()) {
-				RubricEntry temp = entries.set(index, entries.get(otherIndex));
-				entries.set(otherIndex, temp);
-			}
+
+		if (index >= 0 && index < entries.size() && otherIndex >= 0 && otherIndex < entries.size()) {
+			RubricEntry temp = entries.set(index, entries.get(otherIndex));
+			entries.set(otherIndex, temp);
 		}
+
 	}
 
 	public boolean isInRubric(String name) {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
 
-				if (entry.getName().equals(name)) {
-					return true;
-				}
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+
+			if (entry.getName().equals(name)) {
+				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -290,17 +288,7 @@ public class Rubric implements SheetAccessorInterface {
 
 	public int getEntryCount() {
 		if (entries != null) {
-//			if (allowEntryAddition) {
-//				synchronized(entries) {					
-//					for (int i = entries.size() - 1; i >= 0; i--) {
-//						RubricEntry entry = entries.get(i);
-//						if (entry.getName() != null && entry.getName().length() != 0) {
-//							return i + 1;
-//						}
-//					}
-//				}			
-//			} else {
-				return entries.size();
+			return entries.size();
 		}
 		return 0;
 	}
@@ -309,59 +297,59 @@ public class Rubric implements SheetAccessorInterface {
 		if (index < 0) {
 			return null;
 		}
-		synchronized(entries) {
-			if (index >= 0 && index < entries.size()) {
-				return entries.get(index);
-			}
-			// When we are modifying the rubric, then we can just add elements
-			else if (allowEntryAddition) {
-				while (entries.size() <= index) {
-					entries.add(new RubricEntry());
-				}
-				return entries.get(index);
 
-			}
+		if (index >= 0 && index < entries.size()) {
+			return entries.get(index);
 		}
+		// When we are modifying the rubric, then we can just add elements
+		else if (allowEntryAddition) {
+			while (entries.size() <= index) {
+				entries.add(new RubricEntry());
+			}
+			return entries.get(index);
+
+		}
+
 		return null;
 	}
-	
-	public RubricEntry getEntryByID(int elementID) {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
 
-				if (elementID == entry.getUniqueID()) {
-					return entry;
-				}			
-			}
+	public RubricEntry getEntryByID(int elementID) {
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+
+			if (elementID == entry.getUniqueID()) {
+				return entry;
+			}			
 		}
+
 		return null;
 	}
 
 	public boolean isGradingComplete(String id) {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				if (entry.getStudentScore(id) == null) {
-					return false;
-				}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			if (entry.getStudentScore(id) == null) {
+				return false;
 			}
 		}
+
 		return true;
 	}
 
 	public void clearStudentScoreModifiedFlag() {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				entry.clearStudentScoreModifiedFlag();
-			}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			entry.clearStudentScoreModifiedFlag();
 		}
+
 	}
-	
+
 
 	public List<FileData> getTestCode() {		
 		return testCodeSource;
@@ -373,7 +361,7 @@ public class Rubric implements SheetAccessorInterface {
 			String studentId, CompilerMessage message, StudentWorkCompiler compiler, ConsoleData consoleData) {
 
 		Set<String> entriesSkipped = null;
-		
+
 		for (int index = 0; index < entries.size(); index++) {
 			RubricEntry entry = entries.get(index);
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
@@ -400,40 +388,40 @@ public class Rubric implements SheetAccessorInterface {
 		if (isRubricDefinitionModified) {
 			return true;
 		}
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				if (entry.isRubricDefinitionModified()) {
-					return true;
-				}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			if (entry.isRubricDefinitionModified()) {
+				return true;
 			}
 		}
+
 		return false;
 	}
 
 	public void clearRubricDefinitionModified() {
 		this.isRubricDefinitionModified = false;
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				entry.clearIsRubricDefinitionModified();
-			}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			entry.clearIsRubricDefinitionModified();
 		}
+
 	}
 
 	public void deleteEntry(String elementName) {
-		synchronized(entries) {
-			Iterator<RubricEntry> it = entries.iterator();
-			while (it.hasNext()) {
-				RubricEntry entry = it.next();
-				if (entry.getName().equals(elementName) || entry.getColumnName().equals(elementName)) {
-					it.remove();
-					break;
-				}
+
+		Iterator<RubricEntry> it = entries.iterator();
+		while (it.hasNext()) {
+			RubricEntry entry = it.next();
+			if (entry.getName().equals(elementName) || entry.getColumnName().equals(elementName)) {
+				it.remove();
+				break;
 			}
 		}
+
 	}
 
 	public void loadFromSheet(LoadSheetData loadSheetData) {
@@ -477,7 +465,7 @@ public class Rubric implements SheetAccessorInterface {
 				break;
 			}
 		}
-		
+
 		// Now read the automation columns
 		if (currentAutomationHeader != 0) {
 			while (columnHeaders.size() > currentAutomationHeader
@@ -496,7 +484,7 @@ public class Rubric implements SheetAccessorInterface {
 				entry.loadAutomationColumns(entryColumns, fileDataMap);
 			}
 		}
-		
+
 		for (FileData testSource : fileDataMap.values()) {
 			testCodeSource.add(testSource);
 		}
@@ -505,7 +493,7 @@ public class Rubric implements SheetAccessorInterface {
 		loadSource(entryColumns, referenceSource, REFERENCE_SOURCE_LABEL);		
 		clearRubricDefinitionModified();
 		//loadPointsBreakdown(entryColumns);
-		
+
 	}
 
 	private void loadSource(Map<String, List<List<Object>>> entryColumns,  List<FileData> fileDataList, String columnName) {
@@ -549,7 +537,7 @@ public class Rubric implements SheetAccessorInterface {
 	@Override
 	public SaveSheetData getSheetSaveState() {
 		SaveSheetData saveState = new SaveSheetData(SaveSheetData.ValueType.RAW, sheetData.getName(), true);
-		
+
 		List<List<Object>> columnData = new ArrayList<List<Object>>();		
 
 		saveState.addOneRow(RubricEntry.getRubricHeader(), 1);
@@ -575,7 +563,7 @@ public class Rubric implements SheetAccessorInterface {
 
 		saveState.writeFullColumn(referenceSourceNameRows, currentColumn);
 		currentColumn++;
-		
+
 		currentColumn = saveSource(saveState, referenceSource, currentColumn);
 		currentColumn = saveSource(saveState, testCodeSource, currentColumn);
 		return saveState;

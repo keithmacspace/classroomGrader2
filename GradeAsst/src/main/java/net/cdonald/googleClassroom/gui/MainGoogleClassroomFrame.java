@@ -323,8 +323,8 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 				String rubricName = newRubricDialog.getRubricName();
 				if (rubricName != null) {
 					Rubric temp = dataController.newRubric(rubricName);
-					mainToolBar.addRubricInfo(temp.getSheetInfo(), true);
-					consoleAndSourcePanel.editRubric();					
+					consoleAndSourcePanel.newRubric(temp);
+					mainToolBar.addRubricInfo(temp.getSheetInfo(), true);					
 				}
 			}
 		});
@@ -464,16 +464,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 	}
 	
 	private void saveGrades() {
-		SwingWorker<Void, Void> syncWorker = new SwingWorker<Void, Void>() {
-
-			@Override
-			protected Void doInBackground() throws Exception {
-				saveGradesInCurrentThread();
-				return null;
-			}
-			
-		};
-		syncWorker.execute();
+				saveGradesInCurrentThread();		
 	}
 	
 	private boolean saveGradesInCurrentThread() {

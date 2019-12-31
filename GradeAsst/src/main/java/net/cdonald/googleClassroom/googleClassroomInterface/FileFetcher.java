@@ -34,7 +34,6 @@ public class FileFetcher extends ClassroomDataFetcher {
 		if (course != null && assignment != null) {
 			ListenerCoordinator.fire(AddProgressBarListener.class, PROGRESS_BAR_NAME);
 			authorize.getStudentWork(course, assignment, this);
-			ListenerCoordinator.fire(RemoveProgressBarListener.class, PROGRESS_BAR_NAME);
 		}
 		return null;
 	}
