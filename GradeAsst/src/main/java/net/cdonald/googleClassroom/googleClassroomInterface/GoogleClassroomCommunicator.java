@@ -91,6 +91,7 @@ import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.GoogleSheetData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.StudentData;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class GoogleClassroomCommunicator {
 	private final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
@@ -321,6 +322,7 @@ public class GoogleClassroomCommunicator {
 		cancelCurrentAssignmentRead = true;
 		acquireReadAssignmentSemaphore();
 		acquireReadStudentsWorkSemaphore();
+		DebugLogDialog.appendln("Try");
 		try {
 			initServices();
 
@@ -333,13 +335,14 @@ public class GoogleClassroomCommunicator {
 				}
 
 				Date date = courseWork.getDueDate();
+				java.util.Date convertedDueDate = null;
 				
-			
-				TimeOfDay timeOfDay = courseWork.getDueTime();
+				DebugLogDialog.appendln("Here" + courseWork.getTitle() + date);
+				TimeOfDay dueTime = courseWork.getDueTime();
 				
-				if (date != null && timeOfDay != null) {					
-					Integer hours = timeOfDay.getHours();
-					Integer minutes = timeOfDay.getMinutes();
+				if (date != null && dueTime != null) {					
+					Integer hours = dueTime.getHours();
+					Integer minutes = dueTime.getMinutes();
 					
 					Integer month = date.getMonth();
 					Integer year = date.getYear();
@@ -352,11 +355,23 @@ public class GoogleClassroomCommunicator {
 					long offset = TimeZone.getDefault().getOffset(timeInMS);
 					timeInMS += offset;
 					temp.setTimeInMillis(timeInMS);
-					java.util.Date dueDate = temp.getTime();					
-					ClassroomData data = new ClassroomData(courseWork.getTitle(), courseWork.getId(), dueDate);
+					convertedDueDate = temp.getTime();
+				}
+				else {
+					convertedDueDate = SimpleUtils.createDate(courseWork.getCreationTime());
+					if (convertedDueDate == null) {
+						convertedDueDate = new java.util.Date();
+					}
+					if (convertedDueDate != null) {
+						// If there is no due date, just add 4 days.
+						convertedDueDate.setTime(convertedDueDate.getTime() + (4 * 24 * 3600 * 1000));
+					}
+				}
+				
+					ClassroomData data = new ClassroomData(courseWork.getTitle(), courseWork.getId(), convertedDueDate);
 					data.setRetrievedFromGoogle(true);
 					fetchListener.retrievedInfo(data);
-				}
+				
 			}
 		} catch (IOException e) {
 			readStudentsWorkSemaphore.release();
@@ -425,6 +440,7 @@ public class GoogleClassroomCommunicator {
 								fileContents = "Student uploaded file in unsupported format, nothing downloaded";								
 							}
 							fileName = FileData.createFileName(fileName, fileContents);
+							fileContents = FileData.stripPackage(fileContents);
 							ClassroomData data = new FileData(fileName, fileContents, studentNameKey,
 									submission.getUpdateTime());
 							data.setRetrievedFromGoogle(true);

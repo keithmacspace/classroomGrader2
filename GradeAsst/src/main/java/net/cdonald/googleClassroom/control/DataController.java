@@ -689,7 +689,7 @@ public class DataController implements StudentListInfo {
 	}
 	
 	public  Set<String>  runRubric(String studentId, Set<String> rubricElementNames) {
-		studentWorkCompiler.compile(studentId);
+		//studentWorkCompiler.compile(studentId);
 		StudentData student = null;
 		Set<String>  skipped = null;
 		if (testFile != null && testFile.getId().equals(studentId)) {
@@ -703,7 +703,7 @@ public class DataController implements StudentListInfo {
 			studentName = student.getFirstName() + " " + student.getName();
 		}
 		if (currentRubric != null) {
-			CompilerMessage message = studentWorkCompiler.getCompilerMessage(studentId);
+			CompilerMessage message = null; //studentWorkCompiler.getCompilerMessage(studentId);
 			List<RubricEntry.RubricUndoInfo> undoInfo = new ArrayList<RubricEntry.RubricUndoInfo>();
 			skipped = currentRubric.runAutomation(undoInfo, updateListener, rubricElementNames, studentName, studentId, message, studentWorkCompiler, consoleData);
 			if (undoInfo.size() != 0) {

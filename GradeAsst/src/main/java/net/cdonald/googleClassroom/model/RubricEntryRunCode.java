@@ -134,10 +134,10 @@ public class RubricEntryRunCode extends  RubricAutomation {
 	}
 	
 	protected Double runAutomation(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
-		if (message == null) {
-			return null;
-		}
-		if (message.isSuccessful()) {
+		//if (message == null) {
+			//return null;
+		//}
+		if (true || message.isSuccessful()) {
 
 			ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running " + this.getOwnerName() + " for " + studentName);
 		
@@ -171,9 +171,16 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			Class<?> []params = {};
 			Object []args = {};
 			Object returnValue = null;
+			for (FileData rubricFile : rubricFiles) {
+				DebugLogDialog.appendln(rubricFile.getName());
+				DebugLogDialog.appendln(rubricFile.getFileContents());
+			}
 
 			try {					
-				returnValue = compiler.compileAndRun(true,  rubricFiles, methodToCall, params, args, true);				
+				returnValue = compiler.compileAndRun(true,  rubricFiles, methodToCall, params, args, true);
+				if (compiler.getCompilerMessage(studentId) == null) {
+					compiler.setCompilerMessage(studentId, true);
+				}
 			}
 			catch (Exception e) {
 				try {
@@ -337,7 +344,16 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			
 			List<String> referenceSourceClassNames = new ArrayList<String>();
 			for (FileData refSource : referenceSource) {
-				referenceSourceClassNames.add(refSource.getClassName());
+				boolean isTestCode = false;
+				for (FileData testCode : testCodeSource) {
+					if (testCode.getClassName().equals(refSource.getClassName())) {
+						isTestCode = true;
+						break;
+					}
+				}
+				if (isTestCode == false) {
+					referenceSourceClassNames.add(refSource.getClassName());
+				}
 			}
 			for (FileData testFile : testCodeSource) {
 				if (testCodeSourceToUse.contains(testFile.getName())) {
@@ -621,16 +637,18 @@ public class RubricEntryRunCode extends  RubricAutomation {
 			for (Object fileO : files) {
 				if (fileO instanceof String) {
 					String file = (String)fileO;
-					testCodeSourceToUse.add(file);
-					// We want them all sharing the same source so that when we edit the
-					// source in the rubric, all of them see the edit
-					if (fileDataMap.containsKey(file) == false) {
-						FileData fileData = FileData.newFromSheet(file, columnData.get(file.toUpperCase()));
-						if (fileData == null) {
-							showErrorMessage(entryName);
-						}
-						else {
-							fileDataMap.put(file, fileData);
+					if (file.indexOf(".java") != -1) {
+						testCodeSourceToUse.add(file);
+						// We want them all sharing the same source so that when we edit the
+						// source in the rubric, all of them see the edit
+						if (fileDataMap.containsKey(file) == false) {
+							FileData fileData = FileData.newFromSheet(file, columnData.get(file.toUpperCase()));
+							if (fileData == null) {
+								showErrorMessage(entryName);
+							}
+							else {
+								fileDataMap.put(file, fileData);
+							}
 						}
 					}
 				}

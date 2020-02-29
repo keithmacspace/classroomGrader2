@@ -19,7 +19,9 @@ import net.cdonald.googleClassroom.model.MyPreferences;
 public class SimpleUtils {
 	public static enum TimeUnit{NONE, WEEK, DAY, HOUR, MINUTES};
 	public static final String DATE_PATTERN = "MM/dd/yyyy HH:mm:ss";
+	public static final String GOOGLE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
 	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_PATTERN);
+	private static final SimpleDateFormat googleDateFormat = new SimpleDateFormat(GOOGLE_PATTERN);
 	private static final long MS_PER_MINUTE = 60000;
 	private static final long MS_PER_HOUR = 60 * MS_PER_MINUTE;
 	private static final long MS_PER_DAY = MS_PER_HOUR * 24;
@@ -47,8 +49,14 @@ public class SimpleUtils {
 		try {
 			return simpleDateFormat.parse(date);
 		} catch (ParseException e) {
+			
+		}
+		try {
+			return googleDateFormat.parse(date);				
+		} catch (ParseException e1) {
 
 		}
+		
 		return null;
 	}
 

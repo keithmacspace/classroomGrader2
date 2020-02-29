@@ -523,4 +523,14 @@ public class StudentWorkCompiler {
 		return duplicate;
 		
 	}
+
+
+	public void setCompilerMessage(String studentId, boolean b) {
+		StudentBuildInfo buildInfo = studentBuildInfoMap.get(studentId);
+		if(buildInfo.getCompilerMessage() == null) {
+			buildInfo.setCompilerMessage(new CompilerMessage(studentId, b));
+		}
+
+		
+	}
 }
