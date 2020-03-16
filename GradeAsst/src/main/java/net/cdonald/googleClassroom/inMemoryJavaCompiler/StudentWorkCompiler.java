@@ -34,6 +34,7 @@ import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.listenerCoordinator.RemoveProgressBarListener;
 import net.cdonald.googleClassroom.listenerCoordinator.StopRunListener;
 import net.cdonald.googleClassroom.model.FileData;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class StudentWorkCompiler {
 
@@ -168,7 +169,7 @@ public class StudentWorkCompiler {
 		return runSpecificMethod(expectingReturn, methodName, filesToUse, compiled, params, args);
 	}
 	
-	public void compileAll() {
+	public void compileAll(List<FileData> supportCode) {
 		compilerWorker = new SwingWorker<Void, CompilerMessage>() {
 
 			@Override
@@ -184,7 +185,7 @@ public class StudentWorkCompiler {
 				ListenerCoordinator.fire(AddProgressBarListener.class, PROGRESS_BAR_NAME);
 				Set<String> keys = studentBuildInfoMap.keySet();
 				for (String studentID : keys) {
-					CompilerMessage compilerMessage = compile(studentID);
+					CompilerMessage compilerMessage = compile(studentID, supportCode);
 					publish(compilerMessage);
 					
 				}
@@ -201,12 +202,12 @@ public class StudentWorkCompiler {
 		compilerWorker.execute();
 	}
 	
-	public CompilerMessage compile(String studentID) {
+	public CompilerMessage compile(String studentID, List<FileData> supportCode) {
 		CompilerMessage message = null;
 		StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(studentID);		
 		if (studentBuildInfo != null) {
 	 		studentBuildInfo.setStudentCompilerMap(null);
-			List<FileData> studentFiles = studentBuildInfo.getStudentFileData();
+			List<FileData> studentFiles = SimpleUtils.mergeSourceLists(studentBuildInfo.getStudentFileData(), supportCode);
 			InMemoryJavaCompiler compiler = InMemoryJavaCompiler.newInstance();			
 			try {
 				ListenerCoordinator.fire(AppendOutputTextListener.class, studentID, "", "", true);
@@ -238,12 +239,13 @@ public class StudentWorkCompiler {
 		return studentBuildInfoMap.get(id).getStudentFileData();
 	}
 
-	public void run(String id) {
+	public void run(String id, List<FileData> supportCode) {
 
 		if (studentBuildInfoMap.containsKey(id)) {
 			StudentBuildInfo studentBuildInfo = studentBuildInfoMap.get(id);
 			if (studentBuildInfo.getStudentCompilerMap() != null) {								
-				List<FileData> files = studentBuildInfo.getStudentFileData();
+				
+				List<FileData> files = SimpleUtils.mergeSourceLists(studentBuildInfo.getStudentFileData(), supportCode);
 				
 				//boolean expectingReturn, List<FileData> fileDataList, String methodName, Class<?> []params, Object[] args
 				Class<?> [] mainParamTypes = {String[].class};
@@ -412,8 +414,7 @@ public class StudentWorkCompiler {
 
 	public void removeSource(String studentID, String fileName) {
 		if (studentBuildInfoMap.containsKey(studentID)) {
-			studentBuildInfoMap.get(studentID).removeSource(fileName);
-			compile(studentID);
+			studentBuildInfoMap.get(studentID).removeSource(fileName);			
 		}		
 	}
 

@@ -14,6 +14,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.MyPreferences;
 
 public class SimpleUtils {
@@ -181,6 +182,25 @@ public class SimpleUtils {
 		buttonsPanel.setBorder(BorderFactory.createEmptyBorder(BUTTON_TOP_SPACE, SPACE, SPACE, SPACE));
 		buttonsPanel.setLayout(buttonLayout);
 		return buttonsPanel;
+	}
+	
+	public static List<FileData> mergeSourceLists(List<FileData> studentSource, List<FileData> supportSource) {
+		if (supportSource == null || supportSource.size() == 0) {
+			return studentSource;
+		}
+		List<FileData> merged = new ArrayList<FileData>(studentSource);
+		for (FileData support : supportSource) {
+			boolean found = false;
+			for (FileData student : studentSource) {
+				if (student.getName().equals(support.getName())) {
+					found = true;
+				}
+			}
+			if (found == false) {
+				merged.add(support);
+			}
+		}
+		return merged;
 	}
 
 

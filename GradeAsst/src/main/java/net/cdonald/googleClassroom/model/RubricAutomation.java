@@ -51,7 +51,7 @@ public abstract class RubricAutomation {
 	}
 
 	public abstract RubricAutomation newCopy();	
-	protected abstract Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData);
+	protected abstract Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, List<FileData> supportCodeSource, ConsoleData consoleData);
 	protected abstract void saveAutomationColumns(String entryName, List<List<Object>> columnData);
 	protected void loadAutomationColumns(String entryName, Map<String, List<List<Object>>> columnData, Map<String, FileData> fileDataMap) {
 		// TODO Auto-generated method stub

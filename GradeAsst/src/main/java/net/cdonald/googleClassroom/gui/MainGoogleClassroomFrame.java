@@ -362,8 +362,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		ListenerCoordinator.addListener(RemoveSourceListener.class, new RemoveSourceListener() {
 			@Override
 			public void fired(String studentID, String fileName) {
-				dataController.removeSource(studentID, fileName);
-				dataUpdated();				
+				dataController.removeSource(studentID, fileName);								
 				studentPanel.setSelectedStudent(studentID);
 			}			
 		});

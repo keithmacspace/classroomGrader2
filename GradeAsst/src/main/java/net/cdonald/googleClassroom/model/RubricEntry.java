@@ -327,7 +327,7 @@ public class RubricEntry {
 	}
 
 	boolean runAutomation(List<RubricUndoInfo> undoInfo, int elementIndex, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler,
-			ConsoleData consoleData, List<FileData> referenceSource, List<FileData> testCodeSource) {
+			ConsoleData consoleData, List<FileData> referenceSource, List<FileData> testCodeSource, List<FileData> supportCodeSource) {
 		// Don't change the value of already graded rubrics
 		StudentScore studentScore = studentScores.get(studentId);
 		if (studentScore != null && studentScore.score != null) {
@@ -348,7 +348,7 @@ public class RubricEntry {
 		// No need to check the Rubric.ModifiableState, if we're running automation,
 		// we're changing the value
 		if (automation != null) {
-			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, referenceSource, testCodeSource, consoleData);
+			Double result = automation.runAutomation(this, studentName, studentId, message, compiler, referenceSource, testCodeSource, supportCodeSource, consoleData);
 			// Leave the old score if the result is null.
 			if (result != null) {
 				studentScore.modifiedByUser = true;

@@ -43,6 +43,7 @@ import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.RubricEntry;
 import net.cdonald.googleClassroom.model.RubricEntryRunCode;
+import net.cdonald.googleClassroom.utils.SimpleUtils;
 
 public class RubricTabPanel extends JPanel implements RubricFileListener{
 	private static final long serialVersionUID = -938409512740386882L;
@@ -82,8 +83,11 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 						if (tabName == RubricTabNames.Reference) {
 							rubric.setReferenceSource(files);
 						}
-						else {
+						else if (tabName == RubricTabNames.TestCode){
 							rubric.setTestCode(files);
+						}
+						else if (tabName == RubricTabNames.SupportCode) {
+							rubric.setSupportCode(files);
 						}
 						panel.setModified(false);
 					}
@@ -101,9 +105,12 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 		compilerOutput.add(new JScrollPane(compilerOutputArea), BorderLayout.CENTER);
 		addButtonBar();	
 		rubricSummaryPanel = new RubricSummaryPanel(undoManager, this, rubricTabInterface);
+		sourcePanelMap.put(RubricTabNames.SupportCode, new RubricSourcePanel(undoManager, RubricTabNames.SupportCode, this));
 		sourcePanelMap.put(RubricTabNames.Reference, new RubricSourcePanel(undoManager, RubricTabNames.Reference, this));
 		sourcePanelMap.put(RubricTabNames.TestCode, new RubricSourcePanel(undoManager, RubricTabNames.TestCode, this));
-		rubricTabbedPane = new JTabbedPane();		
+
+		rubricTabbedPane = new JTabbedPane();	
+		rubricTabbedPane.addTab(RubricTabNames.SupportCode.toString(), sourcePanelMap.get(RubricTabNames.SupportCode));
 		rubricTabbedPane.addTab(RubricTabNames.Reference.toString(), sourcePanelMap.get(RubricTabNames.Reference));
 		rubricTabbedPane.addTab(RubricTabNames.TestCode.toString(), sourcePanelMap.get(RubricTabNames.TestCode));
 		rubricTabbedPane.addTab(RubricTabNames.Summary.toString(), rubricSummaryPanel);
@@ -274,7 +281,9 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 			List<FileData> referenceSoure = rubric.getReferenceSource();
 			addSource(referenceSoure, RubricTabNames.Reference, false);						
 			List<FileData> rubricTestCode = rubric.getTestCode();
-			addSource(rubricTestCode, RubricTabNames.TestCode, false);			
+			addSource(rubricTestCode, RubricTabNames.TestCode, false);	
+			List<FileData> supportCode = rubric.getSupportCodeSource();
+			addSource(supportCode, RubricTabNames.SupportCode, false);
 		}
 
 	}
@@ -302,11 +311,15 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 	@Override
 	public List<FileData> getTestSource() {
 		return createFileData(RubricTabNames.TestCode);	}
+	
+	@Override
+	public List<FileData> getSupportSource() {
+		return createFileData(RubricTabNames.SupportCode);
+	}
 
 	@Override
 	public JButton getAddSourceButtons() {
 		return sourcePanelMap.get(RubricTabNames.TestCode).getSourceButton(true);
-
 	}
 	
 	@Override
@@ -332,7 +345,10 @@ public class RubricTabPanel extends JPanel implements RubricFileListener{
 
 		switch(sourceType) {
 		case Reference:
-			refFiles = createFileData(RubricTabNames.Reference);
+			refFiles = SimpleUtils.mergeSourceLists(createFileData(RubricTabNames.Reference), createFileData(RubricTabNames.SupportCode));
+			break;
+		case SupportCode:
+			refFiles = createFileData(RubricTabNames.SupportCode);
 			break;
 		case TestCode:
 			refFiles = createFileData(RubricTabNames.Reference);

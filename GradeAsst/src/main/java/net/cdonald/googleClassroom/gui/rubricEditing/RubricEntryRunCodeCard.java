@@ -355,7 +355,7 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 			StudentWorkCompiler compiler = new StudentWorkCompiler(null);
 			Map<String, List<Method>> possibleMethodMap = null;
 			try {
-				possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, compiler, testSource);
+				possibleMethodMap = RubricEntryRunCode.getPossibleMethods(refSource, null, compiler, testSource);
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -382,6 +382,11 @@ public class RubricEntryRunCodeCard extends RubricEntryAutomationCardInterface i
 		public List<FileData> getTestSource() {
 			// TODO Auto-generated method stub
 			return testSource;
+		}
+		
+		@Override
+		public List<FileData> getSupportSource() {
+			return new ArrayList<FileData>();
 		}
 
 		@Override

@@ -68,7 +68,7 @@ public class RubricEntryPointLossForLate extends RubricAutomation {
 
 	@Override
 	protected Double runAutomation(RubricEntry owner, String studentName, String studentId, CompilerMessage message,
-			StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
+			StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, List<FileData> supportCodeSource, ConsoleData consoleData) {
 		ClassroomData assignment = (ClassroomData)ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 		if (assignment == null) {
 			return null;

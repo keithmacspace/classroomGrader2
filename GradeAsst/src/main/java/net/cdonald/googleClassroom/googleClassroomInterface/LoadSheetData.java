@@ -44,6 +44,27 @@ public class LoadSheetData {
 		}
 	}
 	
+	public void insertCol(int colIndex, List<Object> objects) {
+		int objectIndex = 0;
+		for (int i = 0; i < sheetInfo.size(); i++) {
+			List<Object> row = sheetInfo.get(i);
+			if (objectIndex < objects.size()) {
+				row.add(colIndex, objects.get(objectIndex));
+				objectIndex++;
+			}			
+		}
+	}
+	
+	public void deleteCols(int startCol, int endCol) {
+		for (int i = 0; i < sheetInfo.size(); i++) {
+			List<Object> row = sheetInfo.get(i);
+			for (int d = startCol; d <= endCol && startCol < row.size(); d++) {
+				// Keep removing from startCol because we are going to shift down.
+				row.remove(startCol);
+			}
+		}
+	}
+	
 
 	
 	public List<Object> readColumn(int columnIndex) {
@@ -58,6 +79,15 @@ public class LoadSheetData {
 			}
 		}
 		return column;
+	}
+	
+	public String toString() {
+		if (sheetInfo != null) {
+			return sheetInfo.toString();
+		}
+		else {
+			return "null";
+		}
 	}
 
 }

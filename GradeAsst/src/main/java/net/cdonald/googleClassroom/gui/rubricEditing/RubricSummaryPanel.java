@@ -148,7 +148,7 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 	private void  initPossibleMethodMap() {
 		StudentWorkCompiler compiler = (StudentWorkCompiler)ListenerCoordinator.runQuery(GetCompilerQuery.class);
 		try {
-			possibleMethodMap = RubricEntryRunCode.getPossibleMethods(rubricFileListener.getReferenceSource(), compiler, rubricFileListener.getTestSource());
+			possibleMethodMap = RubricEntryRunCode.getPossibleMethods(rubricFileListener.getReferenceSource(), rubricFileListener.getSupportSource(), compiler, rubricFileListener.getTestSource());
 		} catch (CompilationException e) {
 			rubricFileListener.addCompilerMessage(e.getLocalizedMessage());			
 		} catch (Exception e) {
@@ -522,6 +522,11 @@ public class RubricSummaryPanel extends JPanel implements RubricElementListener 
 			// TODO Auto-generated method stub
 			return testSource;
 		}
+		@Override
+		public List<FileData> getSupportSource() {
+			return new ArrayList<FileData>();
+		}
+
 
 		@Override
 		public JButton getAddSourceButtons() {

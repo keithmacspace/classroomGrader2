@@ -33,8 +33,10 @@ public class Rubric implements SheetAccessorInterface {
 	private boolean isRubricDefinitionModified = false;
 	private List<FileData> referenceSource;
 	private List<FileData> testCodeSource;
+	private List<FileData> supportCodeSource;
 	private List<RubricEntry> entries = new ArrayList<RubricEntry>();
 	private static final String REFERENCE_SOURCE_LABEL = "Reference Source Files";		
+	private static final String SUPPORT_SOURCE_LABEL = "Support Source Files";
 	private boolean loadedFromFile = false;
 	private boolean allowEntryAddition = false;
 
@@ -54,7 +56,7 @@ public class Rubric implements SheetAccessorInterface {
 		entries = new ArrayList<RubricEntry>();
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
-
+		supportCodeSource = new ArrayList<FileData>();
 	}
 
 	public Rubric(Rubric other) {
@@ -73,6 +75,7 @@ public class Rubric implements SheetAccessorInterface {
 
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
+		supportCodeSource = new ArrayList<FileData>();
 		setSource(testCodeSource, other.testCodeSource);
 		setSource(referenceSource, other.referenceSource);
 		isRubricDefinitionModified = other.isRubricDefinitionModified;
@@ -85,11 +88,16 @@ public class Rubric implements SheetAccessorInterface {
 		loadedFromFile = false;		
 		referenceSource = new ArrayList<FileData>();
 		testCodeSource = new ArrayList<FileData>();
+		supportCodeSource = new ArrayList<FileData>();
 	}
 
 
 	public List<FileData> getReferenceSource() {
 		return referenceSource;
+	}
+	
+	public List<FileData> getSupportCodeSource() {
+		return supportCodeSource;
 	}
 
 	public boolean isAllowEntryAddition() {
@@ -118,6 +126,11 @@ public class Rubric implements SheetAccessorInterface {
 	public void setTestCode(List<FileData> fileDataList) {
 		setSource(testCodeSource, fileDataList);
 	}
+	
+	public void setSupportCode(List<FileData> fileDataList) {
+		setSource(supportCodeSource, fileDataList);
+	}
+	
 	public void addTestCode(List<FileData> newFiles) {
 		if (newFiles != null && newFiles.size() > 0) {
 			for (FileData fileData : newFiles) {
@@ -365,7 +378,7 @@ public class Rubric implements SheetAccessorInterface {
 		for (int index = 0; index < entries.size(); index++) {
 			RubricEntry entry = entries.get(index);
 			if (rubricElementNames == null || rubricElementNames.contains(entry.getColumnName())) {
-				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData, referenceSource, testCodeSource) == false) {
+				if (entry.runAutomation(undoInfo, index, studentName, studentId, message, compiler, consoleData, referenceSource, testCodeSource, supportCodeSource) == false) {
 					if (entriesSkipped == null) {
 						entriesSkipped = new HashSet<String>();						
 					}
@@ -429,6 +442,7 @@ public class Rubric implements SheetAccessorInterface {
 		entries.clear();
 		referenceSource.clear();
 		testCodeSource.clear();
+		supportCodeSource.clear();
 		Map<String, FileData> fileDataMap = new HashMap<String, FileData>();
 
 		if (loadSheetData == null || loadSheetData.isEmpty() == true) {
@@ -490,7 +504,8 @@ public class Rubric implements SheetAccessorInterface {
 		}
 
 		// Load the source files so that we can verify all the correct files exist.
-		loadSource(entryColumns, referenceSource, REFERENCE_SOURCE_LABEL);		
+		loadSource(entryColumns, referenceSource, REFERENCE_SOURCE_LABEL);
+		loadSource(entryColumns, supportCodeSource, SUPPORT_SOURCE_LABEL);
 		clearRubricDefinitionModified();
 		//loadPointsBreakdown(entryColumns);
 
@@ -561,11 +576,25 @@ public class Rubric implements SheetAccessorInterface {
 			referenceSourceNameRows.add(file.getName());
 		}
 
+		
+		List<Object> supportSourceNameRows = new ArrayList<Object>();
+		supportSourceNameRows.add(SUPPORT_SOURCE_LABEL);
+		for (FileData file : supportCodeSource) {
+			supportSourceNameRows.add(file.getName());
+		}
+		
+
 		saveState.writeFullColumn(referenceSourceNameRows, currentColumn);
 		currentColumn++;
+		
+		saveState.writeFullColumn(supportSourceNameRows, currentColumn);
+		currentColumn++;
+
+
 
 		currentColumn = saveSource(saveState, referenceSource, currentColumn);
 		currentColumn = saveSource(saveState, testCodeSource, currentColumn);
+		currentColumn = saveSource(saveState, supportCodeSource, currentColumn);
 		return saveState;
 	}
 

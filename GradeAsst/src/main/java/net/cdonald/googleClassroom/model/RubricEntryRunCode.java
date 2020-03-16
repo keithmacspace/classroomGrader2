@@ -91,7 +91,7 @@ public class RubricEntryRunCode extends  RubricAutomation {
 
 	
 	
-	public static Map<String, List<Method> > getPossibleMethods(List<FileData> referenceSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) throws CompilationException, Exception {
+	public static Map<String, List<Method> > getPossibleMethods(List<FileData> referenceSource, List<FileData> supportSource, StudentWorkCompiler compiler, List<FileData> testCodeFiles) throws CompilationException, Exception {
 
 		if (referenceSource == null || referenceSource.size() == 0) {
 			return null;
@@ -102,7 +102,9 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		
 
 		List<FileData> rubricFiles = new ArrayList<FileData>(referenceSource);
-		
+		if (supportSource != null) {
+			rubricFiles.addAll(supportSource);
+		}
 		for (FileData sourceFile : testCodeFiles) {							
 				rubricFiles.add(sourceFile);			
 		}
@@ -133,19 +135,15 @@ public class RubricEntryRunCode extends  RubricAutomation {
 		return methods;
 	}
 	
-	protected Double runAutomation(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
-		//if (message == null) {
-			//return null;
-		//}
-		if (true || message.isSuccessful()) {
+	protected Double runAutomation(RubricEntry entry, String studentName, String studentId, CompilerMessage message, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, List<FileData> supportCodeSource, ConsoleData consoleData) {
 
-			ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running " + this.getOwnerName() + " for " + studentName);
-		
+		ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running " + this.getOwnerName() + " for " + studentName);
 
-			List<FileData> studentFiles = compiler.getSourceCode(studentId);
-			return runAutomation_(entry, studentFiles, studentName, studentId, compiler, referenceSource, testCodeSource, consoleData);
-		}
-		return null;
+
+		List<FileData> studentFiles = SimpleUtils.mergeSourceLists(compiler.getSourceCode(studentId), supportCodeSource);		
+
+		return runAutomation_(entry, studentFiles, studentName, studentId, compiler, referenceSource, testCodeSource, consoleData);
+
 	}
 	protected Double runAutomation_(RubricEntry entry, List<FileData> studentFiles, String studentName, String studentId, StudentWorkCompiler compiler, List<FileData> referenceSource, List<FileData> testCodeSource, ConsoleData consoleData) {
 		if (studentFiles != null && studentFiles.size() != 0)

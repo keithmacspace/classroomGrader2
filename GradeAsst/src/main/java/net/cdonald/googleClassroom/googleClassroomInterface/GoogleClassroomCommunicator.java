@@ -61,27 +61,31 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.Sheets.Spreadsheets.Values.BatchGet;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.AddSheetRequest;
 import com.google.api.services.sheets.v4.model.AppendDimensionRequest;
 import com.google.api.services.sheets.v4.model.AutoResizeDimensionsRequest;
+import com.google.api.services.sheets.v4.model.BatchGetValuesResponse;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.Border;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
-import com.google.api.services.sheets.v4.model.DeleteSheetRequest;
 import com.google.api.services.sheets.v4.model.DimensionRange;
+import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.RepeatCellRequest;
 import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.TextFormat;
 import com.google.api.services.sheets.v4.model.UpdateBordersRequest;
+import com.google.api.services.sheets.v4.model.UpdateCellsRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
@@ -384,6 +388,13 @@ public class GoogleClassroomCommunicator {
 		readAssignmentsSemaphore.release();
 		DebugLogDialog.endMethod();
 	}
+	
+	public List<StudentSubmission> getStudentSubmissions(ClassroomData course, ClassroomData assignment) throws IOException {
+		initServices();
+		ListStudentSubmissionsResponse studentSubmissionResponse = classroomService.courses().courseWork()
+				.studentSubmissions().list(course.getId(), assignment.getId()).execute();
+		return studentSubmissionResponse.getStudentSubmissions();
+	}
 
 	public void getStudentWork(ClassroomData course, ClassroomData assignment, DataFetchListener fetchListener)
 			throws IOException {
@@ -394,11 +405,9 @@ public class GoogleClassroomCommunicator {
 		try {
 
 			acquireReadStudentsWorkSemaphore();
+			List<StudentSubmission> submissions = getStudentSubmissions(course, assignment);
 
-			initServices();
-			ListStudentSubmissionsResponse studentSubmissionResponse = classroomService.courses().courseWork()
-					.studentSubmissions().list(course.getId(), assignment.getId()).execute();
-			for (StudentSubmission submission : studentSubmissionResponse.getStudentSubmissions()) {
+			for (StudentSubmission submission : submissions) {
 				if (cancelCurrentStudentWorkRead) {
 					break;
 				}
@@ -579,7 +588,9 @@ public class GoogleClassroomCommunicator {
 		String id = googleSheetID(sheetURL);
 		GoogleSheetData fileName = new GoogleSheetData(spreadSheet.getProperties().getTitle(), id, sheetURL);
 		fileName.setEmpty(true);
-		fetchListener.retrievedInfo(fileName);
+		if (fetchListener != null) {
+			fetchListener.retrievedInfo(fileName);
+		}
 		DebugLogDialog.endMethod();
 		return getSheetNames(fileName, fetchListener);
 	}
@@ -655,12 +666,14 @@ public class GoogleClassroomCommunicator {
 
 		Sheet current = getSheet(sheetInfo, sheetName);
 		if (current != null && eraseAllData) {
-			DeleteSheetRequest deleteRequest = new DeleteSheetRequest();
-			deleteRequest.setSheetId(current.getProperties().getSheetId());
+			UpdateCellsRequest updateRequest = new UpdateCellsRequest();
+			GridRange allGrids = new GridRange();
+			allGrids.setSheetId(current.getProperties().getSheetId());			
+			updateRequest.setRange(allGrids);			
+			updateRequest.setFields("userEnteredValue");
 			Request request = new Request();
-			request.setDeleteSheet(deleteRequest);
+			request.setUpdateCells(updateRequest);
 			requestsList.add(request);
-			current = null;
 		}
 		
 		if (current == null) {
@@ -692,6 +705,8 @@ public class GoogleClassroomCommunicator {
 	public void insertColumn(GoogleSheetData targetFile, int row, String colName, int rowLocationForName) {
 		insertRowOrColumn(targetFile, row, "COLUMNS", colName, rowLocationForName );
 	}
+	
+
 	
 	private void insertRowOrColumn(GoogleSheetData targetFile, int rowOrCol, String dimensionType, String name, int otherDimension) {
 		DebugLogDialog.startMethod();
@@ -865,7 +880,7 @@ public class GoogleClassroomCommunicator {
 
 
 
-		if (currentColumns < maxColumn) {
+		if (currentColumns <= maxColumn) {
 			AppendDimensionRequest appendDimension = new AppendDimensionRequest();
 			appendDimension.setDimension("COLUMNS");
 			int numToAdd = maxColumn - currentColumns + 1;
@@ -875,7 +890,7 @@ public class GoogleClassroomCommunicator {
 			request.setAppendDimension(appendDimension);
 			requestsList.add(request);
 		}
-		if (currentRows < maxRow) {
+		if (currentRows <= maxRow) {
 			AppendDimensionRequest appendDimension = new AppendDimensionRequest();
 			appendDimension.setDimension("ROWS");
 			int numToAdd = maxRow - currentRows + 1;
@@ -933,6 +948,29 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.endMethod();
 		return result.toString();
 	}
+	
+	public Map<String, LoadSheetData> readWholeSheet(String sheetURL) throws IOException {
+		initServices();
+		String id = this.googleSheetID(sheetURL);
+		BatchGet get = sheetsService.spreadsheets().values().batchGet(id);
+		List<Sheet> sheets = getSheetNames(sheetURL, null);
+		List<String> ranges = new ArrayList<String>();
+
+		for (Sheet sheet : sheets) {
+			ranges.add(sheet.getProperties().getTitle() + "!A:ZZ");
+		}
+		get.setRanges(ranges);
+		BatchGetValuesResponse ss = get.execute();
+		List<ValueRange> values = ss.getValueRanges();
+		Map<String, LoadSheetData> wholeSheet = new HashMap<String, LoadSheetData>();
+		for (int i = 0; i < values.size(); i++) {
+			String sheetName = sheets.get(i).getProperties().getTitle(); 
+			ValueRange valueRange = values.get(i);
+			wholeSheet.put(sheetName, new LoadSheetData(valueRange.getValues()));
+		}
+		return wholeSheet;
+		
+	}
 
 	public void listFoldersInRoot() throws IOException {
 		DebugLogDialog.startMethod();
@@ -975,6 +1013,8 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.endMethod();
 		return results;
 	}
+	
+
 	
 
 	
@@ -1028,10 +1068,6 @@ public class GoogleClassroomCommunicator {
 			return saveState;
 			
 		}
-
-
-
-		
 	}
 
 	public static void main(String[] args) throws IOException, GeneralSecurityException {
@@ -1039,7 +1075,8 @@ public class GoogleClassroomCommunicator {
 		GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
 		TestAccessor test = new TestAccessor();
 
-		communicator.writeSheet(test);
+		//communicator.writeSheet(test);
+		System.out.println(communicator.readWholeSheet("https://drive.google.com/open?id=1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY"));
 
 		System.err.println("done");
 

@@ -584,7 +584,7 @@ public class DataController implements StudentListInfo {
 			fileData.setId(FileData.REFERENCE_SOURCE_ID);
 			studentWorkCompiler.addFile(fileData);
 		}
-		studentWorkCompiler.compile(FileData.REFERENCE_SOURCE_ID);		
+		studentWorkCompiler.compile(FileData.REFERENCE_SOURCE_ID, getSupportCode());		
 	}
 
 	private void setRubric(Rubric rubric, RubricType rubricType) {
@@ -673,17 +673,24 @@ public class DataController implements StudentListInfo {
 		}
 		return false;
 	}
+	
+	public List<FileData> getSupportCode() {
+		if (currentRubric == null) {
+			return null;
+		}
+		return currentRubric.getSupportCodeSource();
+	}
 
 	
-	public void run(String id) {
-		studentWorkCompiler.compile(id);
+	public void run(String id) {		
+		studentWorkCompiler.compile(id, getSupportCode());
 		if (studentWorkCompiler.isRunnable(id)) {
 			consoleData.runStarted(id, "");
 			StudentData student = studentMap.get(id).getStudent();
 			if (student != null) {
 				ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "Running: " + student.getFirstName() + " " + student.getName());
 			}
-			studentWorkCompiler.run(id);
+			studentWorkCompiler.run(id, getSupportCode());
 			ListenerCoordinator.fire(SetInfoLabelListener.class, SetInfoLabelListener.LabelTypes.RUNNING, "");
 		}
 	}
@@ -1153,7 +1160,7 @@ public class DataController implements StudentListInfo {
 	}
 
 	public void recompile(String studentID) {
-		studentWorkCompiler.compile(studentID);		
+		studentWorkCompiler.compile(studentID, getSupportCode());		
 	}
 	
 	public void removeSource(String studentID, String fileName) {
