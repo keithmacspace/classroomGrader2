@@ -62,7 +62,7 @@ public class FindUngraded {
 	}
 
 	public void createUngradedList(List<ClassroomData> assignments, List<StudentData> students) throws IOException {
-		Map<String, LoadSheetData> loadSheetData = communicator.readWholeSheet(url);						
+		Map<String, LoadSheetData> loadSheetData = communicator.readWholeSpreadsheet(url);						
 		List<BasicSheetInfo> assignmentSheets = new ArrayList<BasicSheetInfo>();
 		for (LoadSheetData sheetData : loadSheetData.values()) {
 			if (sheetData != null) {

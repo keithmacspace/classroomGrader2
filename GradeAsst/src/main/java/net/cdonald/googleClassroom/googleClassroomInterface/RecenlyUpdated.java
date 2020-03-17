@@ -6,14 +6,13 @@ import java.util.Date;
 import java.util.List;
 
 import net.cdonald.googleClassroom.gui.StudentSheetColumns;
-import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.GoogleSheetData;
-import net.cdonald.googleClassroom.model.Rubric;
 import net.cdonald.googleClassroom.model.StudentData;
 import net.cdonald.googleClassroom.utils.SimpleUtils;
 
-public class GradeSummaryUpdate extends StudentSheetColumns {
+public class RecenlyUpdated extends StudentSheetColumns {
 	public enum RowTypes {
+		MESSAGE(""),
 		ASSIGNMENT("Assignment:"),		
 		GRADED_BY("Graded By:"),
 		UPDATE_TIME("Update Time:"),
@@ -32,22 +31,28 @@ public class GradeSummaryUpdate extends StudentSheetColumns {
 	}
 	private SaveSheetData saveSheetData;
 	private List<StudentData> students;
+	private GradeSyncer gradeSyncer;
+	private String sheetLink;
 	
-	GradeSummaryUpdate(GoogleClassroomCommunicator communicator, GoogleSheetData targetFile, List<StudentData> students) {
-		super(communicator, new GoogleSheetData("Recently Updated", targetFile.getSpreadsheetId(), "Recently Updated"));
-		super.fillDefaultStudentRows(RowTypes.STUDENT_ROW.ordinal(), students);
+	RecenlyUpdated(GradeSyncer gradeSyncer, GoogleClassroomCommunicator communicator, GoogleSheetData targetFile, List<StudentData> students) {
+		super(communicator, new GoogleSheetData("Recently Updated", targetFile.getSpreadsheetId(), "Recently Updated"));		
 		this.students = students;
+		this.gradeSyncer = gradeSyncer;
+		sheetLink = "=" + gradeSyncer.getSheetInfo().getName() + "!";
 	}
+
 	
-	public void syncData(String gradedBy, ClassroomData assignment, Rubric rubric) throws IOException {
-		saveSheetData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, "Recently Updated", true);
-		LoadSheetData data = getCommunicator().readSheet(this);
+	public void syncData() throws IOException {		
+		saveSheetData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, "Recently Updated", false);
+		LoadSheetData data = getCommunicator().readSheet(this, "FORMATTED_VALUE");
 		boolean changeColors = false;
+		boolean addData = false;
 		if (data == null || data.isEmpty()) {
 			fillDefaultStudentRows(RowTypes.STUDENT_ROW.ordinal(), students);			
 			data = new LoadSheetData(createDefaultList(students));
-			addFirstTwoColumns(data, students);
+			addFirstTwoColumns(saveSheetData, students);
 			changeColors = true;
+			addData = true;
 		}
 		else {
 			int studentRow = findStudentStartRow(data, students);
@@ -55,24 +60,19 @@ public class GradeSummaryUpdate extends StudentSheetColumns {
 			if (diff != 0) {
 				adjustStudentRows(diff);				
 			}
-			List<Object> assignmentRow = data.readRow(RowTypes.ASSIGNMENT.ordinal());
-			for (int i = assignmentRow.size() - 1; i > 1; i--) {
-				String check = assignmentRow.get(i).toString();
-				boolean delete = false;
-				if (check.equals(assignment.getName())) {
-					delete = true;
-				}
-				else if (check.length() == 0 && i % 2 ==  0) {
-					delete = true;
-				}
-				if (delete) {
-					data.deleteCols(i, i + 1);
+			
+			List<Object> assignmentRow = data.readRow(RowTypes.RUBRIC_NAME.ordinal());
+			if (assignmentRow != null && assignmentRow.size() > 2) {
+				String check = assignmentRow.get(2).toString();
+				if (!check.equals(gradeSyncer.getSheetInfo().getName())) {
+					addData = true;
+					getCommunicator().insertColumn(getTargetFile(), 2, "", 2);
+					getCommunicator().insertColumn(getTargetFile(), 2, "", 2);
 				}
 			}
 		}
-		addNewDataColumns(data, gradedBy, rubric, students, assignment);
-		for (int rowIndex = 0; rowIndex < data.getNumRows(); rowIndex++) {
-			saveSheetData.addOneRow(data.readRow(rowIndex), rowIndex + 1);
+		if (addData == true) {
+			addNewDataColumns(saveSheetData, gradeSyncer, students);
 		}
 		getCommunicator().writeSheet(this);
 		if (changeColors) {
@@ -89,7 +89,7 @@ public class GradeSummaryUpdate extends StudentSheetColumns {
 		return defaultList;		
 	}
 	
-	private void addFirstTwoColumns(LoadSheetData data, List<StudentData> students) {
+	private void addFirstTwoColumns(SaveSheetData sheetData, List<StudentData> students) {
 		List<Object> columnZero = new ArrayList<Object>();
 		List<Object> columnOne = new ArrayList<Object>();
 		for (int i = 0; i < RowTypes.STUDENT_ROW.ordinal(); i++) {
@@ -102,20 +102,36 @@ public class GradeSummaryUpdate extends StudentSheetColumns {
 			columnZero.add(student.getName());
 			columnOne.add(student.getFirstName());
 		}
-		data.insertCol(0, columnZero);
-		data.insertCol(1, columnOne);
+
+		sheetData.writeFullColumn(columnZero, 0);
+		sheetData.writeFullColumn(columnOne, 1);
 	}
 	
-	private void addNewDataColumns(LoadSheetData data, String gradedBy, Rubric rubric, List<StudentData> students, ClassroomData assignment) {
+	private String createLink(GradeSyncer gradeSyncer, GradeSheet.RowTypes rowType, String columnKey, int adjustment) {
+		return createLink(gradeSyncer, rowType, gradeSyncer.getColumnLocation(columnKey) + adjustment);
+	}
+	private String createLink(GradeSyncer gradeSyncer, GradeSheet.RowTypes rowType, int columnNum) {
+		return createLink(gradeSyncer, gradeSyncer.getRowLocation(rowType), columnNum);
+	}
+	
+	private String createLink(GradeSyncer gradeSyncer, int rowNumber, int columnNumber) {
+		String linkString = sheetLink;
+		linkString += GoogleClassroomCommunicator.getColumnName(columnNumber);
+		linkString += (rowNumber + 1);
+		return linkString;		
+	}
+	
+	private void addNewDataColumns(SaveSheetData sheetData, GradeSyncer gradeSyncer, List<StudentData> students) {
 		List<Object> totalColumn = new ArrayList<Object>();
 		List<Object> onTimeColumn = new ArrayList<Object>();
 		for (int i = 0; i < RowTypes.STUDENT_ROW.ordinal(); i++) {
 			totalColumn.add(null);
 			onTimeColumn.add(null);
 		}
-		totalColumn.set(RowTypes.ASSIGNMENT.ordinal(), assignment.getName());
-		totalColumn.set(RowTypes.GRADED_BY.ordinal(), gradedBy);
-		totalColumn.set(RowTypes.RUBRIC_NAME.ordinal(), rubric.getName());
+		
+		totalColumn.set(RowTypes.ASSIGNMENT.ordinal(), createLink(gradeSyncer, GradeSheet.RowTypes.ASSIGNMENT, 4) );
+		totalColumn.set(RowTypes.GRADED_BY.ordinal(), createLink(gradeSyncer, GradeSheet.RowTypes.GRADED_BY, GradeSheet.TOTAL_STRING, 1));
+		totalColumn.set(RowTypes.RUBRIC_NAME.ordinal(), gradeSyncer.getSheetInfo().getName());
 		totalColumn.set(RowTypes.UPDATE_TIME.ordinal(), new Date().toString());
 		totalColumn.set(RowTypes.RUBRIC_HEADINGS.ordinal(), "Total");
 		
@@ -125,22 +141,27 @@ public class GradeSummaryUpdate extends StudentSheetColumns {
 		onTimeColumn.set(RowTypes.UPDATE_TIME.ordinal(), "");
 		onTimeColumn.set(RowTypes.RUBRIC_HEADINGS.ordinal(), "On Time");
 
-		Date assignmentDate = assignment.getDate();
+		String totalColumnLink = sheetLink + "$" + GoogleClassroomCommunicator.getColumnName(gradeSyncer.getColumnLocation(GradeSyncer.TOTAL_STRING));
+		String lateByLink = sheetLink + "$" + GoogleClassroomCommunicator.getColumnName(gradeSyncer.getColumnLocation(GradeSyncer.LATE_INFO_COLUMN_KEY));
+		
+		
+		int possibleStart = 0;
 		for (StudentRow studentRow : getStudentRowList()) {
 			StudentData student = studentRow.getStudent();
-			Date studentDate = studentRow.getDate();
-			if (studentDate != null) {
-				String id = student.getId();
-				totalColumn.add(rubric.getTotalValue(id));
-				onTimeColumn.add(SimpleUtils.formatLate(studentDate, assignmentDate));
+			int linkRow = gradeSyncer.getStudentRow(student.getId(), possibleStart);
+			if (linkRow != -1) {
+				linkRow++;
+				totalColumn.add(totalColumnLink + "$" + linkRow);
+				onTimeColumn.add(lateByLink + "$" + linkRow);
 			}
 			else {
 				totalColumn.add("");
 				onTimeColumn.add("missing");
 			}
+			possibleStart++;
 		}
-		data.insertCol(2, totalColumn);
-		data.insertCol(3, onTimeColumn);
+		sheetData.writeFullColumn(totalColumn, 2);
+		sheetData.writeFullColumn(onTimeColumn, 3);
 	}
 
 

@@ -50,6 +50,21 @@ public abstract class StudentSheetColumns implements SheetAccessorInterface {
 		return studentRowList;
 	}
 	
+	public int getStudentRow(String studentID, int possibleStart) {
+
+		if (studentRowList.size() > possibleStart) {
+			if (studentRowList.get(possibleStart).student.getId().equals(studentID)) {
+				return studentRowList.get(possibleStart).getRowNumber();
+			}
+		}
+		for (StudentRow studentRow : studentRowList) {
+			if (studentRow.student.getId().equals(studentID)) {
+				return studentRow.getRowNumber();
+			}
+		}
+		return -1;
+	}
+	
 	protected void fillDefaultStudentRows(int startRow, List<StudentData> students) {
 		for (int i = 0; i < students.size(); i++) {
 			StudentRow studentRow = new StudentRow(students.get(i), startRow + i);

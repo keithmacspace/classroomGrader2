@@ -32,7 +32,7 @@ public class GradeSyncer extends GradeSheet {
 	private Map<String, String> graderCommentsMap;
 	private Map<String, String> modifiedCommentsMap;
 	private int maxRow;
-	private GradeSummaryUpdate gradeSummary;	
+	private RecenlyUpdated gradeSummary;	
 	
 	/**
 	 * As soon as this constructor is called, we will load the current sheet & load the grades into the rubric.
@@ -40,7 +40,7 @@ public class GradeSyncer extends GradeSheet {
 	 */
 	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, String> modifiedCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName) throws IOException {
 		super(communicator, targetFile);
-		gradeSummary = new GradeSummaryUpdate(communicator, targetFile, students);
+		gradeSummary = new RecenlyUpdated(this, communicator, targetFile, students);
 		this.rubric = rubric;
 		this.graderName = graderName;
 		this.modifiedCommentsMap = modifiedCommentsMap;
@@ -66,7 +66,7 @@ public class GradeSyncer extends GradeSheet {
 		}		
 	}
 	
-	private Integer getColumnLocation(String columnName) {
+	public Integer getColumnLocation(String columnName) {
 		return columnLocations.get(columnName.toUpperCase()); 
 	}
 	
@@ -298,7 +298,7 @@ public class GradeSyncer extends GradeSheet {
 	 */
 	public void saveData(ClassroomData assignment) throws IOException {		
 		this.assignment = assignment;
-		gradeSummary.syncData(graderName, assignment, rubric);
+		gradeSummary.syncData();
 		getCommunicator().writeSheet(this);
 		if (updateBorders) {
 			changeBorderColors(getRowLocation(RowTypes.STUDENT_START), maxRow);

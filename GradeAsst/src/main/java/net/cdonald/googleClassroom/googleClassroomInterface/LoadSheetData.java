@@ -49,6 +49,9 @@ public class LoadSheetData {
 		for (int i = 0; i < sheetInfo.size(); i++) {
 			List<Object> row = sheetInfo.get(i);
 			if (objectIndex < objects.size()) {
+				while(row.size() < colIndex) {
+					row.add("");
+				}
 				row.add(colIndex, objects.get(objectIndex));
 				objectIndex++;
 			}			

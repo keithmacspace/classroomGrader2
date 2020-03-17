@@ -61,6 +61,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.Sheets.Spreadsheets.Values;
 import com.google.api.services.sheets.v4.Sheets.Spreadsheets.Values.BatchGet;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.AddSheetRequest;
@@ -74,12 +75,10 @@ import com.google.api.services.sheets.v4.model.Border;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
 import com.google.api.services.sheets.v4.model.DimensionRange;
-import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.RepeatCellRequest;
 import com.google.api.services.sheets.v4.model.Request;
-import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
@@ -618,30 +617,53 @@ public class GoogleClassroomCommunicator {
 		rubric.loadFromSheet(readSheet(rubric));
 	}
 	
-	
-
 	public LoadSheetData readSheet(SheetAccessorInterface sheetReader) throws IOException {
+		
+		
+		return readSheet(sheetReader, "FORMATTED_VALUE");
+	}
+	
+	public LoadSheetData readSpecificRange(GoogleSheetData targetSheet, String rangeParam, String valueRenderOption) throws IOException {
 		DebugLogDialog.startMethod();
 		initServices();
-		String id = sheetReader.getSheetInfo().getSpreadsheetId();
-		String sheetName = sheetReader.getSheetInfo().getName();		
-		Sheet current = getSheet(sheetReader.getSheetInfo(), sheetName);
+		String id = targetSheet.getSpreadsheetId();
+		String sheetName = targetSheet.getName();		
+		Sheet current = getSheet(targetSheet);
 		if (current != null) {
-			int numCols = current.getProperties().getGridProperties().getColumnCount();
-			int numRows = current.getProperties().getGridProperties().getRowCount();
-			String range = sheetName + "!A1:" + getColumnName(numCols) + numRows;
-			ValueRange response = sheetsService.spreadsheets().values().get(id, range).execute();
-			List<List<Object>> values = response.getValues();
+			String range = sheetName + "!" + rangeParam;
+			Values.Get valueGet = sheetsService.spreadsheets().values().get(id, range);
+			valueGet.setValueRenderOption(valueRenderOption);
+			
+			ValueRange response = valueGet.execute();
+			
 			DebugLogDialog.endMethod();
-			return new LoadSheetData(values);
+			return new LoadSheetData(response.getValues());
 		}
 		DebugLogDialog.endMethod();
 		return null;
+		
+	}
+
+	public LoadSheetData readSheet(SheetAccessorInterface sheetReader, String valueRenderOption) throws IOException {
+		DebugLogDialog.startMethod();
+		
+		initServices();					
+		Sheet current = getSheet(sheetReader.getSheetInfo());
+		LoadSheetData returnData = null;
+		if (current != null) {
+			int numCols = current.getProperties().getGridProperties().getColumnCount();
+			int numRows = current.getProperties().getGridProperties().getRowCount();
+			String range = "A1:" + getColumnName(numCols) + numRows;			
+			returnData = readSpecificRange(sheetReader.getSheetInfo(), range, valueRenderOption);
+		}
+		DebugLogDialog.endMethod();
+		return returnData;
 	}
 	
-	Sheet getSheet(GoogleSheetData sheetData, String sheetName) throws IOException  {
+	Sheet getSheet(GoogleSheetData sheetData) throws IOException  {
 		DebugLogDialog.startMethod();
 		Sheet current = null;
+		String sheetName = sheetData.getName();
 		List<Sheet> existing = getSheetNames(sheetData, null);
 		for (Sheet sheet : existing) {
 			String name = sheet.getProperties().getTitle();
@@ -659,12 +681,12 @@ public class GoogleClassroomCommunicator {
 	private Sheet createIfNeeded(GoogleSheetData sheetInfo, boolean eraseAllData) throws IOException {
 		DebugLogDialog.startMethod();
 		String id = sheetInfo.getSpreadsheetId();
-		String sheetName = sheetInfo.getName();
+		
 		
 		// Create requestList and set it on the batchUpdateSpreadsheetRequest
 		List<Request> requestsList = new ArrayList<Request>();
 
-		Sheet current = getSheet(sheetInfo, sheetName);
+		Sheet current = getSheet(sheetInfo);
 		if (current != null && eraseAllData) {
 			UpdateCellsRequest updateRequest = new UpdateCellsRequest();
 			GridRange allGrids = new GridRange();
@@ -680,7 +702,7 @@ public class GoogleClassroomCommunicator {
 			AddSheetRequest addRequest = new AddSheetRequest();
 			SheetProperties sheetProperties = new SheetProperties();
 			addRequest.setProperties(sheetProperties);
-			addRequest.setProperties(sheetProperties.setTitle(sheetName));
+			addRequest.setProperties(sheetProperties.setTitle(sheetInfo.getName()));
 			// Create a new request with containing the addSheetRequest and add it to the
 			// requestList
 			Request request = new Request();
@@ -692,7 +714,7 @@ public class GoogleClassroomCommunicator {
 			// Add the requestList to the batchUpdateSpreadsheetRequest
 			batchUpdateSpreadsheetRequest.setRequests(requestsList);
 			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
-			current = getSheet(sheetInfo, sheetName);
+			current = getSheet(sheetInfo);
 		}
 		
 		DebugLogDialog.endMethod();
@@ -712,13 +734,13 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.startMethod();
 		Sheet current = null;
 		String id = null;
-		String sheetName = null;
+		
 		try {
 			initServices();
 			id = targetFile.getSpreadsheetId();
-			sheetName = targetFile.getName();		
+					
 
-			current = getSheet(targetFile, sheetName);
+			current = getSheet(targetFile);
 
 			if (current != null) {
 				List<Request> requestsList = new ArrayList<Request>();
@@ -746,6 +768,7 @@ public class GoogleClassroomCommunicator {
 				ValueRange labelRange = new ValueRange();
 				String columnName = getColumnName(columnNum);
 				columnName += "" + rowNum;
+				String sheetName = targetFile.getName();
 				String stringRange = sheetName + "!" + columnName + ":" + columnName;
 				labelRange.setRange(stringRange);
 				labelRange.setValues(nameList2d);
@@ -761,13 +784,13 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.startMethod();
 		Sheet current = null;
 		String id = null;
-		String sheetName = null;
+		//String sheetName = null;
 		try {
 			initServices();
 			id = targetFile.getSpreadsheetId();
-			sheetName = targetFile.getName();		
+			//sheetName = targetFile.getName();		
 
-			current = getSheet(targetFile, sheetName);
+			current = getSheet(targetFile);
 
 			if (current != null) {
 				List<Request> requestsList = new ArrayList<Request>();
@@ -949,7 +972,7 @@ public class GoogleClassroomCommunicator {
 		return result.toString();
 	}
 	
-	public Map<String, LoadSheetData> readWholeSheet(String sheetURL) throws IOException {
+	public Map<String, LoadSheetData> readWholeSpreadsheet(String sheetURL) throws IOException {
 		initServices();
 		String id = this.googleSheetID(sheetURL);
 		BatchGet get = sheetsService.spreadsheets().values().batchGet(id);
@@ -1076,7 +1099,7 @@ public class GoogleClassroomCommunicator {
 		TestAccessor test = new TestAccessor();
 
 		//communicator.writeSheet(test);
-		System.out.println(communicator.readWholeSheet("https://drive.google.com/open?id=1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY"));
+		System.out.println(communicator.readWholeSpreadsheet("https://drive.google.com/open?id=1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY"));
 
 		System.err.println("done");
 
