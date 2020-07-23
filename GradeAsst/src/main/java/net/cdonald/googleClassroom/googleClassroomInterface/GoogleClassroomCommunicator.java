@@ -535,7 +535,7 @@ public class GoogleClassroomCommunicator {
 		Matcher m = p.matcher(sheetURL);
 		String id = "";
 		if (m.find()) {
-			id = m.group(0).substring(1).replace("/spreadsheets/d/", "");
+			id = m.group(1);
 		} else {
 			final String ID_QUERY = "?id=";
 			int idIndex = sheetURL.indexOf(ID_QUERY);

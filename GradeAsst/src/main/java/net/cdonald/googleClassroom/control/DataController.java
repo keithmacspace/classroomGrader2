@@ -200,6 +200,9 @@ public class DataController implements StudentListInfo {
 	
 	private void registerListeners() {
 		
+		if (googleClassroom == null) {
+			return;
+		}
 		ListenerCoordinator.addLongQueryReponder(StudentFetcher.class, new StudentFetcher(googleClassroom));
 		ListenerCoordinator.addLongQueryReponder(AssignmentFetcher.class, new AssignmentFetcher(googleClassroom));
 		ListenerCoordinator.addLongQueryReponder(CourseFetcher.class, new CourseFetcher(googleClassroom));
