@@ -32,7 +32,7 @@ public class GradeSyncer extends GradeSheet {
 	private Map<String, String> graderCommentsMap;
 	private Map<String, String> modifiedCommentsMap;
 	private int maxRow;
-	private RecenlyUpdated gradeSummary;	
+	private RecenlyUpdated recentlyUpdated;	
 	
 	/**
 	 * As soon as this constructor is called, we will load the current sheet & load the grades into the rubric.
@@ -40,7 +40,7 @@ public class GradeSyncer extends GradeSheet {
 	 */
 	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, String> modifiedCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName) throws IOException {
 		super(communicator, targetFile);
-		gradeSummary = new RecenlyUpdated(this, communicator, targetFile, students);
+		recentlyUpdated = new RecenlyUpdated(this, communicator, targetFile, students);
 		this.rubric = rubric;
 		this.graderName = graderName;
 		this.modifiedCommentsMap = modifiedCommentsMap;
@@ -130,7 +130,7 @@ public class GradeSyncer extends GradeSheet {
 	private void possiblyInsertColumn(LoadSheetData data, String columnName, int desiredSpot) {
 		if (getColumnLocation(columnName) == null) {
 			int rowNum = getRowLocation(RowTypes.RUBRIC_NAME);
-			getCommunicator().insertColumn(getTargetFile(), desiredSpot, columnName, rowNum);
+			getCommunicator().insertColumnPlusHeader(getTargetFile(), desiredSpot, columnName, rowNum);
 			for (String key : columnLocations.keySet()) {
 				Integer location = columnLocations.get(key);
 				if (location >= desiredSpot) {
@@ -153,7 +153,7 @@ public class GradeSyncer extends GradeSheet {
 
 
 	public void setDate(String studentId,Date date) {
-		gradeSummary.setDate(studentId, date);
+		recentlyUpdated.setDate(studentId, date);
 		super.setDate(studentId, date);
 	
 	}
@@ -297,14 +297,14 @@ public class GradeSyncer extends GradeSheet {
 	 * @param modifiedNotes 
 	 */
 	public void saveData(ClassroomData assignment) throws IOException {		
-		this.assignment = assignment;
-		gradeSummary.syncData();
+		this.assignment = assignment;		
 		getCommunicator().writeSheet(this);
 		if (updateBorders) {
 			changeBorderColors(getRowLocation(RowTypes.STUDENT_START), maxRow);
 		}
 		VerifySave verify = new VerifySave();
 		verify.verifyWrite();
+		recentlyUpdated.syncData(rubric);
 		rubric.clearStudentScoreModifiedFlag();
 	}
 	

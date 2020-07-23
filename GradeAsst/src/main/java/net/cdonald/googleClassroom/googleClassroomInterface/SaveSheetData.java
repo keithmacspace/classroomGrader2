@@ -33,18 +33,18 @@ public class SaveSheetData {
 				row.add(object);
 				data.add(row);
 			}
-			while (data.size() < maxRow) {
-				List<Object> row = new ArrayList<Object>();
-				row.add("");
-				data.add(row);
-			}
 			String columnName = GoogleClassroomCommunicator.getColumnName(columnNumber);
 			ValueRange range = new ValueRange();
 			// I am using -1 as a flag to say write the entire column
 			if (startRow != -1) {
 				range.setRange(sheetName + "!" + columnName + startRow + ":" + columnName + (startRow + data.size()));
 			}
-			else {
+			else {				
+				while (data.size()  < maxRow) {
+					List<Object> row = new ArrayList<Object>();
+					row.add("");
+					data.add(row);
+				}
 				range.setRange(sheetName + "!" + columnName + ":" + columnName);
 			}
 			range.setValues(data);

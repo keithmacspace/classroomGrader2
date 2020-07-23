@@ -74,9 +74,11 @@ import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.Border;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.CellFormat;
+import com.google.api.services.sheets.v4.model.DeleteDimensionRequest;
 import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
+import com.google.api.services.sheets.v4.model.MoveDimensionRequest;
 import com.google.api.services.sheets.v4.model.RepeatCellRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.Sheet;
@@ -678,7 +680,7 @@ public class GoogleClassroomCommunicator {
 
 	}
 	
-	private Sheet createIfNeeded(GoogleSheetData sheetInfo, boolean eraseAllData) throws IOException {
+	public Sheet createIfNeeded(GoogleSheetData sheetInfo, boolean eraseAllData) throws IOException {
 		DebugLogDialog.startMethod();
 		String id = sheetInfo.getSpreadsheetId();
 		
@@ -720,50 +722,128 @@ public class GoogleClassroomCommunicator {
 		DebugLogDialog.endMethod();
 		return current;		
 	}
-	
-	public void insertRow(GoogleSheetData targetFile, int column, String rowName, int colLocationForName) {
-		insertRowOrColumn(targetFile, column, "ROWS", rowName, colLocationForName);
+
+	public void insertColumns(GoogleSheetData targetFile, int start, int numToInsert) throws IOException {
+		insertRowsOrColumns(targetFile, start, numToInsert, "COLUMNS");
 	}
-	public void insertColumn(GoogleSheetData targetFile, int row, String colName, int rowLocationForName) {
-		insertRowOrColumn(targetFile, row, "COLUMNS", colName, rowLocationForName );
+	
+	public void insertRows(GoogleSheetData targetFile, int start, int numToInsert) throws IOException {
+		insertRowsOrColumns(targetFile, start, numToInsert, "ROWS");
+	}
+	
+	public void insertRowPlusHeader(GoogleSheetData targetFile, int row, String rowName, int colLocationForName) {
+		insertRowOrColumnPlusHeader(targetFile, row, "ROWS", rowName, colLocationForName);
+	}
+	public void insertColumnPlusHeader(GoogleSheetData targetFile, int column, String colName, int rowLocationForName) {
+		insertRowOrColumnPlusHeader(targetFile, column, "COLUMNS", colName, rowLocationForName );
+	}
+	
+	public void moveColumns(GoogleSheetData targetFile, int start, int numToMove, int destinationStart) throws IOException {
+		moveRowsOrColumns(targetFile, start, numToMove, destinationStart, "COLUMNS");
+	}
+	
+	public void moveRows(GoogleSheetData targetFile, int start, int numToMove, int destinationStart) throws IOException {
+		moveRowsOrColumns(targetFile, start, numToMove, destinationStart, "ROWS");
+	}
+	
+	public void deleteColumns(GoogleSheetData targetFile, int start, int numToDelete) throws IOException {
+		deleteRowsOrColumns(targetFile, start, numToDelete, "COLUMNS");
+	}
+	
+	public void deleteRows(GoogleSheetData targetFile, int start, int numToDelete) throws IOException {
+		deleteRowsOrColumns(targetFile, start, numToDelete, "ROWS");
+	}
+	
+	
+	public void deleteRowsOrColumns(GoogleSheetData targetFile, int start, int numToDelete, String dimensionType) throws IOException	{
+		initServices();
+		String id = targetFile.getSpreadsheetId();
+		Sheet current = getSheet(targetFile);
+		if (current != null) {
+			List<Request> requestsList = new ArrayList<Request>();
+			DeleteDimensionRequest deleteDimension = new DeleteDimensionRequest();
+			DimensionRange range = new DimensionRange();
+			range.setSheetId(current.getProperties().getSheetId());
+			range.setDimension(dimensionType);
+			range.setStartIndex(start);
+			range.setEndIndex(start + numToDelete);
+			deleteDimension.setRange(range);
+			Request request = new Request();
+			request.setDeleteDimension(deleteDimension);
+			requestsList.add(request);
+			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+			batchUpdateSpreadsheetRequest.setRequests(requestsList);
+			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+		}		
+	}
+	
+	
+	public void moveRowsOrColumns(GoogleSheetData targetFile, int start, int numToMove, int destinationStart, String dimensionType) throws IOException	{
+		initServices();
+		String id = targetFile.getSpreadsheetId();				
+		Sheet current = getSheet(targetFile);
+		if (current != null) {
+			List<Request> requestsList = new ArrayList<Request>();
+			MoveDimensionRequest moveRequest = new MoveDimensionRequest();
+			DimensionRange range = new DimensionRange();
+			range.setSheetId(current.getProperties().getSheetId());
+			range.setDimension(dimensionType);
+			range.setStartIndex(start);
+			range.setEndIndex(start + numToMove);
+			moveRequest.setSource(range);
+			moveRequest.setDestinationIndex(destinationStart);
+			Request request = new Request();
+			request.setMoveDimension(moveRequest);
+			requestsList.add(request);
+			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+			batchUpdateSpreadsheetRequest.setRequests(requestsList);
+			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+		}		
+	}
+	
+	public void insertRowsOrColumns(GoogleSheetData targetFile, int rowOrCol, int numToInsert, String dimensionType) throws IOException {
+		initServices();
+		String id = targetFile.getSpreadsheetId();				
+		Sheet current = getSheet(targetFile);
+		if (current != null) {
+			List<Request> requestsList = new ArrayList<Request>();
+			InsertDimensionRequest insertRequest = new InsertDimensionRequest();
+			DimensionRange range = new DimensionRange();
+			range.setSheetId(current.getProperties().getSheetId());
+			range.setDimension(dimensionType);
+			range.setStartIndex(rowOrCol);
+			range.setEndIndex(rowOrCol + numToInsert);
+			insertRequest.setRange(range);
+			insertRequest.setInheritFromBefore(false);
+			Request request = new Request();
+			request.setInsertDimension(insertRequest);
+			requestsList.add(request);
+			BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+			batchUpdateSpreadsheetRequest.setRequests(requestsList);
+			sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+		}
+		
 	}
 	
 
 	
-	private void insertRowOrColumn(GoogleSheetData targetFile, int rowOrCol, String dimensionType, String name, int otherDimension) {
+	private void insertRowOrColumnPlusHeader(GoogleSheetData targetFile, int rowOrCol, String dimensionType, String headerName, int headerLocation) {
 		DebugLogDialog.startMethod();
 		Sheet current = null;
 		String id = null;
 		
 		try {
 			initServices();
-			id = targetFile.getSpreadsheetId();
-					
-
+			id = targetFile.getSpreadsheetId();					
 			current = getSheet(targetFile);
-
 			if (current != null) {
-				List<Request> requestsList = new ArrayList<Request>();
-				InsertDimensionRequest insertRequest = new InsertDimensionRequest();
-				DimensionRange range = new DimensionRange();
-				range.setSheetId(current.getProperties().getSheetId());
-				range.setDimension(dimensionType);
-				range.setStartIndex(rowOrCol);
-				range.setEndIndex(rowOrCol + 1);
-				insertRequest.setRange(range);
-				insertRequest.setInheritFromBefore(false);
-				Request request = new Request();
-				request.setInsertDimension(insertRequest);
-				requestsList.add(request);
-				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
-				batchUpdateSpreadsheetRequest.setRequests(requestsList);
-				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+				insertRowsOrColumns(targetFile, rowOrCol, 1, dimensionType);
 				List<List<Object>> nameList2d = new ArrayList<List<Object>>();
 				List<Object> nameList = new ArrayList<Object>();
-				nameList.add(name);
+				nameList.add(headerName);
 				nameList2d.add(nameList);
-				int columnNum = (dimensionType.equals("ROWS"))? otherDimension : rowOrCol;
-				int rowNum = (dimensionType.equals("ROWS"))? rowOrCol : otherDimension;
+				int columnNum = (dimensionType.equals("ROWS"))? headerLocation : rowOrCol;
+				int rowNum = (dimensionType.equals("ROWS"))? rowOrCol : headerLocation;
 				rowNum++;
 				ValueRange labelRange = new ValueRange();
 				String columnName = getColumnName(columnNum);
@@ -778,6 +858,71 @@ public class GoogleClassroomCommunicator {
 			DebugLogDialog.appendException(e);
 		}
 		DebugLogDialog.endMethod();
+	}
+	
+	public static class RowCol {
+		public int row;
+		public int col;
+		public Color color;
+		boolean bold;
+		public RowCol(int r, int c, Color colo, boolean b) {
+			row = r;
+			col = c;
+			color = colo;
+			bold = b;
+		}
+	}
+	public void changeTextColor(GoogleSheetData targetFile, List<RowCol> regionsToChange) {
+		//String sheetName = null;
+		try {
+			initServices();
+			String id = targetFile.getSpreadsheetId();
+			//sheetName = targetFile.getName();		
+
+			Sheet current = getSheet(targetFile);
+
+			if (current != null) {
+				List<Request> requestsList = new ArrayList<Request>();
+				for (RowCol rowCol : regionsToChange) {
+					// Change the color of the rows in the header
+					RepeatCellRequest repeatCellRequest = new RepeatCellRequest();
+					GridRange rangeToModify = new GridRange();
+					rangeToModify.setSheetId(current.getProperties().getSheetId());
+					rangeToModify.setStartRowIndex(rowCol.row);
+					rangeToModify.setEndRowIndex(rowCol.row + 1);
+					rangeToModify.setStartColumnIndex(rowCol.col);
+					rangeToModify.setEndColumnIndex(rowCol.col + 1);
+
+					com.google.api.services.sheets.v4.model.Color modifiedColor = new com.google.api.services.sheets.v4.model.Color();
+					modifiedColor.setRed((float) rowCol.color.getRed() / 255);
+					modifiedColor.setGreen((float) rowCol.color.getGreen()/ 255);
+					modifiedColor.setBlue((float) rowCol.color.getBlue() / 255);
+
+					TextFormat textFormat = new TextFormat();
+					textFormat.setForegroundColor(modifiedColor);
+					textFormat.setBold(rowCol.bold);
+					CellFormat cellFormat = new CellFormat();
+					cellFormat.setTextFormat(textFormat);
+					CellData cellData = new CellData();
+					cellData.setUserEnteredFormat(cellFormat);				
+
+					repeatCellRequest.setRange(rangeToModify);
+					repeatCellRequest.setCell(cellData);
+					repeatCellRequest.setFields("userEnteredFormat(textFormat)");
+					Request request = new Request();
+					request.setRepeatCell(repeatCellRequest);
+					requestsList.add(request);
+				}				
+				BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+				batchUpdateSpreadsheetRequest.setRequests(requestsList);
+				sheetsService.spreadsheets().batchUpdate(id, batchUpdateSpreadsheetRequest).execute();
+
+			}
+		} catch (IOException e) {
+			DebugLogDialog.appendException(e);
+		}
+		DebugLogDialog.endMethod();
+		
 	}
 	
 	public void setHeaderRows(GoogleSheetData targetFile, int lastHeaderRow, int lastHeaderCol, int lastToggleRow) {		
@@ -1096,11 +1241,19 @@ public class GoogleClassroomCommunicator {
 	public static void main(String[] args) throws IOException, GeneralSecurityException {
 
 		GoogleClassroomCommunicator communicator = new GoogleClassroomCommunicator("Google Classroom Grader", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\tokens", "C:\\Users\\kdmacdon\\Documents\\Teals\\GoogleClassroomData\\credentials.json");
-		TestAccessor test = new TestAccessor();
+		//TestAccessor test = new TestAccessor();
 
 		//communicator.writeSheet(test);
-		System.out.println(communicator.readWholeSpreadsheet("https://drive.google.com/open?id=1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY"));
-
+		//System.out.println(communicator.readWholeSpreadsheet("https://drive.google.com/open?id=1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY"));
+		//public void changeTextColor(GoogleSheetData targetFile, List<RowCol> regionsToChange, Color color) {
+		GoogleSheetData targetFile = new GoogleSheetData("TestStuff", "1o69WgpVf5LnDKvXBRwx5Rwik4xDavJHuHYuSdoG82cY", "TestStuff");
+//		List<RowCol> rowCols = new ArrayList<RowCol>();
+//		rowCols.add(new RowCol(0, 0, Color.MAGENTA, true));
+//		rowCols.add(new RowCol(1, 0, Color.BLUE, true));
+//		rowCols.add(new RowCol(12, 4, Color.RED, true));
+//		rowCols.add(new RowCol(12, 5, Color.GREEN, true));
+//		communicator.changeTextColor(targetFile, rowCols);
+		communicator.deleteColumns(targetFile, 0, 1);
 		System.err.println("done");
 
 	}

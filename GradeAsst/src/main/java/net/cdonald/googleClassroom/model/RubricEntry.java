@@ -159,18 +159,23 @@ public class RubricEntry {
 	public void setStudentValue(String studentID, String stringValue) {
 		if (studentScores.containsKey(studentID) == false) {
 			studentScores.put(studentID, new StudentScore());
-		}
+		}	
 		StudentScore score = studentScores.get(studentID);
-		if (Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
-			score.modifiedByUser = true;
-		}
+		boolean nullScore = (score == null || score.score == null);
 
 		try {
 			if (stringValue == null || stringValue.length() == 0) {
 				score.score = null;
+				if (nullScore == false && Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
+					score.modifiedByUser = true;
+				}
+
 			} else if (stringValue.length() > 0) {
 				Double test = Double.parseDouble(stringValue);
-				if (test <= rubricValue || rubricValue == 0.0) {
+				if (test <= rubricValue || rubricValue == 0.0) {										
+					if ((score.score == null || !test.equals(score.score)) && Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
+						score.modifiedByUser = true;
+					}
 					score.score = test;
 				}
 			}

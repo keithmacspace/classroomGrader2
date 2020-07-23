@@ -52,7 +52,9 @@ public abstract class GradeSheet extends StudentSheetColumns {
 	
 	public LoadSheetData readSheet(List<StudentData> students) throws IOException {
 		LoadSheetData data = getCommunicator().readSheet(this);
-		processRows(data, students);		
+		if (data != null) {
+			processRows(data, students);
+		}
 		return data;
 	}
 
@@ -171,7 +173,7 @@ public abstract class GradeSheet extends StudentSheetColumns {
 	 */
 	protected void insertRow(LoadSheetData data, int rowNum, RowTypes rowType) {
 		// OK, we don't have a blank row there, let's insert one.
-		getCommunicator().insertRow(getTargetFile(), rowNum, rowType.getSearchString(), 0);
+		getCommunicator().insertRowPlusHeader(getTargetFile(), rowNum, rowType.getSearchString(), 0);
 		// Insert a null row into our image of the data so later reads of the
 		// rows get the correct data.
 		data.rowInserted(rowNum);
