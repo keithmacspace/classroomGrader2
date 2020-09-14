@@ -287,7 +287,7 @@ public class MainMenu extends JMenuBar {
 		runAllRubrics.setEnabled(false);
 		runSelectedRubrics.setEnabled(false);
 		JMenuItem setRubricFile = new JMenuItem("Rubric File...");
-		JMenuItem saveRubric = new JMenuItem("Save Rubric");
+
 
 		rubric.add(runAllRubrics);
 		rubric.add(runSelectedRubrics);
@@ -296,7 +296,7 @@ public class MainMenu extends JMenuBar {
 		rubric.addSeparator();
 		rubric.add(newRubric);
 		rubric.add(editRubric);
-		rubric.add(saveRubric);
+
 
 		add(rubric);
 		runAllRubrics.addActionListener(new ActionListener() {
@@ -358,6 +358,8 @@ public class MainMenu extends JMenuBar {
 				publishSelectedGrades.setEnabled(publishGrades.isEnabled() && (idToDisplay != null));
 			}
 		});
+		
+		
 
 	}
 
