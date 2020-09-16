@@ -91,6 +91,8 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.collect.ImmutableList;
 
 import net.cdonald.googleClassroom.gui.DebugLogDialog;
+import net.cdonald.googleClassroom.listenerCoordinator.GetStudentNameQuery;
+import net.cdonald.googleClassroom.listenerCoordinator.ListenerCoordinator;
 import net.cdonald.googleClassroom.model.ClassroomData;
 import net.cdonald.googleClassroom.model.FileData;
 import net.cdonald.googleClassroom.model.GoogleSheetData;
@@ -416,6 +418,8 @@ public class GoogleClassroomCommunicator {
 				
 				if (assignmentSubmission != null && assignmentSubmission.getAttachments() != null) {
 					String studentNameKey = submission.getUserId();
+					String studentName = (String)ListenerCoordinator.runQuery(GetStudentNameQuery.class, studentNameKey);
+					DebugLogDialog.appendln("Reading: " + studentName);
 					for (Attachment attachment : assignmentSubmission.getAttachments()) {
 						if (cancelCurrentStudentWorkRead) {
 							break;
@@ -427,27 +431,34 @@ public class GoogleClassroomCommunicator {
 							ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 							File file = driveService.files().get(driveFile.getId()).execute();
 							String type = file.getMimeType();
-							
+
 							String fileName = driveFile.getTitle();
-							if (type.contains("text")) {
-								driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(outputStream);
-								fileContents = outputStream.toString("US-ASCII");
-							}
-							else if (type.contains("google-apps.document")) {
-								driveService.files().export(driveFile.getId(), "text/plain").executeMediaAndDownloadTo(outputStream);
-								 
-								fileContents = decodeGoogleDoc(outputStream.toByteArray());
-								if (fileContents == null) {
+							DebugLogDialog.appendln("File: " + fileName);
+							try {
+								if (type.contains("text")) {
+									driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(outputStream);
 									fileContents = outputStream.toString("US-ASCII");
 								}
-								fileContents = "// Student uploaded this as a google document, delete any weird characters and\n" +
-											   "//rename the class to have the same name as the file (without the .java).\n" +
-											   fileContents;
-											   //outputStream.toString("US-ASCII");								
-								
-							} 
-							else {
-								fileContents = "Student uploaded file in unsupported format, nothing downloaded";								
+								else if (type.contains("google-apps.document")) {
+									driveService.files().export(driveFile.getId(), "text/plain").executeMediaAndDownloadTo(outputStream);
+
+									fileContents = decodeGoogleDoc(outputStream.toByteArray());
+									if (fileContents == null) {
+										fileContents = outputStream.toString("US-ASCII");
+									}
+									fileContents = "// Student uploaded this as a google document, delete any weird characters and\n" +
+											"//rename the class to have the same name as the file (without the .java).\n" +
+											fileContents;
+									//outputStream.toString("US-ASCII");								
+
+								} 
+								else {
+									fileContents = "Student uploaded file in unsupported format, nothing downloaded";								
+								}
+							}
+							catch(IOException e1)
+							{
+								fileContents = "Error loading file, check the submission for corruption/an empty file.";
 							}
 							fileName = FileData.createFileName(fileName, fileContents);
 							fileContents = FileData.stripPackage(fileContents);
