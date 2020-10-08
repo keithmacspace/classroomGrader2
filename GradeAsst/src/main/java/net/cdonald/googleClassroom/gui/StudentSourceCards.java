@@ -63,7 +63,7 @@ public class StudentSourceCards extends JPanel {
 	public JTextArea getCurrentSource(String currentID) {
 		if (currentID != null && sourceCardMap.get(currentID) != null) {
 			StudentSourceCard studentCard = sourceCardMap.get(currentID);
-			studentCard.getCurrentSource();
+			return studentCard.getCurrentSource();
 		}
 		return null;
 	}
