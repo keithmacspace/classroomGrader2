@@ -162,18 +162,36 @@ public abstract class StudentSheetColumns implements SheetAccessorInterface {
 	 */	
 	private void processStudentRows(LoadSheetData data, List<StudentData> students, int startRow, int lastNameCol, int firstNameCol) {
 		Map<String, Integer> studentRows = createStudentLocationMap(data, students, startRow, lastNameCol, firstNameCol);
+		
 		List<StudentData> studentsToInsert = new ArrayList<StudentData>();
 		for (StudentData student : students) {
 			String key = student.getName() + student.getFirstName();
 			key = key.toUpperCase();
 			if (studentRows.containsKey(key)) {
 				StudentRow studentRow = new StudentRow(student, studentRows.get(key));
-				addStudentToList(studentRow);				
+				addStudentToList(studentRow);
+				studentRows.remove(key);
 			}
 			else {
 				studentsToInsert.add(student);
+			}			
+		}
+		int maxCol = Math.max(lastNameCol,  firstNameCol);
+		// We may have had a name change, or a drop, but we don't want to delete the row right now
+		// Just have duplicates. In those cases, we just want to add the blank names as student rows
+		for (Integer missingRow : studentRows.values()) {
+			List<Object> rowValues = data.readRow(missingRow); 
+			if (rowValues != null && rowValues.size() > maxCol) {
+				Object firstNameObject = rowValues.get(firstNameCol);
+				Object lastNameObject = rowValues.get(lastNameCol);
+				if (lastNameObject instanceof String && firstNameObject instanceof String) {
+					String lastName = (String)lastNameObject;
+					String firstName = (String)firstNameObject;
+					StudentData empty = new StudentData(firstName, lastName, "FAKE" + missingRow, null);
+					StudentRow studentRow = new StudentRow(empty, missingRow);
+					addStudentToList(studentRow);
+				}
 			}
-			
 		}
 		int lastRow = data.getNumRows();
 		

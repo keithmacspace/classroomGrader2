@@ -75,8 +75,8 @@ public class GraderCommentCards extends JPanel {
 
 		ListenerCoordinator.addQueryResponder(GetAndClearModifiedNotes.class, new GetAndClearModifiedNotes() {
 			@Override
-			public Map<String, String> fired() {
-				return getModifiedComments();
+			public Map<String, String> fired(boolean getAllNotes) {
+				return getModifiedComments(getAllNotes);
 			}
 		});
 	}
@@ -100,11 +100,11 @@ public class GraderCommentCards extends JPanel {
 		}
 	}
 	
-	public Map<String, String>  getModifiedComments() {
+	public Map<String, String>  getModifiedComments(boolean getAllNotes) {
 		Map<String, String> commentMap = new HashMap<String, String>();
 		for (String studentID : notesAreas.keySet()) {
 			TrackModifiedTextArea textArea = notesAreas.get(studentID);
-			if (textArea.isModified()) {
+			if (textArea.isModified() || (getAllNotes && textArea.getText().length() != 0)) {
 				commentMap.put(studentID, textArea.getText());
 				textArea.setModified(false);
 			}

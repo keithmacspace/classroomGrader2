@@ -33,13 +33,16 @@ public class GradeSyncer extends GradeSheet {
 	private Map<String, String> modifiedCommentsMap;
 	private int maxRow;
 	private RecenlyUpdated recentlyUpdated;	
+	private boolean saveAll;
 	
 	/**
 	 * As soon as this constructor is called, we will load the current sheet & load the grades into the rubric.
 	 * The load will never change current values in the rubric.
+	 * @param saveAll 
 	 */
-	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, String> modifiedCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName) throws IOException {
+	public GradeSyncer(GoogleClassroomCommunicator communicator, Map<String, String> modifiedCommentsMap, GoogleSheetData targetFile, Rubric rubric, List<StudentData> students, String graderName, boolean saveAll) throws IOException {
 		super(communicator, targetFile);
+		this.saveAll = saveAll;
 		recentlyUpdated = new RecenlyUpdated(this, communicator, targetFile, students);
 		this.rubric = rubric;
 		this.graderName = graderName;
@@ -328,7 +331,7 @@ public class GradeSyncer extends GradeSheet {
 	public SaveSheetData getSheetSaveState() {
 		SaveSheetData saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName(), false);
 		int maxColumn = computeMaxColumn();
-		fillStudentRowsToSave(saveData, maxColumn, null);
+		fillStudentRowsToSave(saveData, maxColumn, null, saveAll);
 		// Fill these after the student rows so that the graded by is correct
 		fillDefaultRowsToSave(saveData, maxColumn);
 		maxRow = saveData.getMaxRow();
@@ -340,7 +343,7 @@ public class GradeSyncer extends GradeSheet {
 	 * 
 	 * Fill the save state data with the scores & notes for individual students
 	 */
-	private boolean fillStudentRowsToSave(SaveSheetData saveData, int maxColumn, LoadSheetData loadData) {
+	private boolean fillStudentRowsToSave(SaveSheetData saveData, int maxColumn, LoadSheetData loadData, boolean saveAll) {
 		boolean changedData = false;		
 		for (StudentRow studentRow : getStudentRowList()) {			
 			StudentData studentData = studentRow.getStudent();
@@ -365,7 +368,7 @@ public class GradeSyncer extends GradeSheet {
 						studentRowData.set(getColumnLocation(LATE_INFO_COLUMN_KEY), SimpleUtils.formatLate(date, assignment.getDate()));
 					}
 				}
-				changedData |= fillStudentGradeColumns(studentID, studentRowData, row, currentRow);
+				changedData |= fillStudentGradeColumns(studentID, studentRowData, row, currentRow, saveAll);
 
 				String note = null;
 				if (modifiedCommentsMap != null) {
@@ -391,7 +394,7 @@ public class GradeSyncer extends GradeSheet {
 	 * Go through the rubric entries for a single student, and fill in their scores & notes
 	 * returns true if we changed anything. 
 	 */
-	private boolean fillStudentGradeColumns(String studentID, List<Object> studentRowData, int row, List<Object> currentRow) {
+	private boolean fillStudentGradeColumns(String studentID, List<Object> studentRowData, int row, List<Object> currentRow, boolean saveAll) {
 		boolean changedData = false;
 		int minRubricColumn = columnLocations.size() + getColumnLocation(TOTAL_STRING);
 		int maxRubricColumn = 0;
@@ -404,11 +407,11 @@ public class GradeSyncer extends GradeSheet {
 			minRubricColumn = Math.min(location, minRubricColumn);
 			maxRubricColumn = Math.max(location, maxRubricColumn);
 			RubricEntry.StudentScore studentScore = entry.getStudentScore(studentID);
-			if (studentScore != null && studentScore.isModifiedByUser()) {
+			if (studentScore != null && (studentScore.isModifiedByUser() || saveAll)) {
 				if (gradedByColumns.containsKey(entry.getName()) == false) {
 					gradedByColumns.put(entry.getName(), graderName);
 				}				
-				changedData |= conditionallyAddToSave(studentRowData, location, studentScore, currentRow);
+				changedData |= conditionallyAddToSave(studentRowData, location, studentScore, currentRow, saveAll);
 			}
 		}
 		String startColumnName = GoogleClassroomCommunicator.getColumnName(minRubricColumn);
@@ -427,13 +430,18 @@ public class GradeSyncer extends GradeSheet {
 	 * not match (this is basically verifying the write).
 	 * 
 	 */
-	private boolean conditionallyAddToSave(List<Object> studentRowData, int col, RubricEntry.StudentScore valueToSave, List<Object> currentRow) {
+	private boolean conditionallyAddToSave(List<Object> studentRowData, int col, RubricEntry.StudentScore valueToSave, List<Object> currentRow, boolean saveAll) {
 		if (valueToSave == null || valueToSave.getScore() == null) {
 			return false;
+		}
+		if (saveAll == true) {
+			return true;
 		}
 		if (valueToSave.isModifiedByUser() == false) {
 			return false;
 		}
+
+			
 		boolean writeValue = false;
 		if (currentRow == null || currentRow.size() <= col) {
 			writeValue = true;
@@ -528,7 +536,7 @@ public class GradeSyncer extends GradeSheet {
 				LoadSheetData loadData = getCommunicator().readSheet(this);
 				saveData = new SaveSheetData(SaveSheetData.ValueType.USER_ENTERED, rubric.getName(), false);			
 				int maxColumn = computeMaxColumn();
-				changedData = fillStudentRowsToSave(saveData, maxColumn, loadData); 
+				changedData = fillStudentRowsToSave(saveData, maxColumn, loadData, false); 
 				if (changedData) {
 					getCommunicator().writeSheet(this);
 				}

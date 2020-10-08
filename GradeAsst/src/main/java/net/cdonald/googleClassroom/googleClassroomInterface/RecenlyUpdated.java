@@ -66,7 +66,8 @@ public class RecenlyUpdated extends StudentSheetColumns {
 			if (diff != 0) {
 				adjustStudentRows(diff);				
 			}
-			
+			// Students may have changed their names, so add the student columns no matter what
+			addFirstTwoColumns(saveSheetData, students);
 			List<Object> assignmentRow = data.readRow(RowTypes.RUBRIC_NAME.ordinal());
 		
 			if (assignmentRow.size() <= 2) {
@@ -192,10 +193,16 @@ public class RecenlyUpdated extends StudentSheetColumns {
 			columnZero.add(rowType.getSearchString());
 			columnOne.add("");
 		}
-		for (StudentRow studentRow : getStudentRowList()) {
+		List<StudentRow> studentRows = getStudentRowList(); 
+		for (StudentRow studentRow : studentRows) {
 			StudentData student = studentRow.getStudent();
-			columnZero.add(student.getName());
-			columnOne.add(student.getFirstName());
+			while (columnZero.size() <= studentRow.getRowNumber()) {
+				columnZero.add("");
+				columnOne.add("");
+			}
+
+			columnZero.set(studentRow.getRowNumber(), student.getName());
+			columnOne.set(studentRow.getRowNumber(), student.getFirstName());
 		}
 
 		sheetData.writeFullColumn(columnZero, 0);
@@ -241,17 +248,23 @@ public class RecenlyUpdated extends StudentSheetColumns {
 		
 		
 		int possibleStart = 0;
-		for (StudentRow studentRow : getStudentRowList()) {
+		List<StudentRow> studentRows = getStudentRowList(); 
+		for (StudentRow studentRow : studentRows) {
 			StudentData student = studentRow.getStudent();
+			while (totalColumn.size() <= studentRow.getRowNumber()) {
+				totalColumn.add("");
+				onTimeColumn.add("");
+			}
+				
 			int linkRow = gradeSyncer.getStudentRow(student.getId(), possibleStart);
 			if (linkRow != -1) {
 				linkRow++;
-				totalColumn.add(totalColumnLink + "$" + linkRow);
-				onTimeColumn.add(lateByLink + "$" + linkRow);
+				totalColumn.set(studentRow.getRowNumber(), totalColumnLink + "$" + linkRow);
+				onTimeColumn.set(studentRow.getRowNumber(), lateByLink + "$" + linkRow);
 			}
 			else {
-				totalColumn.add("");
-				onTimeColumn.add("missing");
+				totalColumn.set(studentRow.getRowNumber(), "");
+				onTimeColumn.set(studentRow.getRowNumber(), "name change or drop?");
 			}
 			possibleStart++;
 		}

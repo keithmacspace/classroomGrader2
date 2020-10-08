@@ -196,7 +196,7 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 							private boolean worked;
 							@Override
 							protected Void doInBackground() throws Exception {
-								worked = saveGradesInCurrentThread();
+								worked = saveGradesInCurrentThread(false);
 								return null;
 							}
 
@@ -297,8 +297,8 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		
 		ListenerCoordinator.addListener(SaveGradesListener.class, new SaveGradesListener() {
 			@Override
-			public void fired() {
-				saveGrades();				
+			public void fired(boolean saveAll) {
+				saveGrades(saveAll);				
 			}			
 		});
 		
@@ -462,14 +462,14 @@ public class MainGoogleClassroomFrame extends JFrame implements DataUpdateListen
 		return allFiles;
 	}
 	
-	private void saveGrades() {
-				saveGradesInCurrentThread();		
+	private void saveGrades(boolean saveAll) {
+				saveGradesInCurrentThread(saveAll);		
 	}
 	
-	private boolean saveGradesInCurrentThread() {
+	private boolean saveGradesInCurrentThread(boolean saveAll) {
 		ListenerCoordinator.fire(AddProgressBarListener.class, "Syncing Grades");
 		studentPanel.stopEditing();				
-		boolean worked = dataController.syncGrades();
+		boolean worked = dataController.syncGrades(saveAll);
 		ListenerCoordinator.fire(RemoveProgressBarListener.class, "Syncing Grades");
 		return worked;
 	}

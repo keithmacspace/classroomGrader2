@@ -1068,7 +1068,7 @@ public class DataController implements StudentListInfo {
 		return studentDataList;
 	}
 	
-	public boolean syncGrades() {
+	public boolean syncGrades(boolean saveAll) {
 		boolean worked = true;
 		
 		if (currentRubric != null && currentRubric != rubricBeingEdited && gradeURL != null && testFile == null) {
@@ -1076,11 +1076,11 @@ public class DataController implements StudentListInfo {
 				Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.LOCK_USER_MODIFICATIONS);
 				ClassroomData assignment = (ClassroomData) ListenerCoordinator.runQuery(GetCurrentAssignmentQuery.class);
 				@SuppressWarnings("unchecked")
-				Map<String, String> modifiedNotes = (Map<String, String>)ListenerCoordinator.runQuery(GetAndClearModifiedNotes.class);
+				Map<String, String> modifiedNotes = (Map<String, String>)ListenerCoordinator.runQuery(GetAndClearModifiedNotes.class, saveAll);
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, modifiedNotes, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, modifiedNotes, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName(), saveAll);
 				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments(), false);
-				if (currentRubric.areGradesModified() || modifiedNotes.size() > 0 || currentRubric.isLoadedFromFile() == false) {
+				if (currentRubric.areGradesModified() || modifiedNotes.size() > 0 || currentRubric.isLoadedFromFile() == false || saveAll == true) {
 					for (StudentDataClass student : studentData) {
 						String studentID = student.getStudent(false).getId();
 						List<FileData> fileData = studentWorkCompiler.getSourceCode(studentID);
@@ -1112,7 +1112,7 @@ public class DataController implements StudentListInfo {
 			Rubric.setScoreModifiableState(Rubric.ScoreModifiableState.LOCK_USER_MODIFICATIONS);
 			try {				
 				GoogleSheetData targetFile = new GoogleSheetData(currentRubric.getName(), gradeURL.getId(),  currentRubric.getName());
-				GradeSyncer grades = new GradeSyncer(googleClassroom, null, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName());
+				GradeSyncer grades = new GradeSyncer(googleClassroom, null, targetFile, currentRubric, createStudentDataList(false), prefs.getUserName(), false);
 				ListenerCoordinator.fire(GradesSyncedListener.class, grades.getComments(), true);
 				updateListener.structureChanged();
 			} catch (Exception e) {

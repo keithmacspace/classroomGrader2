@@ -95,8 +95,10 @@ public class MainMenu extends JMenuBar {
 
 		openClassroom = new JMenu("Open Classroom");
 		JMenuItem chooseGradeFile = new JMenuItem("Choose Grade File...");
-		JMenuItem syncGrades = new JMenuItem("Sync Grades to Sheet");
-		syncGrades.setToolTipText("Loads & Saves grades to the grade file - not seen by students");
+		JMenuItem syncGrades = new JMenuItem("Sync Modified Grades to Sheet");
+		JMenuItem syncAllGrades = new JMenuItem("Sync All Grades to Sheet");
+		syncAllGrades.setToolTipText("A bit slower, saves all grades, even those that have not changed.");
+		syncGrades.setToolTipText("Loads & Saves all changes made since last save to the grade file.");
 		publishGrades = new JMenuItem("Publish Grades");
 		publishGrades.setToolTipText("Pushes grades back up to google classroom for the students to see");
 		publishSelectedGrades = new JMenuItem("Publish Selected Grades");
@@ -113,6 +115,7 @@ public class MainMenu extends JMenuBar {
 		file.addSeparator();
 		file.add(chooseGradeFile);
 		file.add(syncGrades);
+		file.add(syncAllGrades);
 		file.addSeparator();
 		file.add(publishGrades);
 		file.add(publishSelectedGrades);
@@ -139,7 +142,15 @@ public class MainMenu extends JMenuBar {
 		syncGrades.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ListenerCoordinator.fire(SaveGradesListener.class);
+				ListenerCoordinator.fire(SaveGradesListener.class, false);
+
+			}
+		});
+		
+		syncAllGrades.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ListenerCoordinator.fire(SaveGradesListener.class, true);
 
 			}
 		});
