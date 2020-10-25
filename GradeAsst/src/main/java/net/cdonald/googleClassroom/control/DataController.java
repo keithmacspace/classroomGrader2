@@ -917,17 +917,30 @@ public class DataController implements StudentListInfo {
 				}
 			}
 		}
-		else if (showRedMap != null) {
-			String studentId = getStudentId(row);
-			if (showRedMap.containsKey(studentId)) {
-				if (currentRubric != null) {
-					RubricEntry entry = currentRubric.getEntry(getRubricIndex(col));
-					if (entry != null) {
-						
-						if (showRedMap.get(studentId).contains(entry.getColumnName())) {
-							return true;
+		else {
+			if (currentRubric != null) {
+
+				RubricEntry entry = currentRubric.getEntry(getRubricIndex(col));
+
+				if (entry != null) {
+					String studentId = getStudentId(row);
+					if (showRedMap != null) {
+
+						if (showRedMap.containsKey(studentId)) {
+							if (currentRubric != null) {
+
+								if (showRedMap.get(studentId).contains(entry.getColumnName())) {
+									return true;
+								}
+							}
 						}
 					}
+					StudentScore score = entry.getStudentScore(studentId);
+					if (score != null && score.getScore() != null && (score.getScore() > entry.getValue() || score.getScore() < 0.0))
+					{
+						return true;
+					}
+
 				}
 			}
 		}

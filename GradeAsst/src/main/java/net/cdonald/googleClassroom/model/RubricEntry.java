@@ -172,12 +172,12 @@ public class RubricEntry {
 
 			} else if (stringValue.length() > 0) {
 				Double test = Double.parseDouble(stringValue);
-				if (test <= rubricValue || rubricValue == 0.0) {										
-					if ((score.score == null || !test.equals(score.score)) && Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
-						score.modifiedByUser = true;
-					}
-					score.score = test;
+
+				if ((score.score == null || !test.equals(score.score)) && Rubric.getScoreModifiableState() == Rubric.ScoreModifiableState.TRACK_MODIFICATIONS) {
+					score.modifiedByUser = true;
 				}
+				score.score = test;
+
 			}
 		} catch (NumberFormatException e) {
 

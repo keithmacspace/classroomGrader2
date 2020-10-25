@@ -329,7 +329,7 @@ public class GoogleClassroomCommunicator {
 		cancelCurrentAssignmentRead = true;
 		acquireReadAssignmentSemaphore();
 		acquireReadStudentsWorkSemaphore();
-		DebugLogDialog.appendln("Try");
+
 		try {
 			initServices();
 
@@ -344,7 +344,7 @@ public class GoogleClassroomCommunicator {
 				Date date = courseWork.getDueDate();
 				java.util.Date convertedDueDate = null;
 				
-				DebugLogDialog.appendln("Here" + courseWork.getTitle() + date);
+
 				TimeOfDay dueTime = courseWork.getDueTime();
 				
 				if (date != null && dueTime != null) {					
@@ -419,7 +419,7 @@ public class GoogleClassroomCommunicator {
 				if (assignmentSubmission != null && assignmentSubmission.getAttachments() != null) {
 					String studentNameKey = submission.getUserId();
 					String studentName = (String)ListenerCoordinator.runQuery(GetStudentNameQuery.class, studentNameKey);
-					DebugLogDialog.appendln("Reading: " + studentName);
+
 					for (Attachment attachment : assignmentSubmission.getAttachments()) {
 						if (cancelCurrentStudentWorkRead) {
 							break;
@@ -433,7 +433,7 @@ public class GoogleClassroomCommunicator {
 							String type = file.getMimeType();
 
 							String fileName = driveFile.getTitle();
-							DebugLogDialog.appendln("File: " + fileName);
+
 							try {
 								if (type.contains("text")) {
 									driveService.files().get(driveFile.getId()).executeMediaAndDownloadTo(outputStream);
